@@ -20,7 +20,7 @@ int     main(void)
     Log log_Error("Error", "error.log", std::ofstream::trunc);
     Loggator::Log log_test;
 
-    // log_test.setMuted(true);
+    log_test.setMuted(true);
 
     // LOGGATOR(log_test, Trace, "eioiwheov");
     log_test.addChild(log_Debug).addChild(log_Trace).addChild(log_Info).addChild(log_Warning).addChild(log_Error);
@@ -43,21 +43,30 @@ int     main(void)
     log_Error.setFilter(eFilterLog::EqError);
     log_Error.setFormat("{time:%Y/%m/%d %X.%N} {name}: ");
 
+    // Logg(log_test, eTypeLog::Debug, SOURCE_INFOS) << "test";
+    // Logg(log_test, eTypeLog::Debug, SOURCE_INFOS) << "test";
+    // Logg(log_test, eTypeLog::Debug, SOURCE_INFOS) << "test";
+    // Logg(log_test, eTypeLog::Debug, SOURCE_INFOS) << "test";
+    // Logg(log_test, eTypeLog::Debug, SOURCE_INFOS) << "test";
+    // Logg(log_test, eTypeLog::Debug, SOURCE_INFOS) << "test";
+    // Logg(log_test, eTypeLog::Debug, SOURCE_INFOS) << "test";
+    // Logg(log_test, eTypeLog::Debug, SOURCE_INFOS) << "test";
+
     std::thread t1([&]{
-        log_test << "test";
-        log_test << "test";
-        log_test << "test";
-        log_test << "test";
-        log_test << "test";
-        log_test << "test";
-        log_test << "test";
+        // log_test << "test";
+        // log_test << "test";
+        // log_test << "test";
+        // log_test << "test";
+        // log_test << "test";
+        // log_test << "test";
+        // log_test << "test";
         // log_test.send(eTypeLog::Trace, SOURCE_INFOS);
     // LOGGATOR(log_test, Trace, "First");
     // LOGGATOR(log_test, Trace, "Debug*********");
     // for (int i = 0 ; i < 10000; i++)
         // LOGGATOR(log_Debug, Trace, i);
     // LOGGATOR(log_test, Trace, "********Debug");
-        log_test.resetCache();
+        // log_test.resetCache();
     });
 
     std::thread t2([&]{

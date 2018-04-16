@@ -49,7 +49,55 @@ enum eFilterLog
     LessError       = LessEqWarning
 };
 
-class Log
+struct SourceInfos
+{
+    const char *filename;
+    int         line;
+    const char *func;
+};
+
+class ILog
+{
+public:
+    virtual void send(const std::string &, eTypeLog, const SourceInfos &) = 0;
+};
+
+class Logg
+{
+
+public:
+
+    Logg(ILog &log, const eTypeLog &type, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) : _log(log), _type(type), _sourceInfos(sourceInfos)
+    {
+        return ;
+    }
+
+    ~Logg()
+    {
+        std::string cacheStr = std::move(_cacheStream.str());
+        if (cacheStr.back() != '\n')
+            cacheStr += "\n";
+        _log.send(cacheStr, _type, _sourceInfos);
+        return ;
+    }
+
+    template<typename T>
+    std::stringstream& operator<<(const T& var)
+    {
+        _cacheStream << var;
+        return _cacheStream;
+    }
+
+private:
+
+    ILog                &_log;
+    const eTypeLog      &_type;
+    const SourceInfos   &_sourceInfos;
+    std::stringstream   _cacheStream;
+
+};
+
+class Log : public ILog
 {
 
 public:
@@ -58,13 +106,6 @@ public:
     {
         time_t timer;
         struct timespec ts;
-    };
-
-    struct SourceInfos
-    {
-        const char *filename;
-        int         line;
-        const char *func;
     };
 
     Log(void) :
@@ -112,60 +153,60 @@ public:
     _timeFormat(log._timeFormat),
     _muted(false)
     {
-        std::lock_guard<std::recursive_mutex> lockGuard(log._mutex);
+        std::lock_guard<std::mutex> lockGuard(log._mutex);
         _logChilds = log._logChilds;
         return ;
     }
 
     void                setName(const std::string &name)
     {
-        std::lock_guard<std::recursive_mutex> lockGuard(_mutex);
+        std::lock_guard<std::mutex> lockGuard(_mutex);
         _name = name;
     }
 
     void                setFilter(int filter)
     {
-        std::lock_guard<std::recursive_mutex> lockGuard(_mutex);
+        std::lock_guard<std::mutex> lockGuard(_mutex);
         _filter = filter;
     }
 
     void                addFilter(int filter)
     {
-        std::lock_guard<std::recursive_mutex> lockGuard(_mutex);
+        std::lock_guard<std::mutex> lockGuard(_mutex);
         _filter |= filter;
     }
 
     void                subFilter(int filter)
     {
-        std::lock_guard<std::recursive_mutex> lockGuard(_mutex);
+        std::lock_guard<std::mutex> lockGuard(_mutex);
         if (_filter | filter)
             _filter -= filter;
     }
 
     Log                 &addChild(Log &log)
     {
-        std::lock_guard<std::recursive_mutex> lockGuard(_mutex);
+        std::lock_guard<std::mutex> lockGuard(_mutex);
         _logChilds.insert(&log);
         return (*this);
     }
 
     Log                 &subChild(Log &log)
     {
-        std::lock_guard<std::recursive_mutex> lockGuard(_mutex);
+        std::lock_guard<std::mutex> lockGuard(_mutex);
         _logChilds.erase(&log);
         return (*this);
     }
 
     Log                 &listen(Log &log)
     {
-        std::lock_guard<std::recursive_mutex> lockGuard(log._mutex);
+        std::lock_guard<std::mutex> lockGuard(log._mutex);
         log._logChilds.insert(this);
         return (*this);
     }
 
     Log                 &unlisten(Log &log)
     {
-        std::lock_guard<std::recursive_mutex> lockGuard(log._mutex);
+        std::lock_guard<std::mutex> lockGuard(log._mutex);
         log._logChilds.erase(this);
         return (*this);
     }
@@ -182,7 +223,7 @@ public:
 
     void                setFormat(const std::string &format)
     {
-        std::lock_guard<std::recursive_mutex> lockGuard(_mutex);
+        std::lock_guard<std::mutex> lockGuard(_mutex);
         _format = format;
         std::size_t found = _format.find("{time");
         if (found != std::string::npos)
@@ -274,7 +315,7 @@ public:
 
     void            resetCache(void)
     {
-        std::lock_guard<std::recursive_mutex> lockGuard(_mutex);
+        std::lock_guard<std::mutex> lockGuard(_mutex);
         size_t nbUnlock = _countLock;
         _countLock = 0;
         _cacheStream.clear();
@@ -285,7 +326,7 @@ public:
 
     void            send(eTypeLog type, const SourceInfos &source = {nullptr, 0, nullptr})
     {
-        std::lock_guard<std::recursive_mutex> lockGuard(_mutex);
+        std::lock_guard<std::mutex> lockGuard(_mutex);
         size_t nbUnlock = _countLock;
         _countLock = 0;
         if (_muted == true)
@@ -297,7 +338,7 @@ public:
             return ;
         }
         std::string cacheStr = _cacheStream.str();
-        if (_cacheStream.str().back() != '\n')
+        if (cacheStr.back() != '\n')
             cacheStr += "\n";
         getCurrentTimeInfos();
         if (_filter & type)
@@ -314,18 +355,47 @@ public:
             _mutex.unlock();
     }
 
+    void            send(const std::string &str, eTypeLog type, const SourceInfos &source = {nullptr, 0, nullptr})
+    {
+        // size_t nbUnlock = _countLock;
+        // _countLock = 0;
+        if (_muted == true)
+        {
+            // _cacheStream.clear();
+            // _cacheStream.str(std::string());
+            // for (size_t i = 0; i < nbUnlock; i++)
+                // _mutex.unlock();
+            return ;
+        }
+        // std::string cacheStr = _cacheStream.str();
+        // if (cacheStr.back() != '\n')
+            // cacheStr += "\n";
+        getCurrentTimeInfos();
+        if (_filter & type)
+        {
+            std::lock_guard<std::mutex> lockGuard(_mutex);
+            *(_outStream) << prompt(*this, type, _timeInfos, source) << str << std::flush;
+        }
+        std::set<Log*> tmpsetLog;
+        tmpsetLog.insert(this);
+        sendChild(tmpsetLog, *this, type, _timeInfos, source, str);
+        // _cacheStream.clear();
+        // _cacheStream.str(std::string());
+        // for (size_t i = 0; i < nbUnlock; i++)
+            // _mutex.unlock();
+    }
+
     void            sendChild(std::set<Log*> &setLog, Log &log, eTypeLog type, timeInfos &timeInfos, const SourceInfos &source, const std::string &str)
     {
         for (Log *child : log._logChilds)
         {
             if (setLog.find(child) != setLog.end())
                 continue;
-            std::lock_guard<std::recursive_mutex> lockGuard(child->_mutex);
             setLog.insert(child);
             if (child->_muted == false && child->_filter & type)
             {
-                *(child->_outStream) << child->prompt(log, type, timeInfos, source) << str;
-                *(child->_outStream) << std::flush;
+                std::lock_guard<std::mutex> lockGuard(child->_mutex);
+                *(child->_outStream) << child->prompt(log, type, timeInfos, source) << str << std::flush;
             }
             sendChild(setLog, *child, type, timeInfos, source, str);
         }
@@ -398,7 +468,7 @@ private:
     std::set<Log*>          _logChilds;
     std::stringstream       _cacheStream;
     std::string             _name;
-    std::recursive_mutex    _mutex;
+    std::mutex              _mutex;
     size_t                  _countLock;
     std::string             _format;
     std::string             _timeFormat;
@@ -414,6 +484,6 @@ private:
 
 #define LOGGATOR(_log, _type, _args) \
     if (_log.isMuted() == false) \
-        _log << _args, _log.send(Loggator::_type, SOURCE_INFOS);
+        Logg(_log, Loggator::_type, SOURCE_INFOS) << _args;
 
 #endif // _LOGGER_HPP_

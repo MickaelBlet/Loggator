@@ -72,6 +72,11 @@ public:
         return ;
     }
 
+    Logg(Logg&& log) : _log(log._log), _type(log._type), _sourceInfos(log._sourceInfos)
+    {
+        return ;
+    }
+
     ~Logg()
     {
         std::string cacheStr = std::move(_cacheStream.str());
@@ -449,6 +454,11 @@ public:
             found = prompt.find("{", start + 1);
         }
         return prompt;
+    }
+
+    Logg stream(const eTypeLog &type, const SourceInfos &sourceInfos = {nullptr, 0, nullptr})
+    {
+        return Logg(*this, type, sourceInfos);
     }
 
     template<typename T>

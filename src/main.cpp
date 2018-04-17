@@ -20,7 +20,7 @@ int     main(void)
     Log log_Error("Error", "error.log", std::ofstream::trunc);
     Loggator::Log log_test;
 
-    log_test.setMuted(true);
+    // log_test.setMuted(true);
 
     // LOGGATOR(log_test, Trace, "eioiwheov");
     log_test.addChild(log_Debug).addChild(log_Trace).addChild(log_Info).addChild(log_Warning).addChild(log_Error);
@@ -53,6 +53,7 @@ int     main(void)
     // Logg(log_test, eTypeLog::Debug, SOURCE_INFOS) << "test";
 
     std::thread t1([&]{
+        log_test.stream(eTypeLog::Debug, SOURCE_INFOS) << "pqojfpqojwfpoqjwfpojq wfpojqwpfoj";
         // log_test << "test";
         // log_test << "test";
         // log_test << "test";

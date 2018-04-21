@@ -12,7 +12,7 @@
 #include <mutex>
 #include <thread>
 
-namespace Loggator
+namespace Log
 {
 
 enum eTypeLog
@@ -56,56 +56,53 @@ struct SourceInfos
     const char *func;
 };
 
-class ILog
-{
-public:
-    virtual void send(const std::string &, eTypeLog, const SourceInfos &) = 0;
-};
-
-class Logg
+class Loggator
 {
 
 public:
 
-    Logg(ILog &log, const eTypeLog &type, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) : _log(log), _type(type), _sourceInfos(sourceInfos)
+    class SendFifo
     {
-        return ;
-    }
 
-    Logg(Logg&& log) : _log(log._log), _type(log._type), _sourceInfos(log._sourceInfos)
-    {
-        return ;
-    }
+    public:
 
-    ~Logg()
-    {
-        std::string cacheStr = std::move(_cacheStream.str());
-        if (cacheStr.back() != '\n')
-            cacheStr += "\n";
-        _log.send(cacheStr, _type, _sourceInfos);
-        return ;
-    }
+        SendFifo(Loggator &log, const eTypeLog &type, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) noexcept: _log(log), _type(type), _sourceInfos(sourceInfos)
+        {
+            return ;
+        }
 
-    template<typename T>
-    std::stringstream& operator<<(const T& var)
-    {
-        _cacheStream << var;
-        return _cacheStream;
-    }
+        SendFifo(SendFifo&& log) noexcept: _log(log._log), _type(log._type), _sourceInfos(log._sourceInfos)
+        {
+            return ;
+        }
 
-private:
+        ~SendFifo() noexcept
+        {
+            std::string cacheStr = std::move(_cacheStream.str());
+            if (cacheStr.back() != '\n')
+                cacheStr += "\n";
+            _log.send(cacheStr, _type, _sourceInfos);
+            return ;
+        }
 
-    ILog                &_log;
-    const eTypeLog      &_type;
-    const SourceInfos   &_sourceInfos;
-    std::stringstream   _cacheStream;
+        template<typename T>
+        std::stringstream& operator<<(const T& var)
+        {
+            _cacheStream << var;
+            return _cacheStream;
+        }
 
-};
+    private:
+        SendFifo(void) = delete;
+        SendFifo(const SendFifo &) = delete;
+        SendFifo &operator=(const SendFifo &) = delete;
 
-class Log : public ILog
-{
+        Loggator            &_log;
+        const eTypeLog      &_type;
+        const SourceInfos   &_sourceInfos;
+        std::stringstream   _cacheStream;
 
-public:
+    };
 
     struct timeInfos
     {
@@ -113,25 +110,26 @@ public:
         struct timespec ts;
     };
 
-    Log(void) :
+    Loggator(void) noexcept:
+    _name("unknown"),
     _filter(eFilterLog::All),
+    _format("{type} {time} : "),
+    _timeFormat("%y/%m/%d %X.%N"),
+    _filename("unknown"),
     _outStream(&std::cerr),
-    _name(__func__),
-    _countLock(0),
     _muted(false)
     {
         return ;
     }
 
-    Log(const std::string &name, const std::string &filename, std::ios_base::openmode openMode = std::ios_base::app) :
-    _filter(eFilterLog::All),
-    _outStream(&std::cerr),
-    _filename(filename),
-    _fileStream(_filename, std::ios_base::out | openMode),
+    Loggator(const std::string &name, const std::string &filename, std::ios::openmode openMode = std::ios::app) noexcept:
     _name(name),
-    _countLock(0),
+    _filter(eFilterLog::All),
     _format("{type} {time} {name}: "),
     _timeFormat("%y/%m/%d %X.%N"),
+    _filename(filename),
+    _fileStream(_filename, std::ios::out | openMode),
+    _outStream(&std::cerr),
     _muted(false)
     {
         if (_fileStream.is_open())
@@ -139,27 +137,34 @@ public:
         return ;
     }
 
-    Log(std::ostream &oStream) :
+    Loggator(std::ostream &oStream) noexcept:
+    _name("unknown"),
     _filter(eFilterLog::All),
-    _outStream(&std::cerr),
+    _format("{type} {time} : "),
+    _timeFormat("%y/%m/%d %X.%N"),
+    _filename("unknown"),
+    _outStream(&oStream),
     _muted(false)
     {
-        _outStream = &oStream;
         return ;
     }
 
-    Log(Log &log) :
-    _filter(log._filter),
-    _outStream(log._outStream),
-    _filename(log._filename),
-    _name(log._name),
-    _countLock(0),
-    _format(log._format),
-    _timeFormat(log._timeFormat),
-    _muted(false)
+    Loggator(Loggator &loggator) noexcept:
+    _name(loggator._name),
+    _filter(loggator._filter),
+    _format(loggator._format),
+    _timeFormat(loggator._timeFormat),
+    _filename(loggator._filename),
+    _outStream(loggator._outStream),
+    _muted(loggator._muted)
     {
-        std::lock_guard<std::mutex> lockGuard(log._mutex);
-        _logChilds = log._logChilds;
+        std::lock_guard<std::mutex> lockGuard(loggator._mutex);
+        _logChilds = loggator._logChilds;
+        return ;
+    }
+
+    ~Loggator(void) noexcept
+    {
         return ;
     }
 
@@ -188,31 +193,31 @@ public:
             _filter -= filter;
     }
 
-    Log                 &addChild(Log &log)
+    Loggator            &addChild(Loggator &loggator)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
-        _logChilds.insert(&log);
+        _logChilds.insert(&loggator);
         return (*this);
     }
 
-    Log                 &subChild(Log &log)
+    Loggator            &subChild(Loggator &loggator)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
-        _logChilds.erase(&log);
+        _logChilds.erase(&loggator);
         return (*this);
     }
 
-    Log                 &listen(Log &log)
+    Loggator            &listen(Loggator &loggator)
     {
-        std::lock_guard<std::mutex> lockGuard(log._mutex);
-        log._logChilds.insert(this);
+        std::lock_guard<std::mutex> lockGuard(loggator._mutex);
+        loggator._logChilds.insert(this);
         return (*this);
     }
 
-    Log                 &unlisten(Log &log)
+    Loggator            &unlisten(Loggator &loggator)
     {
-        std::lock_guard<std::mutex> lockGuard(log._mutex);
-        log._logChilds.erase(this);
+        std::lock_guard<std::mutex> lockGuard(loggator._mutex);
+        loggator._logChilds.erase(this);
         return (*this);
     }
 
@@ -221,7 +226,7 @@ public:
         _muted = mute;
     }
 
-    bool                isMuted(void)
+    bool                isMuted(void) const
     {
         return (_muted == true);
     }
@@ -239,24 +244,23 @@ public:
             }
             else if (_format[found + 5] == ':')
             {
-                std::size_t start = found + 5;
-                found = _format.find("}", found + 5);
-                if (found != std::string::npos)
+                std::size_t indexStart = found + 5;
+                std::size_t indexEnd = _format.find("}", found + 5);
+                if (indexEnd != std::string::npos)
                 {
-                    std::size_t end = found;
-                    _timeFormat = _format.substr(start + 1, end - start);
-                    _format.erase(start, end - start);
+                    _timeFormat = _format.substr(indexStart + 1, indexEnd - indexStart);
+                    _format.erase(indexStart, indexEnd - indexStart);
                 }
             }
         }
     }
 
-    bool                isOpened(void)
+    bool                isOpened(void) const
     {
         return _fileStream.is_open();
     }
 
-    std::string         formatTime(timeInfos &infos)
+    std::string         formatTime(timeInfos &infos) const
     {
         struct tm* tm_info;
         char bufferFormatTime[127];
@@ -278,7 +282,7 @@ public:
         return std::string(bufferFormatTime);
     }
 
-    timeInfos            &getCurrentTimeInfos(void)
+    timeInfos getCurrentTimeInfos(void) const
     {
         time_t timer;
         struct timespec ts;
@@ -288,12 +292,10 @@ public:
         if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
             ts.tv_nsec = 0;
 
-        _timeInfos = {timer, ts};
-
-        return _timeInfos;
+        return {timer, ts};
     }
 
-    const char      *typeToStr(eTypeLog type)
+    const char      *typeToStr(eTypeLog type) const
     {
         switch (type)
         {
@@ -318,81 +320,24 @@ public:
         }
     }
 
-    void            resetCache(void)
-    {
-        std::lock_guard<std::mutex> lockGuard(_mutex);
-        size_t nbUnlock = _countLock;
-        _countLock = 0;
-        _cacheStream.clear();
-        _cacheStream.str(std::string());
-        for (size_t i = 0; i < nbUnlock; i++)
-            _mutex.unlock();
-    }
-
-    void            send(eTypeLog type, const SourceInfos &source = {nullptr, 0, nullptr})
-    {
-        std::lock_guard<std::mutex> lockGuard(_mutex);
-        size_t nbUnlock = _countLock;
-        _countLock = 0;
-        if (_muted == true)
-        {
-            _cacheStream.clear();
-            _cacheStream.str(std::string());
-            for (size_t i = 0; i < nbUnlock; i++)
-                _mutex.unlock();
-            return ;
-        }
-        std::string cacheStr = _cacheStream.str();
-        if (cacheStr.back() != '\n')
-            cacheStr += "\n";
-        getCurrentTimeInfos();
-        if (_filter & type)
-        {
-            *(_outStream) << prompt(*this, type, _timeInfos, source) << cacheStr;
-        }
-        std::set<Log*> tmpsetLog;
-        tmpsetLog.insert(this);
-        sendChild(tmpsetLog, *this, type, _timeInfos, source, cacheStr);
-        _cacheStream.clear();
-        _cacheStream.str(std::string());
-        *(_outStream) << std::flush;
-        for (size_t i = 0; i < nbUnlock; i++)
-            _mutex.unlock();
-    }
-
     void            send(const std::string &str, eTypeLog type, const SourceInfos &source = {nullptr, 0, nullptr})
     {
-        // size_t nbUnlock = _countLock;
-        // _countLock = 0;
         if (_muted == true)
-        {
-            // _cacheStream.clear();
-            // _cacheStream.str(std::string());
-            // for (size_t i = 0; i < nbUnlock; i++)
-                // _mutex.unlock();
             return ;
-        }
-        // std::string cacheStr = _cacheStream.str();
-        // if (cacheStr.back() != '\n')
-            // cacheStr += "\n";
-        getCurrentTimeInfos();
+        timeInfos timeInfos = getCurrentTimeInfos();
         if (_filter & type)
         {
             std::lock_guard<std::mutex> lockGuard(_mutex);
-            *(_outStream) << prompt(*this, type, _timeInfos, source) << str << std::flush;
+            *(_outStream) << prompt(*this, type, timeInfos, source) << str << std::flush;
         }
-        std::set<Log*> tmpsetLog;
+        std::set<Loggator*> tmpsetLog;
         tmpsetLog.insert(this);
-        sendChild(tmpsetLog, *this, type, _timeInfos, source, str);
-        // _cacheStream.clear();
-        // _cacheStream.str(std::string());
-        // for (size_t i = 0; i < nbUnlock; i++)
-            // _mutex.unlock();
+        sendChild(tmpsetLog, *this, type, timeInfos, source, str);
     }
 
-    void            sendChild(std::set<Log*> &setLog, Log &log, eTypeLog type, timeInfos &timeInfos, const SourceInfos &source, const std::string &str)
+    void            sendChild(std::set<Loggator*> &setLog, Loggator &loggator, eTypeLog type, timeInfos &timeInfos, const SourceInfos &source, const std::string &str)
     {
-        for (Log *child : log._logChilds)
+        for (Loggator *child : loggator._logChilds)
         {
             if (setLog.find(child) != setLog.end())
                 continue;
@@ -400,100 +345,92 @@ public:
             if (child->_muted == false && child->_filter & type)
             {
                 std::lock_guard<std::mutex> lockGuard(child->_mutex);
-                *(child->_outStream) << child->prompt(log, type, timeInfos, source) << str << std::flush;
+                *(child->_outStream) << child->prompt(loggator, type, timeInfos, source) << str << std::flush;
             }
             sendChild(setLog, *child, type, timeInfos, source, str);
         }
     }
 
-    std::string     prompt(Log &log, eTypeLog type, timeInfos &timeInfos, const SourceInfos &source = {nullptr, 0, nullptr})
+    std::string     prompt(Loggator &loggator, eTypeLog type, timeInfos &timeInfos, const SourceInfos &source = {nullptr, 0, nullptr}) const
     {
         std::string prompt = _format;
-        std::size_t found = prompt.find("{");
-        while (found != std::string::npos)
+        std::size_t indexStart = prompt.find("{");
+        while (indexStart != std::string::npos)
         {
-            std::size_t start = found;
-            found = prompt.find("}", found);
-            if (found == std::string::npos)
+            std::size_t indexEnd = prompt.find("}", indexStart);
+            if (indexEnd == std::string::npos)
                 break;
-            std::size_t end = found;
-            std::string key = prompt.substr(start, end - start + 1);
+            std::string key = prompt.substr(indexStart, indexEnd - indexStart + 1);
             if (key == "{time}")
             {
-                prompt.replace(start, key.size(), formatTime(timeInfos));
+                prompt.replace(indexStart, key.size(), formatTime(timeInfos));
             }
             else if (key == "{type}")
             {
-                prompt.replace(start, key.size(), typeToStr(type));
+                prompt.replace(indexStart, key.size(), typeToStr(type));
             }
             else if (key == "{name}")
             {
-                prompt.replace(start, key.size(), log._name);
+                prompt.replace(indexStart, key.size(), loggator._name);
             }
             else if (key == "{func}")
             {
                 if (source.func != nullptr)
-                    prompt.replace(start, key.size(), source.func);
+                    prompt.replace(indexStart, key.size(), source.func);
                 else
-                    prompt.erase(start, key.size());
+                    prompt.erase(indexStart, key.size());
             }
             else if (key == "{path}")
             {
                 if (source.filename != nullptr)
-                    prompt.replace(start, key.size(), source.filename);
+                    prompt.replace(indexStart, key.size(), source.filename);
                 else
-                    prompt.erase(start, key.size());
+                    prompt.erase(indexStart, key.size());
             }
             else if (key == "{line}")
             {
                 if (source.line > 0)
-                    prompt.replace(start, key.size(), std::to_string(source.line));
+                    prompt.replace(indexStart, key.size(), std::to_string(source.line));
                 else
-                    prompt.erase(start, key.size());
+                    prompt.erase(indexStart, key.size());
             }
-            found = prompt.find("{", start + 1);
+            indexStart = prompt.find("{", indexStart + 1);
         }
         return prompt;
     }
 
-    Logg stream(const eTypeLog &type, const SourceInfos &sourceInfos = {nullptr, 0, nullptr})
+    SendFifo send(const eTypeLog &type, const SourceInfos &sourceInfos = {nullptr, 0, nullptr})
     {
-        return Logg(*this, type, sourceInfos);
-    }
-
-    template<typename T>
-    friend std::stringstream& operator<<(Log& log, const T& var)
-    {
-        log._mutex.lock();
-        log._countLock++;
-        log._cacheStream << var;
-        return log._cacheStream;
+        return SendFifo(*this, type, sourceInfos);
     }
 
 private:
-    int                     _filter;
-    std::ostream            *_outStream;
-    std::string             _filename;
-    std::ofstream           _fileStream;
-    std::set<Log*>          _logChilds;
-    std::stringstream       _cacheStream;
     std::string             _name;
-    std::mutex              _mutex;
-    size_t                  _countLock;
+    int                     _filter;
     std::string             _format;
     std::string             _timeFormat;
-    timeInfos               _timeInfos;
+    std::string             _filename;
+    std::ofstream           _fileStream;
+    std::ostream            *_outStream;
+    std::set<Loggator*>     _logChilds;
+    std::mutex              _mutex;
     bool                    _muted;
 
 };
 
 } // end namespace
 
-#define SOURCE_INFOS \
-    {__FILE__, __LINE__, __func__}
+# define NARGS_SEQ(_1, _2, _3, _4, _5, _6, _7, _8, _9, _0, N, ...) N
+# define NARGS(...) NARGS_SEQ(__VA_ARGS__, 0, 9, 8, 7, 6, 5, 4, 3, 2, 1)
+# define PRIMITIVE_CAT(x, y) x ## y
+# define CAT(x, y) PRIMITIVE_CAT(x, y)
+# define PRE_NARGS(...) NARGS(__VA_ARGS__)
+# define NOARGS() ,,,,,,,,,
+# define MACRO_CHOOSER(macro_prefix, ...) CAT(macro_prefix, PRE_NARGS(NOARGS __VA_ARGS__ ()))
 
-#define LOGGATOR(_log, _type, _args) \
-    if (_log.isMuted() == false) \
-        Logg(_log, Loggator::_type, SOURCE_INFOS) << _args;
+# define LOG(_log, _type) _log.send(Log::eTypeLog::_type, {__FILE__, __LINE__, __func__})
+# define SEND(...) MACRO_CHOOSER(SEND_, __VA_ARGS__)(__VA_ARGS__)
+# define SEND_0() send(Log::eTypeLog::Debug, SourceInfos{__FILE__, __LINE__, __func__})
+# define SEND_1(_typeLog) send(Log::eTypeLog::_typeLog, SourceInfos{__FILE__, __LINE__, __func__})
 
 #endif // _LOGGER_HPP_

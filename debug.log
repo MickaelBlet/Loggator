@@ -1,24 +1,3 @@
-DEBUG 2018/04/17 09:14:29.03365 Log operator() src/main.cpp:78: Debug2
-DEBUG 2018/04/17 09:14:29.03453 Log operator() src/main.cpp:79: Debugmain()::<lambda()>
-TRACE 2018/04/17 09:14:29.03462 Log operator() src/main.cpp:80: Trace
-DEBUG 2018/04/17 09:14:29.03462 Log operator() src/main.cpp:104: Debug
-TRACE 2018/04/17 09:14:29.03478 Log operator() src/main.cpp:105: Trace
-DEBUG 2018/04/17 09:14:29.03478 Log  :: pqojfpqojwfpoqjwfpojq wfpojqwpfoj
-DEBUG 2018/04/17 09:14:29.03487 Log operator() src/main.cpp:91: Debug3
-DEBUG 2018/04/17 09:14:29.03492 Log operator() src/main.cpp:92: Debug
-INFO  2018/04/17 09:14:29.03497 Log operator() src/main.cpp:106: Info
-INFO  2018/04/17 09:14:29.03497 Log operator() src/main.cpp:81: Info
-WARNG 2018/04/17 09:14:29.03517 Log operator() src/main.cpp:107: Warning
-TRACE 2018/04/17 09:14:29.03517 Log operator() src/main.cpp:93: Trace
-ERROR 2018/04/17 09:14:29.03465 Newiugigi iug  operator() src/main.cpp:116: 0
-WARNG 2018/04/17 09:14:29.03549 Log operator() src/main.cpp:82: Warning
-INFO  2018/04/17 09:14:29.03552 Log operator() src/main.cpp:94: Info
-ERROR 2018/04/17 09:14:29.03589 Log operator() src/main.cpp:108: Error
-DEBUG 2018/04/17 09:14:29.03595 Log operator() src/main.cpp:119: Debug
-WARNG 2018/04/17 09:14:29.03605 Log operator() src/main.cpp:95: Warning
-TRACE 2018/04/17 09:14:29.03605 Log operator() src/main.cpp:120: Trace
-ERROR 2018/04/17 09:14:29.03605 Log operator() src/main.cpp:83: Error
-INFO  2018/04/17 09:14:29.03648 Log operator() src/main.cpp:121: Info
-WARNG 2018/04/17 09:14:29.03659 Log operator() src/main.cpp:122: Warning
-ERROR 2018/04/17 09:14:29.03674 Log operator() src/main.cpp:96: Error
-ERROR 2018/04/17 09:14:29.03674 Log operator() src/main.cpp:123: Errorest
+ERROR 2018/04/21 20:41:26.69137 unknown operator() src/main.cpp:57: test
+DEBUG 2018/04/21 20:41:26.69223 unknown operator() src/main.cpp:58: debug
+ERROR 2018/04/21 20:41:26.69255 unknown operator() src/main.cpp:59: error

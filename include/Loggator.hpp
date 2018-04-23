@@ -124,23 +124,23 @@ public:
     Loggator(void) noexcept:
     _name("unknown"),
     _filter(eFilterLog::All),
-    _format("{type} {time} : "),
+    _format("{TYPE} {TIME} : "),
     _outStream(&std::cerr),
     _muted(false)
     {
-        _mapKey["time"] = "%y/%m/%d %X.%N";
+        _mapKey["{TIME}"] = "%y/%m/%d %X.%N";
         return ;
     }
 
     Loggator(const std::string &name, const std::string &path, std::ios::openmode openMode = std::ios::app) noexcept:
     _name(name),
     _filter(eFilterLog::All),
-    _format("{type} {time} {name}: "),
+    _format("{TYPE} {TIME} {NAME}: "),
     _fileStream(path, std::ios::out | openMode),
     _outStream(&std::cerr),
     _muted(false)
     {
-        _mapKey["time"] = "%y/%m/%d %X.%N";
+        _mapKey["{TIME}"] = "%y/%m/%d %X.%N";
         if (_fileStream.is_open())
             _outStream = &_fileStream;
         return ;
@@ -149,22 +149,22 @@ public:
     Loggator(const std::string &name, std::ostream &oStream = std::cerr) noexcept:
     _name(name),
     _filter(eFilterLog::All),
-    _format("{type} {time} : "),
+    _format("{TYPE} {TIME} : "),
     _outStream(&oStream),
     _muted(false)
     {
-        _mapKey["time"] = "%y/%m/%d %X.%N";
+        _mapKey["{TIME}"] = "%y/%m/%d %X.%N";
         return ;
     }
 
     Loggator(std::ostream &oStream) noexcept:
     _name("unknown"),
     _filter(eFilterLog::All),
-    _format("{type} {time} : "),
+    _format("{TYPE} {TIME} : "),
     _outStream(&oStream),
     _muted(false)
     {
-        _mapKey["time"] = "%y/%m/%d %X.%N";
+        _mapKey["{TIME}"] = "%y/%m/%d %X.%N";
         return ;
     }
 
@@ -334,7 +334,7 @@ public:
     {
         char bufferFormatTime[127];
 
-        std::string retStr = _mapKey.at("time");
+        std::string retStr = _mapKey.at("{TIME}");
         if (retStr.empty())
             retStr = "%y/%m/%d %X.%N";
 
@@ -446,33 +446,33 @@ public:
             if (indexEnd == std::string::npos)
                 break;
             std::string key = prompt.substr(indexStart, indexEnd - indexStart + 1);
-            if (key == "{time}")
+            if (key == "{TIME}")
             {
                 prompt.replace(indexStart, key.size(), formatTime(timeInfos));
             }
-            else if (key == "{type}")
+            else if (key == "{TYPE}")
             {
                 prompt.replace(indexStart, key.size(), formatKey(key, typeToStr(type)));
             }
-            else if (key == "{name}")
+            else if (key == "{NAME}")
             {
                 prompt.replace(indexStart, key.size(), formatKey(key, loggator._name));
             }
-            else if (key == "{func}")
+            else if (key == "{FUNC}")
             {
                 if (source.func != nullptr)
                     prompt.replace(indexStart, key.size(), formatKey(key, source.func));
                 else
                     prompt.erase(indexStart, key.size());
             }
-            else if (key == "{path}")
+            else if (key == "{PATH}")
             {
                 if (source.filename != nullptr)
                     prompt.replace(indexStart, key.size(), formatKey(key, source.filename));
                 else
                     prompt.erase(indexStart, key.size());
             }
-            else if (key == "{line}")
+            else if (key == "{LINE}")
             {
                 if (source.line > 0)
                     prompt.replace(indexStart, key.size(), formatKey(key, std::to_string(source.line)));

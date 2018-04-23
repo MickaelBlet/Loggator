@@ -21,9 +21,13 @@ int     main(void)
     Loggator log_test;
     log_test.open("test.log");
     Loggator ll("ff");
-    ll.setFormat("{type} {time:%Y/%m/%d %X.%N} {name:%-10s} {test:%-10s} {func} {path}:{line}: ");
+    ll.addKey("test", "yolo");
+    ll.setFormat("{TYPE} {TIME:%X.%N} {NAME:%-10s} {test:%-10s}: ");
     ll.SEND_FORMAT(Warning, "%s%i", "test", 6);
+    ll.addKey("test", "yalaaa");
     ll.SEND_FORMAT(Warning, "%s%i", "test", 6);
+    ll.addKey("test", "yuluuuu");
+    ll.SEND_FORMAT(Warning, "test");
     // *(int*)0 = 0;
 
     log_test.setMuted(true);
@@ -32,8 +36,8 @@ int     main(void)
     log_test.addChild(log_Debug).addChild(log_Trace).addChild(log_Info).addChild(log_Warning).addChild(log_Error);
 
     // log_Debug.setFormat("{time:%Y/%m/%d %X.%N} ");
-    log_Debug.setFormat("{type} {time:%Y/%m/%d %X.%N} {name:%-5s} {func} {path}:{line:%-4s}: ");
-    log_test.setFormat("{type} {time:%Y/%m/%d %X.%N} {name:%-5s} {func} {path}:{line}: ");
+    log_Debug.setFormat("{TYPE} {TIME:%Y/%m/%d %X.%N} {NAME:%-5s} {FUNC} {PATH}:{LINE:%-4s}: ");
+    log_test.setFormat("{TYPE} {TIME:%Y/%m/%d %X.%N} {NAME:%-5s} {FUNC} {PATH}:{LINE}: ");
     // Loggator::Log log_Global(log_Error);
     // log_1.add(log_2);
     // log_2.add(log_1);
@@ -48,7 +52,7 @@ int     main(void)
     log_Info.setFilter(eFilterLog::SupEqInfo);
     log_Warning.setFilter(eFilterLog::SupEqWarning);
     log_Error.setFilter(eFilterLog::EqError);
-    log_Error.setFormat("{time:%Y/%m/%d %X} {name}: ");
+    log_Error.setFormat("{TIME:%Y/%m/%d %X} {NAME}: ");
 
     // Logg(log_test, eTypeLog::Debug, SOURCE_INFOS) << "test";
     // Logg(log_test, eTypeLog::Debug, SOURCE_INFOS) << "test";

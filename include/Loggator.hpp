@@ -3,6 +3,7 @@
 
 #include <ctime>
 #include <cmath>
+#include <cstdarg>
 #include <set>
 #include <string>
 #include <iostream>
@@ -11,9 +12,13 @@
 #include <iomanip>
 #include <mutex>
 #include <thread>
+#include <map>
+
+# define FORMAT_BUFFER_SIZE 1024
 
 namespace Log
 {
+
 
 enum eTypeLog
 {
@@ -66,12 +71,18 @@ public:
 
     public:
 
-        SendFifo(Loggator &log, const eTypeLog &type, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) noexcept: _log(log), _type(type), _sourceInfos(sourceInfos)
+        SendFifo(Loggator &loggator, const eTypeLog &type, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) noexcept:
+        _log(loggator),
+        _type(type),
+        _sourceInfos(sourceInfos)
         {
             return ;
         }
 
-        SendFifo(SendFifo&& log) noexcept: _log(log._log), _type(log._type), _sourceInfos(log._sourceInfos)
+        SendFifo(SendFifo &&loggator) noexcept:
+        _log(loggator._log),
+        _type(loggator._type),
+        _sourceInfos(loggator._sourceInfos)
         {
             return ;
         }
@@ -106,34 +117,43 @@ public:
 
     struct timeInfos
     {
-        time_t timer;
-        struct timespec ts;
+        struct tm*  tm;
+        long        msec;
     };
 
     Loggator(void) noexcept:
     _name("unknown"),
     _filter(eFilterLog::All),
     _format("{type} {time} : "),
-    _timeFormat("%y/%m/%d %X.%N"),
-    _filename("unknown"),
     _outStream(&std::cerr),
     _muted(false)
     {
+        _mapKey["time"] = "%y/%m/%d %X.%N";
         return ;
     }
 
-    Loggator(const std::string &name, const std::string &filename, std::ios::openmode openMode = std::ios::app) noexcept:
+    Loggator(const std::string &name, const std::string &path, std::ios::openmode openMode = std::ios::app) noexcept:
     _name(name),
     _filter(eFilterLog::All),
     _format("{type} {time} {name}: "),
-    _timeFormat("%y/%m/%d %X.%N"),
-    _filename(filename),
-    _fileStream(_filename, std::ios::out | openMode),
+    _fileStream(path, std::ios::out | openMode),
     _outStream(&std::cerr),
     _muted(false)
     {
+        _mapKey["time"] = "%y/%m/%d %X.%N";
         if (_fileStream.is_open())
             _outStream = &_fileStream;
+        return ;
+    }
+
+    Loggator(const std::string &name, std::ostream &oStream = std::cerr) noexcept:
+    _name(name),
+    _filter(eFilterLog::All),
+    _format("{type} {time} : "),
+    _outStream(&oStream),
+    _muted(false)
+    {
+        _mapKey["time"] = "%y/%m/%d %X.%N";
         return ;
     }
 
@@ -141,26 +161,50 @@ public:
     _name("unknown"),
     _filter(eFilterLog::All),
     _format("{type} {time} : "),
-    _timeFormat("%y/%m/%d %X.%N"),
-    _filename("unknown"),
     _outStream(&oStream),
     _muted(false)
     {
+        _mapKey["time"] = "%y/%m/%d %X.%N";
         return ;
     }
 
-    Loggator(Loggator &loggator) noexcept:
-    _name(loggator._name),
+    Loggator(const std::string &name, const Loggator &loggator) noexcept:
+    _name(name),
     _filter(loggator._filter),
     _format(loggator._format),
-    _timeFormat(loggator._timeFormat),
-    _filename(loggator._filename),
     _outStream(loggator._outStream),
     _muted(loggator._muted)
     {
         std::lock_guard<std::mutex> lockGuard(loggator._mutex);
         _logChilds = loggator._logChilds;
+        _mapKey = loggator._mapKey;
         return ;
+    }
+
+    Loggator(const Loggator &loggator) noexcept:
+    _name(loggator._name),
+    _filter(loggator._filter),
+    _format(loggator._format),
+    _outStream(loggator._outStream),
+    _muted(loggator._muted)
+    {
+        std::lock_guard<std::mutex> lockGuard(loggator._mutex);
+        _logChilds = loggator._logChilds;
+        _mapKey = loggator._mapKey;
+        return ;
+    }
+
+    Loggator    &operator=(const Loggator &rhs)
+    {
+        this->_name = rhs._name;
+        this->_filter = rhs._filter;
+        this->_format = rhs._format;
+        this->_outStream = rhs._outStream;
+        this->_muted = rhs._muted;
+        std::lock_guard<std::mutex> lockGuard(rhs._mutex);
+        this->_logChilds = rhs._logChilds;
+        this->_mapKey = rhs._mapKey;
+        return *this;
     }
 
     ~Loggator(void) noexcept
@@ -168,131 +212,156 @@ public:
         return ;
     }
 
-    void                setName(const std::string &name)
+    void            setName(const std::string &name)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
         _name = name;
     }
 
-    void                setFilter(int filter)
+    void            setFilter(int filter)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
         _filter = filter;
     }
 
-    void                addFilter(int filter)
+    void            addFilter(int filter)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
         _filter |= filter;
     }
 
-    void                subFilter(int filter)
+    void            subFilter(int filter)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
         if (_filter | filter)
             _filter -= filter;
     }
 
-    Loggator            &addChild(Loggator &loggator)
+    Loggator        &addChild(Loggator &loggator)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
         _logChilds.insert(&loggator);
         return (*this);
     }
 
-    Loggator            &subChild(Loggator &loggator)
+    Loggator        &subChild(Loggator &loggator)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
         _logChilds.erase(&loggator);
         return (*this);
     }
 
-    Loggator            &listen(Loggator &loggator)
+    Loggator        &listen(Loggator &loggator)
     {
         std::lock_guard<std::mutex> lockGuard(loggator._mutex);
         loggator._logChilds.insert(this);
         return (*this);
     }
 
-    Loggator            &unlisten(Loggator &loggator)
+    Loggator        &unlisten(Loggator &loggator)
     {
         std::lock_guard<std::mutex> lockGuard(loggator._mutex);
         loggator._logChilds.erase(this);
         return (*this);
     }
 
-    void                setMuted(bool mute)
+    Loggator        &addKey(const std::string &key, const std::string &value)
+    {
+        std::lock_guard<std::mutex> lockGuard(_mutex);
+        _mapCustomKey["{" + key + "}"] = value;
+        return (*this);
+    }
+
+    void            setMuted(bool mute)
     {
         _muted = mute;
     }
 
-    bool                isMuted(void) const
+    void            setFormat(const std::string &format)
+    {
+        std::lock_guard<std::mutex> lockGuard(_mutex);
+        _format = format;
+        std::size_t indexStart = _format.find("{");
+        while (indexStart != std::string::npos)
+        {
+            std::size_t indexEnd = _format.find("}", indexStart);
+            if (indexEnd == std::string::npos)
+                break;
+            std::size_t indexFormat = _format.find(":", indexStart);
+            if (indexFormat == std::string::npos || indexFormat > indexEnd)
+            {
+                indexStart = _format.find("{", indexStart + 1);
+                continue;
+            }
+            std::string key = _format.substr(indexStart, indexFormat - indexStart) + "}";
+            std::string formatKey = _format.substr(indexFormat + 1, indexEnd - indexFormat - 1);
+            _format.erase(indexFormat, indexEnd - indexFormat);
+            _mapKey[key] = formatKey;
+            indexStart = _format.find("{", indexStart + 1);
+        }
+    }
+
+    bool            isMuted(void) const
     {
         return (_muted == true);
     }
 
-    void                setFormat(const std::string &format)
+    bool            open(const std::string &path, std::ios::openmode openMode = std::ios::app)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
-        _format = format;
-        std::size_t found = _format.find("{time");
-        if (found != std::string::npos)
-        {
-            if (_format[found + 5] == '}')
-            {
-                _timeFormat = "%x %X.%N";
-            }
-            else if (_format[found + 5] == ':')
-            {
-                std::size_t indexStart = found + 5;
-                std::size_t indexEnd = _format.find("}", found + 5);
-                if (indexEnd != std::string::npos)
-                {
-                    _timeFormat = _format.substr(indexStart + 1, indexEnd - indexStart);
-                    _format.erase(indexStart, indexEnd - indexStart);
-                }
-            }
-        }
+        if (_fileStream.is_open())
+            _fileStream.close();
+        _fileStream.open(path, std::ios::out | openMode);
+        if (_fileStream.is_open())
+            _outStream = &_fileStream;
+        return _fileStream.is_open();
     }
 
-    bool                isOpened(void) const
+    void            close(void)
+    {
+        std::lock_guard<std::mutex> lockGuard(_mutex);
+        if (_fileStream.is_open())
+            _fileStream.close();
+        _outStream = &std::cerr;
+    }
+
+    bool            isOpened(void) const
     {
         return _fileStream.is_open();
     }
 
-    std::string         formatTime(timeInfos &infos) const
+    std::string     formatTime(timeInfos &infos) const
     {
-        struct tm* tm_info;
         char bufferFormatTime[127];
 
-        tm_info = localtime(&infos.timer);
-
-        std::string retStr = _timeFormat;
+        std::string retStr = _mapKey.at("time");
+        if (retStr.empty())
+            retStr = "%y/%m/%d %X.%N";
 
         std::size_t findPos = retStr.find("%N");
         if (findPos != std::string::npos)
         {
-            long microSec = 0;
-            microSec = infos.ts.tv_nsec / 1000;
-            snprintf(bufferFormatTime, 6, "%06ld", microSec);
+            snprintf(bufferFormatTime, 6, "%06ld", infos.msec);
             retStr.replace(findPos, 2, bufferFormatTime, 6);
         }
-        strftime(bufferFormatTime, 126, retStr.c_str(), tm_info);
-
+        strftime(bufferFormatTime, 126, retStr.c_str(), infos.tm);
         return std::string(bufferFormatTime);
     }
 
-    timeInfos getCurrentTimeInfos(void) const
+    timeInfos       getCurrentTimeInfos(void) const
     {
         time_t timer;
+        struct tm* tm_info;
         struct timespec ts;
 
         time(&timer);
 
+        tm_info = localtime(&timer);
+
         if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
             ts.tv_nsec = 0;
 
-        return {timer, ts};
+        return {tm_info, ts.tv_nsec / 1000};
     }
 
     const char      *typeToStr(eTypeLog type) const
@@ -322,10 +391,8 @@ public:
 
     void            send(const std::string &str, eTypeLog type, const SourceInfos &source = {nullptr, 0, nullptr})
     {
-        if (_muted == true)
-            return ;
         timeInfos timeInfos = getCurrentTimeInfos();
-        if (_filter & type)
+        if (_muted == false && _filter & type)
         {
             std::lock_guard<std::mutex> lockGuard(_mutex);
             *(_outStream) << prompt(*this, type, timeInfos, source) << str << std::flush;
@@ -351,6 +418,24 @@ public:
         }
     }
 
+    const std::string &customKey(const std::string &key) const
+    {
+        std::map<const std::string, std::string>::const_iterator itMap = _mapCustomKey.find(key);
+        if (itMap == _mapCustomKey.end())
+            return key;
+        return itMap->second;
+    }
+
+    std::string     formatKey(const std::string &keyFormat, const std::string &key) const
+    {
+        std::map<const std::string, std::string>::const_iterator itMap = _mapKey.find(keyFormat);
+        if (itMap == _mapKey.end())
+            return key;
+        char buffer[127];
+        sprintf(buffer, itMap->second.c_str(), key.c_str());
+        return std::string(buffer);
+    }
+
     std::string     prompt(Loggator &loggator, eTypeLog type, timeInfos &timeInfos, const SourceInfos &source = {nullptr, 0, nullptr}) const
     {
         std::string prompt = _format;
@@ -367,54 +452,70 @@ public:
             }
             else if (key == "{type}")
             {
-                prompt.replace(indexStart, key.size(), typeToStr(type));
+                prompt.replace(indexStart, key.size(), formatKey(key, typeToStr(type)));
             }
             else if (key == "{name}")
             {
-                prompt.replace(indexStart, key.size(), loggator._name);
+                prompt.replace(indexStart, key.size(), formatKey(key, loggator._name));
             }
             else if (key == "{func}")
             {
                 if (source.func != nullptr)
-                    prompt.replace(indexStart, key.size(), source.func);
+                    prompt.replace(indexStart, key.size(), formatKey(key, source.func));
                 else
                     prompt.erase(indexStart, key.size());
             }
             else if (key == "{path}")
             {
                 if (source.filename != nullptr)
-                    prompt.replace(indexStart, key.size(), source.filename);
+                    prompt.replace(indexStart, key.size(), formatKey(key, source.filename));
                 else
                     prompt.erase(indexStart, key.size());
             }
             else if (key == "{line}")
             {
                 if (source.line > 0)
-                    prompt.replace(indexStart, key.size(), std::to_string(source.line));
+                    prompt.replace(indexStart, key.size(), formatKey(key, std::to_string(source.line)));
                 else
                     prompt.erase(indexStart, key.size());
+            }
+            else
+            {
+                prompt.replace(indexStart, key.size(), formatKey(key, customKey(key)));
             }
             indexStart = prompt.find("{", indexStart + 1);
         }
         return prompt;
     }
 
-    SendFifo send(const eTypeLog &type, const SourceInfos &sourceInfos = {nullptr, 0, nullptr})
+    SendFifo        send(const eTypeLog &type, const SourceInfos &sourceInfos = {nullptr, 0, nullptr})
     {
         return SendFifo(*this, type, sourceInfos);
     }
 
+    SendFifo        send(const eTypeLog &type, const SourceInfos &sourceInfos, const char *format, ...)
+    {
+        char    buffer[FORMAT_BUFFER_SIZE];
+        va_list vargs;
+        va_start(vargs, format);
+        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
+        va_end(vargs);
+        SendFifo fifo(*this, type, sourceInfos);
+        fifo << buffer;
+        return fifo;
+    }
+
 private:
-    std::string             _name;
-    int                     _filter;
-    std::string             _format;
-    std::string             _timeFormat;
-    std::string             _filename;
-    std::ofstream           _fileStream;
-    std::ostream            *_outStream;
-    std::set<Loggator*>     _logChilds;
-    std::mutex              _mutex;
-    bool                    _muted;
+    std::string                                 _name;
+    int                                         _filter;
+    std::string                                 _format;
+    std::ofstream                               _fileStream;
+    std::ostream                                *_outStream;
+    std::set<Loggator*>                         _logChilds;
+    bool                                        _muted;
+    mutable std::mutex                          _mutex;
+    std::map<const std::string, std::string>    _mapKey;
+    std::map<const std::string, std::string>    _mapCustomKey;
 
 };
 
@@ -432,5 +533,5 @@ private:
 # define SEND(...) MACRO_CHOOSER(SEND_, __VA_ARGS__)(__VA_ARGS__)
 # define SEND_0() send(Log::eTypeLog::Debug, SourceInfos{__FILE__, __LINE__, __func__})
 # define SEND_1(_typeLog) send(Log::eTypeLog::_typeLog, SourceInfos{__FILE__, __LINE__, __func__})
-
-#endif // _LOGGER_HPP_
+# define SEND_FORMAT(_typeLog, _format, ...) send(Log::eTypeLog::_typeLog, SourceInfos{__FILE__, __LINE__, __func__}, _format, ##__VA_ARGS__)
+#endif // _LOGGATOR_HPP_

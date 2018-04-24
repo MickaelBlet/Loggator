@@ -36,7 +36,8 @@ int     main(void)
     log_test.addChild(log_Debug).addChild(log_Trace).addChild(log_Info).addChild(log_Warning).addChild(log_Error);
 
     // log_Debug.setFormat("{time:%Y/%m/%d %X.%N} ");
-    log_Debug.setFormat("{TYPE} {TIME:%Y/%m/%d %X.%N} {NAME:%-5s} {FUNC} {PATH}:{LINE:%-4s}: ");
+    log_Debug.addKey("module", "");
+    log_Debug.setFormat("{TIME:%X.%N} {TYPE} {NAME:%-5s}{FUNC: %s}{PATH: %s}{LINE::%-4s}{module::%-10s}{test}: ");
     log_test.setFormat("{TYPE} {TIME:%Y/%m/%d %X.%N} {NAME:%-5s} {FUNC} {PATH}:{LINE}: ");
     // Loggator::Log log_Global(log_Error);
     // log_1.add(log_2);
@@ -64,6 +65,14 @@ int     main(void)
     // Logg(log_test, eTypeLog::Debug, SOURCE_INFOS) << "test";
 
     std::thread t1([&]{
+        Loggator logTmp(log_Debug);
+        logTmp.addKey("module", "Thread1");
+        logTmp.SEND(Trace,"test%s%x", "test", 1789) << "Debug";
+        logTmp.SEND(Trace,"test%s", "test") << "Debug";
+        logTmp.SEND(Trace,"test%s", "test") << "Debug";
+        logTmp.SEND(Trace,"test%s", "test") << "Debug";
+
+        log_Debug.send(eTypeLog::Info) << "no define";
         log_Debug.SEND(Debug) << "Debug";
         log_Trace.SEND(Debug) << "Debug";
         log_Info.SEND(Debug) << "Debug";
@@ -96,6 +105,15 @@ int     main(void)
     });
 
     std::thread t2([&]{
+        Loggator logTmp(log_Debug);
+        logTmp.addKey("module", "Thread2");
+        logTmp.SEND() << "Debug";
+        logTmp.SEND() << "Debug";
+        logTmp.SEND() << "Debug";
+        logTmp.addKey("module", "TTTThread2");
+        logTmp.SEND() << "Debug";
+        logTmp.SEND() << "Debug";
+
         log_Debug.SEND(Debug) << "Debug";
         log_Trace.SEND(Debug) << "Debug";
         log_Info.SEND(Debug) << "Debug";

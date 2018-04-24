@@ -79,10 +79,11 @@ public:
             return ;
         }
 
-        SendFifo(SendFifo &&loggator) noexcept:
-        _log(loggator._log),
-        _type(loggator._type),
-        _sourceInfos(loggator._sourceInfos)
+        SendFifo(SendFifo &&sendFifo) noexcept:
+        _log(sendFifo._log),
+        _type(sendFifo._type),
+        _sourceInfos(sendFifo._sourceInfos),
+        _cacheStream(std::move(sendFifo._cacheStream))
         {
             return ;
         }
@@ -97,7 +98,7 @@ public:
         }
 
         template<typename T>
-        std::stringstream& operator<<(const T& var)
+        std::ostringstream& operator<<(const T& var)
         {
             _cacheStream << var;
             return _cacheStream;
@@ -111,7 +112,7 @@ public:
         Loggator            &_log;
         const eTypeLog      &_type;
         const SourceInfos   &_sourceInfos;
-        std::stringstream   _cacheStream;
+        std::ostringstream  _cacheStream;
 
     };
 
@@ -128,7 +129,7 @@ public:
     _outStream(&std::cerr),
     _muted(false)
     {
-        _mapKey["{TIME}"] = "%y/%m/%d %X.%N";
+        _mapFormatKey["{TIME}"] = "%y/%m/%d %X.%N";
         return ;
     }
 
@@ -140,7 +141,7 @@ public:
     _outStream(&std::cerr),
     _muted(false)
     {
-        _mapKey["{TIME}"] = "%y/%m/%d %X.%N";
+        _mapFormatKey["{TIME}"] = "%y/%m/%d %X.%N";
         if (_fileStream.is_open())
             _outStream = &_fileStream;
         return ;
@@ -153,7 +154,7 @@ public:
     _outStream(&oStream),
     _muted(false)
     {
-        _mapKey["{TIME}"] = "%y/%m/%d %X.%N";
+        _mapFormatKey["{TIME}"] = "%y/%m/%d %X.%N";
         return ;
     }
 
@@ -164,33 +165,35 @@ public:
     _outStream(&oStream),
     _muted(false)
     {
-        _mapKey["{TIME}"] = "%y/%m/%d %X.%N";
+        _mapFormatKey["{TIME}"] = "%y/%m/%d %X.%N";
         return ;
     }
 
-    Loggator(const std::string &name, const Loggator &loggator) noexcept:
+    Loggator(const std::string &name, Loggator &loggator) noexcept:
     _name(name),
     _filter(loggator._filter),
     _format(loggator._format),
-    _outStream(loggator._outStream),
+    _outStream(nullptr),
     _muted(loggator._muted)
     {
         std::lock_guard<std::mutex> lockGuard(loggator._mutex);
         _logChilds = loggator._logChilds;
-        _mapKey = loggator._mapKey;
+        _mapFormatKey = loggator._mapFormatKey;
+        _logChilds.insert(&loggator);
         return ;
     }
 
-    Loggator(const Loggator &loggator) noexcept:
+    Loggator(Loggator &loggator) noexcept:
     _name(loggator._name),
     _filter(loggator._filter),
     _format(loggator._format),
-    _outStream(loggator._outStream),
+    _outStream(nullptr),
     _muted(loggator._muted)
     {
         std::lock_guard<std::mutex> lockGuard(loggator._mutex);
         _logChilds = loggator._logChilds;
-        _mapKey = loggator._mapKey;
+        _mapFormatKey = loggator._mapFormatKey;
+        _logChilds.insert(&loggator);
         return ;
     }
 
@@ -203,7 +206,7 @@ public:
         this->_muted = rhs._muted;
         std::lock_guard<std::mutex> lockGuard(rhs._mutex);
         this->_logChilds = rhs._logChilds;
-        this->_mapKey = rhs._mapKey;
+        this->_mapFormatKey = rhs._mapFormatKey;
         return *this;
     }
 
@@ -295,8 +298,8 @@ public:
             }
             std::string key = _format.substr(indexStart, indexFormat - indexStart) + "}";
             std::string formatKey = _format.substr(indexFormat + 1, indexEnd - indexFormat - 1);
+            _mapFormatKey[key] = formatKey;
             _format.erase(indexFormat, indexEnd - indexFormat);
-            _mapKey[key] = formatKey;
             indexStart = _format.find("{", indexStart + 1);
         }
     }
@@ -334,7 +337,7 @@ public:
     {
         char bufferFormatTime[127];
 
-        std::string retStr = _mapKey.at("{TIME}");
+        std::string retStr = _mapFormatKey.at("{TIME}");
         if (retStr.empty())
             retStr = "%y/%m/%d %X.%N";
 
@@ -378,7 +381,7 @@ public:
                 return "INFO ";
                 break;
             case eTypeLog::Warning:
-                return "WARNG";
+                return "WARN ";
                 break;
             case eTypeLog::Error:
                 return "ERROR";
@@ -392,10 +395,10 @@ public:
     void            send(const std::string &str, eTypeLog type, const SourceInfos &source = {nullptr, 0, nullptr})
     {
         timeInfos timeInfos = getCurrentTimeInfos();
-        if (_muted == false && _filter & type)
+        if (_outStream != nullptr && _muted == false && _filter & type)
         {
             std::lock_guard<std::mutex> lockGuard(_mutex);
-            *(_outStream) << prompt(*this, type, timeInfos, source) << str << std::flush;
+            *(_outStream) << prompt(*this, type, _mapCustomKey, timeInfos, source) << str << std::flush;
         }
         std::set<Loggator*> tmpsetLog;
         tmpsetLog.insert(this);
@@ -411,32 +414,35 @@ public:
             setLog.insert(child);
             if (child->_muted == false && child->_filter & type)
             {
-                std::lock_guard<std::mutex> lockGuard(child->_mutex);
-                *(child->_outStream) << child->prompt(loggator, type, timeInfos, source) << str << std::flush;
+                std::lock_guard<std::mutex> lockGuardMain(_mutex);
+                std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
+                *(child->_outStream) << child->prompt(loggator, type, _mapCustomKey, timeInfos, source) << str << std::flush;
             }
             sendChild(setLog, *child, type, timeInfos, source, str);
         }
     }
 
-    const std::string &customKey(const std::string &key) const
+    const std::string &customKey(const std::map<const std::string, std::string> &mapCustomKey, const std::string &key) const
     {
-        std::map<const std::string, std::string>::const_iterator itMap = _mapCustomKey.find(key);
-        if (itMap == _mapCustomKey.end())
-            return key;
+        std::map<const std::string, std::string>::const_iterator itMap = mapCustomKey.find(key);
+        if (itMap == mapCustomKey.end())
+            return _empty;
         return itMap->second;
     }
 
     std::string     formatKey(const std::string &keyFormat, const std::string &key) const
     {
-        std::map<const std::string, std::string>::const_iterator itMap = _mapKey.find(keyFormat);
-        if (itMap == _mapKey.end())
+        if (key.empty())
+            return _empty;
+        std::map<const std::string, std::string>::const_iterator itMap = _mapFormatKey.find(keyFormat);
+        if (itMap == _mapFormatKey.end())
             return key;
         char buffer[127];
         sprintf(buffer, itMap->second.c_str(), key.c_str());
         return std::string(buffer);
     }
 
-    std::string     prompt(Loggator &loggator, eTypeLog type, timeInfos &timeInfos, const SourceInfos &source = {nullptr, 0, nullptr}) const
+    std::string     prompt(Loggator &loggator, eTypeLog type, const std::map<const std::string, std::string> &mapCustomKey, timeInfos &timeInfos, const SourceInfos &source = {nullptr, 0, nullptr}) const
     {
         std::string prompt = _format;
         std::size_t indexStart = prompt.find("{");
@@ -481,9 +487,9 @@ public:
             }
             else
             {
-                prompt.replace(indexStart, key.size(), formatKey(key, customKey(key)));
+                prompt.replace(indexStart, key.size(), formatKey(key, customKey(mapCustomKey, key)));
             }
-            indexStart = prompt.find("{", indexStart + 1);
+            indexStart = prompt.find("{", indexStart);
         }
         return prompt;
     }
@@ -506,6 +512,7 @@ public:
     }
 
 private:
+    const std::string                           _empty;
     std::string                                 _name;
     int                                         _filter;
     std::string                                 _format;
@@ -514,7 +521,7 @@ private:
     std::set<Loggator*>                         _logChilds;
     bool                                        _muted;
     mutable std::mutex                          _mutex;
-    std::map<const std::string, std::string>    _mapKey;
+    std::map<const std::string, std::string>    _mapFormatKey;
     std::map<const std::string, std::string>    _mapCustomKey;
 
 };
@@ -533,5 +540,14 @@ private:
 # define SEND(...) MACRO_CHOOSER(SEND_, __VA_ARGS__)(__VA_ARGS__)
 # define SEND_0() send(Log::eTypeLog::Debug, SourceInfos{__FILE__, __LINE__, __func__})
 # define SEND_1(_typeLog) send(Log::eTypeLog::_typeLog, SourceInfos{__FILE__, __LINE__, __func__})
+# define SEND_2(_typeLog, _format, ...) send(Log::eTypeLog::_typeLog, SourceInfos{__FILE__, __LINE__, __func__}, _format, ##__VA_ARGS__)
+# define SEND_3(_typeLog, _format, ...) send(Log::eTypeLog::_typeLog, SourceInfos{__FILE__, __LINE__, __func__}, _format, ##__VA_ARGS__)
+# define SEND_4(_typeLog, _format, ...) send(Log::eTypeLog::_typeLog, SourceInfos{__FILE__, __LINE__, __func__}, _format, ##__VA_ARGS__)
+# define SEND_5(_typeLog, _format, ...) send(Log::eTypeLog::_typeLog, SourceInfos{__FILE__, __LINE__, __func__}, _format, ##__VA_ARGS__)
+# define SEND_6(_typeLog, _format, ...) send(Log::eTypeLog::_typeLog, SourceInfos{__FILE__, __LINE__, __func__}, _format, ##__VA_ARGS__)
+# define SEND_7(_typeLog, _format, ...) send(Log::eTypeLog::_typeLog, SourceInfos{__FILE__, __LINE__, __func__}, _format, ##__VA_ARGS__)
+# define SEND_8(_typeLog, _format, ...) send(Log::eTypeLog::_typeLog, SourceInfos{__FILE__, __LINE__, __func__}, _format, ##__VA_ARGS__)
+# define SEND_9(_typeLog, _format, ...) send(Log::eTypeLog::_typeLog, SourceInfos{__FILE__, __LINE__, __func__}, _format, ##__VA_ARGS__)
 # define SEND_FORMAT(_typeLog, _format, ...) send(Log::eTypeLog::_typeLog, SourceInfos{__FILE__, __LINE__, __func__}, _format, ##__VA_ARGS__)
+
 #endif // _LOGGATOR_HPP_

@@ -105,14 +105,15 @@ int     main(void)
     });
 
     std::thread t2([&]{
-        Loggator logTmp(log_Debug);
+        Loggator logTmp("tmp", log_Debug);
         logTmp.addKey("module", "Thread2");
         logTmp.SEND() << "Debug";
         logTmp.SEND() << "Debug";
         logTmp.SEND() << "Debug";
         logTmp.addKey("module", "TTTThread2");
-        logTmp.SEND() << "Debug";
-        logTmp.SEND() << "Debug";
+        logTmp << "no send";
+        logTmp[eTypeLog::Trace] << "no send bracket trace";
+        logTmp(eTypeLog::Warning, "no send format %s", "Warning");
 
         log_Debug.SEND(Debug) << "Debug";
         log_Trace.SEND(Debug) << "Debug";

@@ -1,60 +1,61 @@
-00:11:04.83489 TRACE Debug operator() src/main.cpp:70  :Thread1   : testtest6fdDebug
-00:11:04.83502 TRACE Debug operator() src/main.cpp:71  :Thread1   : testtestDebug
-00:11:04.83504 TRACE Debug operator() src/main.cpp:72  :Thread1   : testtestDebug
-00:11:04.83506 TRACE Debug operator() src/main.cpp:73  :Thread1   : testtestDebug
-00:11:04.83508 INFO  Debug: no define
-00:11:04.83509 DEBUG Debug operator() src/main.cpp:76  : Debug
-00:11:04.83510 DEBUG Trace operator() src/main.cpp:77  : Debug
-00:11:04.83511 DEBUG Info  operator() src/main.cpp:78  : Debug
-00:11:04.83513 DEBUG Warng operator() src/main.cpp:79  : Debug
-00:11:04.83514 DEBUG Error operator() src/main.cpp:80  : Debug
-00:11:04.83529 DEBUG Debug operator() src/main.cpp:110 :Thread2   : Debug
-00:11:04.83534 TRACE Debug operator() src/main.cpp:82  : Trace
-00:11:04.83535 DEBUG Debug operator() src/main.cpp:111 :Thread2   : Debug
-00:11:04.83538 DEBUG Debug operator() src/main.cpp:112 :Thread2   : Debug
-00:11:04.83540 DEBUG Debug operator() src/main.cpp:114 :TTTThread2: Debug
-00:11:04.83542 DEBUG Debug operator() src/main.cpp:115 :TTTThread2: Debug
-00:11:04.83543 DEBUG Debug operator() src/main.cpp:117 : Debug
-00:11:04.83537 TRACE Trace operator() src/main.cpp:83  : Trace
-00:11:04.83544 DEBUG Trace operator() src/main.cpp:118 : Debug
-00:11:04.83548 TRACE Info  operator() src/main.cpp:84  : Trace
-00:11:04.83549 DEBUG Info  operator() src/main.cpp:119 : Debug
-00:11:04.83551 TRACE Warng operator() src/main.cpp:85  : Trace
-00:11:04.83552 DEBUG Warng operator() src/main.cpp:120 : Debug
-00:11:04.83555 TRACE Error operator() src/main.cpp:86  : Trace
-00:11:04.83556 DEBUG Error operator() src/main.cpp:121 : Debug
-00:11:04.83559 INFO  Debug operator() src/main.cpp:88  : Info
-00:11:04.83561 TRACE Debug operator() src/main.cpp:123 : Trace
-00:11:04.83562 INFO  Trace operator() src/main.cpp:89  : Info
-00:11:04.83564 TRACE Trace operator() src/main.cpp:124 : Trace
-00:11:04.83565 INFO  Info  operator() src/main.cpp:90  : Info
-00:11:04.83567 TRACE Info  operator() src/main.cpp:125 : Trace
-00:11:04.83576 INFO  Warng operator() src/main.cpp:91  : Info
-00:11:04.83578 TRACE Warng operator() src/main.cpp:126 : Trace
-00:11:04.83580 INFO  Error operator() src/main.cpp:92  : Info
-00:11:04.83592 WARN  Debug operator() src/main.cpp:94  : Warning
-00:11:04.83585 TRACE Error operator() src/main.cpp:127 : Trace
-00:11:04.83593 WARN  Trace operator() src/main.cpp:95  : Warning
-00:11:04.83604 WARN  Info  operator() src/main.cpp:96  : Warning
-00:11:04.83605 INFO  Debug operator() src/main.cpp:129 : Info
-00:11:04.83608 INFO  Trace operator() src/main.cpp:130 : Info
-00:11:04.83611 INFO  Info  operator() src/main.cpp:131 : Info
-00:11:04.83608 WARN  Warng operator() src/main.cpp:97  : Warning
-00:11:04.83614 INFO  Warng operator() src/main.cpp:132 : Info
-00:11:04.83618 WARN  Error operator() src/main.cpp:98  : Warning
-00:11:04.83621 INFO  Error operator() src/main.cpp:133 : Info
-00:11:04.83630 ERROR Debug operator() src/main.cpp:100 : Error
-00:11:04.83632 ERROR Trace operator() src/main.cpp:101 : Error
-00:11:04.83633 WARN  Debug operator() src/main.cpp:135 : Warning
-00:11:04.83634 ERROR Info  operator() src/main.cpp:102 : Error
-00:11:04.83636 WARN  Trace operator() src/main.cpp:136 : Warning
-00:11:04.83637 ERROR Warng operator() src/main.cpp:103 : Error
-00:11:04.83639 WARN  Info  operator() src/main.cpp:137 : Warning
-00:11:04.83643 WARN  Warng operator() src/main.cpp:138 : Warning
-00:11:04.83645 ERROR Error operator() src/main.cpp:104 : Error
-00:11:04.83648 WARN  Error operator() src/main.cpp:139 : Warning
-00:11:04.83660 ERROR Debug operator() src/main.cpp:141 : Error
-00:11:04.83661 ERROR Trace operator() src/main.cpp:142 : Error
-00:11:04.83663 ERROR Info  operator() src/main.cpp:143 : Error
-00:11:04.83665 ERROR Warng operator() src/main.cpp:144 : Error
-00:11:04.83668 ERROR Error operator() src/main.cpp:145 : Error
+02:47:29.43722 TRACE Debug operator() src/main.cpp:70  :Thread1   : testtest6fdDebug
+02:47:29.43733 TRACE Debug operator() src/main.cpp:71  :Thread1   : testtestDebug
+02:47:29.43735 TRACE Debug operator() src/main.cpp:72  :Thread1   : testtestDebug
+02:47:29.43736 TRACE Debug operator() src/main.cpp:73  :Thread1   : testtestDebug
+02:47:29.43738 INFO  Debug: no define
+02:47:29.43739 DEBUG Debug operator() src/main.cpp:76  : Debug
+02:47:29.43740 DEBUG Trace operator() src/main.cpp:77  : Debug
+02:47:29.43742 DEBUG Info  operator() src/main.cpp:78  : Debug
+02:47:29.43743 DEBUG Warng operator() src/main.cpp:79  : Debug
+02:47:29.43744 DEBUG Error operator() src/main.cpp:80  : Debug
+02:47:29.43753 TRACE Debug operator() src/main.cpp:82  : Trace
+02:47:29.43754 DEBUG tmp   operator() src/main.cpp:110 :Thread2   : Debug
+02:47:29.43758 DEBUG tmp   operator() src/main.cpp:111 :Thread2   : Debug
+02:47:29.43760 DEBUG tmp   operator() src/main.cpp:112 :Thread2   : Debug
+02:47:29.43761 DEBUG tmp  :TTTThread2: no send
+02:47:29.43756 TRACE Trace operator() src/main.cpp:83  : Trace
+02:47:29.43765 TRACE Info  operator() src/main.cpp:84  : Trace
+02:47:29.43767 TRACE Warng operator() src/main.cpp:85  : Trace
+02:47:29.43762 TRACE tmp  :TTTThread2: no send bracket trace
+02:47:29.43771 WARN  tmp  :TTTThread2: no send format Warning
+02:47:29.43773 DEBUG Debug operator() src/main.cpp:118 : Debug
+02:47:29.43769 TRACE Error operator() src/main.cpp:86  : Trace
+02:47:29.43775 DEBUG Trace operator() src/main.cpp:119 : Debug
+02:47:29.43784 DEBUG Info  operator() src/main.cpp:120 : Debug
+02:47:29.43787 DEBUG Warng operator() src/main.cpp:121 : Debug
+02:47:29.43789 DEBUG Error operator() src/main.cpp:122 : Debug
+02:47:29.43790 INFO  Debug operator() src/main.cpp:88  : Info
+02:47:29.43792 TRACE Debug operator() src/main.cpp:124 : Trace
+02:47:29.43792 INFO  Trace operator() src/main.cpp:89  : Info
+02:47:29.43793 TRACE Trace operator() src/main.cpp:125 : Trace
+02:47:29.43795 INFO  Info  operator() src/main.cpp:90  : Info
+02:47:29.43801 INFO  Warng operator() src/main.cpp:91  : Info
+02:47:29.43803 INFO  Error operator() src/main.cpp:92  : Info
+02:47:29.43806 WARN  Debug operator() src/main.cpp:94  : Warning
+02:47:29.43807 WARN  Trace operator() src/main.cpp:95  : Warning
+02:47:29.43797 TRACE Info  operator() src/main.cpp:126 : Trace
+02:47:29.43815 TRACE Warng operator() src/main.cpp:127 : Trace
+02:47:29.43818 TRACE Error operator() src/main.cpp:128 : Trace
+02:47:29.43809 WARN  Info  operator() src/main.cpp:96  : Warning
+02:47:29.43820 INFO  Debug operator() src/main.cpp:130 : Info
+02:47:29.43823 INFO  Trace operator() src/main.cpp:131 : Info
+02:47:29.43825 INFO  Info  operator() src/main.cpp:132 : Info
+02:47:29.43822 WARN  Warng operator() src/main.cpp:97  : Warning
+02:47:29.43828 INFO  Warng operator() src/main.cpp:133 : Info
+02:47:29.43831 WARN  Error operator() src/main.cpp:98  : Warning
+02:47:29.43835 ERROR Debug operator() src/main.cpp:100 : Error
+02:47:29.43836 ERROR Trace operator() src/main.cpp:101 : Error
+02:47:29.43838 ERROR Info  operator() src/main.cpp:102 : Error
+02:47:29.43833 INFO  Error operator() src/main.cpp:134 : Info
+02:47:29.43845 WARN  Debug operator() src/main.cpp:136 : Warning
+02:47:29.43840 ERROR Warng operator() src/main.cpp:103 : Error
+02:47:29.43846 WARN  Trace operator() src/main.cpp:137 : Warning
+02:47:29.43856 WARN  Info  operator() src/main.cpp:138 : Warning
+02:47:29.43863 ERROR Error operator() src/main.cpp:104 : Error
+02:47:29.43859 WARN  Warng operator() src/main.cpp:139 : Warning
+02:47:29.43873 WARN  Error operator() src/main.cpp:140 : Warning
+02:47:29.43877 ERROR Debug operator() src/main.cpp:142 : Error
+02:47:29.43879 ERROR Trace operator() src/main.cpp:143 : Error
+02:47:29.43881 ERROR Info  operator() src/main.cpp:144 : Error
+02:47:29.43884 ERROR Warng operator() src/main.cpp:145 : Error
+02:47:29.43886 ERROR Error operator() src/main.cpp:146 : Error

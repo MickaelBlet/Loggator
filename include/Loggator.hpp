@@ -511,6 +511,31 @@ public:
         return fifo;
     }
 
+    template<typename T>
+    friend SendFifo operator<<(Loggator &loggator, const T& var)
+    {
+        SendFifo fifo(loggator, eTypeLog::Debug, {nullptr, 0, nullptr});
+        fifo << var;
+        return fifo;
+    }
+
+    SendFifo operator[](const eTypeLog &type)
+    {
+        return SendFifo(*this, type, {nullptr, 0, nullptr});
+    }
+
+    SendFifo operator()(const eTypeLog &type, const char * format, ...)
+    {
+        char    buffer[FORMAT_BUFFER_SIZE];
+        va_list vargs;
+        va_start(vargs, format);
+        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
+        va_end(vargs);
+        SendFifo fifo(*this, type, {nullptr, 0, nullptr});
+        fifo << buffer;
+        return fifo;
+    }
+
 private:
     const std::string                           _empty;
     std::string                                 _name;

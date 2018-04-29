@@ -1,0 +1,5 @@
+WARN  2018/04/29 23:28:39.56039 new: main: main.cpp:52 : warn test2.log
+ERROR 2018/04/29 23:28:39.56060 new: main: main.cpp:54 : error test2.log
+ERROR 2018/04/29 23:28:39.56106 new: main: main.cpp:59 : error test1 and test2
+ERROR 2018/04/29 23:28:39.56153 new: main: main.cpp:61 : error only test2.log
+DEBUG 2018/04/29 23:28:39.56165 new: main: main.cpp:62 : debug test1 and test2

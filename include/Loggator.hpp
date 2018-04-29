@@ -357,7 +357,7 @@ public:
 
     std::string     formatTime(const timeInfos &infos) const
     {
-        char bufferFormatTime[127];
+        char bufferFormatTime[FORMAT_BUFFER_SIZE];
 
         std::string retStr = _mapCustomKey.at("{TIME}").format;
 

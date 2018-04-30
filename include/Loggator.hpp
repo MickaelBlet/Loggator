@@ -1,22 +1,23 @@
-#ifndef _LOGGATOR_HPP_
-# define _LOGGATOR_HPP_
+#ifndef _LOG_LOGGATOR_HPP_
+# define _LOG_LOGGATOR_HPP_
 
 # include <ctime>
-# include <cmath>
-# include <cstdarg>
-# include <cstring>
-# include <set>
-# include <string>
-# include <iostream>
-# include <fstream>
-# include <sstream>
+# include <cstdarg> // va_list, va_start, va_end
+# include <cstring> // strrchr
+
 # include <iomanip>
-# include <mutex>
-# include <thread>
-# include <map>
+# include <iostream> // string, cerr
+# include <fstream> // ostream, ofstream
+# include <sstream> // ostringstream
+# include <mutex> // mutex, lock_guard
+# include <thread> // this_thread::get_id
+# include <map> // map
+# include <set> // set
 
 # define FORMAT_BUFFER_SIZE 1024
 # define FORMAT_KEY_BUFFER_SIZE 127
+# define DEFAULT_FORMAT "{TYPE} {TIME} : "
+# define DEFAULT_TIME_FORMAT "%y/%m/%d %X.%N"
 
 namespace Log
 {
@@ -73,7 +74,7 @@ public:
 
     public:
 
-        SendFifo(const Loggator &loggator, const eTypeLog &type, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) noexcept:
+        SendFifo(const Loggator &loggator, eTypeLog type, SourceInfos sourceInfos) noexcept:
         _log(loggator),
         _type(type),
         _sourceInfos(sourceInfos)
@@ -83,8 +84,8 @@ public:
 
         SendFifo(SendFifo &&sendFifo) noexcept:
         _log(sendFifo._log),
-        _type(sendFifo._type),
-        _sourceInfos(sendFifo._sourceInfos),
+        _type(std::move(sendFifo._type)),
+        _sourceInfos(std::move(sendFifo._sourceInfos)),
         _cacheStream(std::move(sendFifo._cacheStream))
         {
             return ;
@@ -94,8 +95,8 @@ public:
         {
             std::string cacheStr = std::move(_cacheStream.str());
             if (cacheStr.back() != '\n')
-                cacheStr += "\n";
-            _log.send(cacheStr, _type, _sourceInfos);
+                cacheStr += '\n';
+            _log.sendToStream(cacheStr, _type, _sourceInfos);
             return ;
         }
 
@@ -112,8 +113,8 @@ public:
         SendFifo &operator=(const SendFifo &) = delete;
 
         const Loggator      &_log;
-        const eTypeLog      &_type;
-        const SourceInfos   &_sourceInfos;
+        eTypeLog            _type;
+        SourceInfos         _sourceInfos;
         std::ostringstream  _cacheStream;
 
     };
@@ -131,25 +132,25 @@ public:
     };
 
     Loggator(void) noexcept:
-    _name("unknown"),
+    _name(""),
     _filter(eFilterLog::All),
-    _format("{TYPE} {TIME} : "),
+    _format(DEFAULT_FORMAT),
     _outStream(&std::cerr),
     _muted(false)
     {
-        _mapCustomKey["{TIME}"].format = "%y/%m/%d %X.%N";
+        _mapCustomKey["{TIME}"].format = DEFAULT_TIME_FORMAT;
         return ;
     }
 
     Loggator(const std::string &name, const std::string &path, std::ios::openmode openMode = std::ios::app) noexcept:
     _name(name),
     _filter(eFilterLog::All),
-    _format("{TYPE} {TIME} {NAME}: "),
+    _format(DEFAULT_FORMAT),
     _fileStream(path, std::ios::out | openMode),
     _outStream(&std::cerr),
     _muted(false)
     {
-        _mapCustomKey["{TIME}"].format = "%y/%m/%d %X.%N";
+        _mapCustomKey["{TIME}"].format = DEFAULT_TIME_FORMAT;
         if (_fileStream.is_open())
             _outStream = &_fileStream;
         return ;
@@ -158,22 +159,22 @@ public:
     Loggator(const std::string &name, std::ostream &oStream = std::cerr) noexcept:
     _name(name),
     _filter(eFilterLog::All),
-    _format("{TYPE} {TIME} : "),
+    _format(DEFAULT_FORMAT),
     _outStream(&oStream),
     _muted(false)
     {
-        _mapCustomKey["{TIME}"].format = "%y/%m/%d %X.%N";
+        _mapCustomKey["{TIME}"].format = DEFAULT_TIME_FORMAT;
         return ;
     }
 
     Loggator(std::ostream &oStream) noexcept:
-    _name("unknown"),
+    _name(""),
     _filter(eFilterLog::All),
-    _format("{TYPE} {TIME} : "),
+    _format(DEFAULT_FORMAT),
     _outStream(&oStream),
     _muted(false)
     {
-        _mapCustomKey["{TIME}"].format = "%y/%m/%d %X.%N";
+        _mapCustomKey["{TIME}"].format = DEFAULT_TIME_FORMAT;
         return ;
     }
 
@@ -181,13 +182,14 @@ public:
     _name(name),
     _filter(loggator._filter),
     _format(loggator._format),
-    _outStream(nullptr),
+    _outStream(NULL),
     _muted(loggator._muted)
     {
         std::lock_guard<std::mutex> lockGuard(loggator._mutex);
         _logChilds = loggator._logChilds;
         _mapCustomKey = loggator._mapCustomKey;
         _logChilds.insert(&loggator);
+        loggator._logChilds.insert(this);
         return ;
     }
 
@@ -195,13 +197,14 @@ public:
     _name(loggator._name),
     _filter(loggator._filter),
     _format(loggator._format),
-    _outStream(nullptr),
+    _outStream(NULL),
     _muted(loggator._muted)
     {
         std::lock_guard<std::mutex> lockGuard(loggator._mutex);
         _logChilds = loggator._logChilds;
         _mapCustomKey = loggator._mapCustomKey;
         _logChilds.insert(&loggator);
+        loggator._logChilds.insert(this);
         return ;
     }
 
@@ -364,7 +367,7 @@ public:
         std::size_t findPos = retStr.find("%N");
         if (findPos != std::string::npos)
         {
-            snprintf(bufferFormatTime, 6, "%06ld", infos.msec);
+            snprintf(bufferFormatTime, 7, "%06ld", infos.msec);
             retStr.replace(findPos, 2, bufferFormatTime, 6);
         }
         strftime(bufferFormatTime, 126, retStr.c_str(), infos.tm);
@@ -412,10 +415,10 @@ public:
         }
     }
 
-    void            send(const std::string &str, const eTypeLog &type, const SourceInfos &source = {nullptr, 0, nullptr}) const
+    void            sendToStream(const std::string str, const eTypeLog &type, const SourceInfos &source) const
     {
         const timeInfos timeInfos = getCurrentTimeInfos();
-        if (_outStream != nullptr && _muted == false && _filter & type)
+        if (_outStream != NULL && _muted == false && _filter & type)
         {
             std::lock_guard<std::mutex> lockGuard(_mutex);
             *(_outStream) << prompt(*this, type, _mapCustomKey, timeInfos, source) << str << std::flush;
@@ -433,7 +436,7 @@ public:
             if (setLog.find(child) != setLog.end())
                 continue;
             setLog.insert(child);
-            if (child->_outStream != nullptr && child->_muted == false && child->_filter & type)
+            if (child->_outStream != NULL && child->_muted == false && child->_filter & type)
             {
                 std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
                 *(child->_outStream) << child->prompt(loggator, type, _mapCustomKey, timeInfos, source) << str << std::flush;
@@ -466,7 +469,7 @@ public:
         return std::string(buffer);
     }
 
-    std::string     prompt(const Loggator &loggator, const eTypeLog &type, const std::map<const std::string, customKey> &mapCustomKey, const timeInfos &timeInfos, const SourceInfos &source = {nullptr, 0, nullptr}) const
+    std::string     prompt(const Loggator &loggator, const eTypeLog &type, const std::map<const std::string, customKey> &mapCustomKey, const timeInfos &timeInfos, const SourceInfos &source) const
     {
         std::string prompt = _format;
         std::size_t indexStart = prompt.find("{");
@@ -490,21 +493,21 @@ public:
             }
             else if (key == "{FUNC}")
             {
-                if (source.func != nullptr)
+                if (source.func != NULL)
                     prompt.replace(indexStart, key.size(), formatKey(key, source.func));
                 else
                     prompt.erase(indexStart, key.size());
             }
             else if (key == "{PATH}")
             {
-                if (source.filename != nullptr)
+                if (source.filename != NULL)
                     prompt.replace(indexStart, key.size(), formatKey(key, source.filename));
                 else
                     prompt.erase(indexStart, key.size());
             }
             else if (key == "{FILE}")
             {
-                if (source.filename != nullptr)
+                if (source.filename != NULL)
                 {
                     const char *rchr = strrchr(source.filename, '/');
                     if (rchr != NULL)
@@ -537,12 +540,12 @@ public:
         return prompt;
     }
 
-    SendFifo        send(const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
+    SendFifo        send(const SourceInfos &sourceInfos = {NULL, 0, NULL}) const
     {
         return SendFifo(*this, eTypeLog::Debug, sourceInfos);
     }
 
-    SendFifo        send(const eTypeLog &type, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
+    SendFifo        send(const eTypeLog &type, const SourceInfos &sourceInfos = {NULL, 0, NULL}) const
     {
         return SendFifo(*this, type, sourceInfos);
     }
@@ -554,7 +557,7 @@ public:
         va_start(vargs, format);
         vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
-        SendFifo fifo(*this, type, {nullptr, 0, nullptr});
+        SendFifo fifo(*this, type, {NULL, 0, NULL});
         fifo << buffer;
         return fifo;
     }
@@ -571,7 +574,7 @@ public:
         return fifo;
     }
 
-    SendFifo        debug(const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
+    SendFifo        debug(const SourceInfos &sourceInfos = {NULL, 0, NULL}) const
     {
         return SendFifo(*this, eTypeLog::Debug, sourceInfos);
     }
@@ -595,12 +598,17 @@ public:
         va_start(vargs, format);
         vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Debug, {nullptr, 0, nullptr});
+        SendFifo fifo(*this, eTypeLog::Debug, {NULL, 0, NULL});
         fifo << buffer;
         return fifo;
     }
 
-    SendFifo        trace(const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
+    SendFifo        trace(void) const
+    {
+        return SendFifo(*this, eTypeLog::Trace, {NULL, 0, NULL});
+    }
+
+    SendFifo        trace(const SourceInfos &sourceInfos) const
     {
         return SendFifo(*this, eTypeLog::Trace, sourceInfos);
     }
@@ -624,12 +632,12 @@ public:
         va_start(vargs, format);
         vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Trace, {nullptr, 0, nullptr});
+        SendFifo fifo(*this, eTypeLog::Trace, {NULL, 0, NULL});
         fifo << buffer;
         return fifo;
     }
 
-    SendFifo        info(const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
+    SendFifo        info(const SourceInfos &sourceInfos = {NULL, 0, NULL}) const
     {
         return SendFifo(*this, eTypeLog::Info, sourceInfos);
     }
@@ -653,12 +661,12 @@ public:
         va_start(vargs, format);
         vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Info, {nullptr, 0, nullptr});
+        SendFifo fifo(*this, eTypeLog::Info, {NULL, 0, NULL});
         fifo << buffer;
         return fifo;
     }
 
-    SendFifo        warning(const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
+    SendFifo        warning(const SourceInfos &sourceInfos = {NULL, 0, NULL}) const
     {
         return SendFifo(*this, eTypeLog::Warning, sourceInfos);
     }
@@ -682,12 +690,12 @@ public:
         va_start(vargs, format);
         vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Warning, {nullptr, 0, nullptr});
+        SendFifo fifo(*this, eTypeLog::Warning, {NULL, 0, NULL});
         fifo << buffer;
         return fifo;
     }
 
-    SendFifo        warn(const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
+    SendFifo        warn(const SourceInfos &sourceInfos = {NULL, 0, NULL}) const
     {
         return SendFifo(*this, eTypeLog::Warn, sourceInfos);
     }
@@ -711,12 +719,12 @@ public:
         va_start(vargs, format);
         vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Warn, {nullptr, 0, nullptr});
+        SendFifo fifo(*this, eTypeLog::Warn, {NULL, 0, NULL});
         fifo << buffer;
         return fifo;
     }
 
-    SendFifo        error(const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
+    SendFifo        error(const SourceInfos &sourceInfos = {NULL, 0, NULL}) const
     {
         return SendFifo(*this, eTypeLog::Error, sourceInfos);
     }
@@ -740,12 +748,25 @@ public:
         va_start(vargs, format);
         vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Error, {nullptr, 0, nullptr});
+        SendFifo fifo(*this, eTypeLog::Error, {NULL, 0, NULL});
         fifo << buffer;
         return fifo;
     }
 
-    Loggator &operator()(const eTypeLog &type, const SourceInfos &sourceInfos, const char * format, ...)
+    template<typename T>
+    SendFifo        operator<<(const T& var)
+    {
+        SendFifo fifo(*this, eTypeLog::Error, {NULL, 0, NULL});
+        fifo << var;
+        return fifo;
+    }
+
+    SendFifo        operator[](const eTypeLog& type)
+    {
+        return SendFifo(*this, type, {NULL, 0, NULL});
+    }
+
+    Loggator &operator()(eTypeLog type, const SourceInfos &sourceInfos, const char * format, ...)
     {
         char    buffer[FORMAT_BUFFER_SIZE];
         va_list vargs;
@@ -755,7 +776,7 @@ public:
         std::string cacheStr(buffer);
         if (cacheStr.back() != '\n')
             cacheStr += "\n";
-        send(cacheStr, type, sourceInfos);
+        sendToStream(cacheStr, type, sourceInfos);
         return *this;
     }
 
@@ -764,12 +785,12 @@ public:
         char    buffer[FORMAT_BUFFER_SIZE];
         va_list vargs;
         va_start(vargs, format);
-        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
+        vsnprintf(buffer, FORMAT_BUFFER_SIZE, format, vargs);
         va_end(vargs);
         std::string cacheStr(buffer);
         if (cacheStr.back() != '\n')
             cacheStr += "\n";
-        send(cacheStr, type, {nullptr, 0, nullptr});
+        sendToStream(cacheStr, type, {NULL, 0, NULL});
         return *this;
     }
 
@@ -783,7 +804,7 @@ public:
         std::string cacheStr(buffer);
         if (cacheStr.back() != '\n')
             cacheStr += "\n";
-        send(cacheStr, eTypeLog::Debug, {nullptr, 0, nullptr});
+        sendToStream(cacheStr, eTypeLog::Debug, {NULL, 0, NULL});
         return *this;
     }
 
@@ -797,9 +818,9 @@ private:
     std::ofstream                           _fileStream;
     std::ostream                            *_outStream;
     std::set<Loggator*>                     _logChilds;
-    bool                                    _muted;
     mutable std::mutex                      _mutex;
     std::map<const std::string, customKey>  _mapCustomKey;
+    bool                                    _muted;
 
 };
 

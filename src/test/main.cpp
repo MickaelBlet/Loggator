@@ -20,7 +20,7 @@ int     main(void)
 
     logTest.send() << "Default send function";
     logTest.send(eTypeLog::Trace) << "Type send function";
-    logTest.send(eTypeLog::Trace, "%s", "Type send function format") << "d";
+    logTest.send(eTypeLog::Trace, "%s", "Type send function format");
     logTest.send(eTypeLog::Trace, "%s", "Type send function format") << " add";
 
     logTest.LSEND() << "Default LSEND macro";
@@ -40,11 +40,6 @@ int     main(void)
     logTest(eTypeLog::Trace, "operator () with type");
     logTest("%s", "Default operator () with format");
     logTest(eTypeLog::Trace, "%s", "operator () with type format");
-
-    logTest << "Default operator <<" << " with multiple args";
-    logTest[eTypeLog::Trace] << "operator [] test type trace";
-
-    // test file
 
     logTest.open("test1.log", std::ios::trunc);
     logTest.setFilter(eFilterLog::EqError);

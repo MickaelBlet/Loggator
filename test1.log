@@ -1,3 +1,4 @@
-ERROR 2018/04/29 23:28:39.55605 new: main: main.cpp:46 : error test1
-ERROR 2018/04/29 23:28:39.56106 new: main: main.cpp:59 : error test1 and test2
-DEBUG 2018/04/29 23:28:39.56165 new: main: main.cpp:62 : debug test1 and test2
+ERROR 2018/04/30 18:17:52.265505 new: main: main.cpp:51 : error test1
+ERROR 2018/04/30 18:17:52.267543 new: main: main.cpp:65 : error test1 and test2
+DEBUG 2018/04/30 18:17:52.267713 new: main: main.cpp:68 : debug test1 and test2
+DEBUG 2018/04/30 18:17:52.267779 new: main: main.cpp:69 : debug test1 and test2

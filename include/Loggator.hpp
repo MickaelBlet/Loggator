@@ -1,23 +1,21 @@
 #ifndef _LOG_LOGGATOR_HPP_
 # define _LOG_LOGGATOR_HPP_
 
-# include <ctime>
-# include <cstdarg> // va_list, va_start, va_end
-# include <cstring> // strrchr
+# include <cstdarg>     // va_list, va_start, va_end
+# include <cstring>     // strrchr
 
-# include <iomanip>
-# include <iostream> // string, cerr
-# include <fstream> // ostream, ofstream
-# include <sstream> // ostringstream
-# include <mutex> // mutex, lock_guard
-# include <thread> // this_thread::get_id
-# include <map> // map
-# include <set> // set
+# include <iostream>    // string, cerr
+# include <fstream>     // ostream, ofstream
+# include <sstream>     // ostringstream
+# include <mutex>       // mutex, lock_guard
+# include <thread>      // this_thread::get_id
+# include <map>         // map
+# include <set>         // set
 
-# define FORMAT_BUFFER_SIZE 1024
+# define FORMAT_BUFFER_SIZE     1024
 # define FORMAT_KEY_BUFFER_SIZE 127
-# define DEFAULT_FORMAT "{TYPE} {TIME} : "
-# define DEFAULT_TIME_FORMAT "%y/%m/%d %X.%N"
+# define DEFAULT_FORMAT         "{TIME} {TYPE} {NAME}: "
+# define DEFAULT_TIME_FORMAT    "%y/%m/%d %X.%N"
 
 namespace Log
 {
@@ -138,7 +136,7 @@ public:
     _outStream(&std::cerr),
     _muted(false)
     {
-        _mapCustomKey["{TIME}"].format = DEFAULT_TIME_FORMAT;
+        _mapCustomKey["TIME"].format = DEFAULT_TIME_FORMAT;
         return ;
     }
 
@@ -150,7 +148,7 @@ public:
     _outStream(&std::cerr),
     _muted(false)
     {
-        _mapCustomKey["{TIME}"].format = DEFAULT_TIME_FORMAT;
+        _mapCustomKey["TIME"].format = DEFAULT_TIME_FORMAT;
         if (_fileStream.is_open())
             _outStream = &_fileStream;
         return ;
@@ -163,7 +161,7 @@ public:
     _outStream(&oStream),
     _muted(false)
     {
-        _mapCustomKey["{TIME}"].format = DEFAULT_TIME_FORMAT;
+        _mapCustomKey["TIME"].format = DEFAULT_TIME_FORMAT;
         return ;
     }
 
@@ -174,7 +172,7 @@ public:
     _outStream(&oStream),
     _muted(false)
     {
-        _mapCustomKey["{TIME}"].format = DEFAULT_TIME_FORMAT;
+        _mapCustomKey["TIME"].format = DEFAULT_TIME_FORMAT;
         return ;
     }
 
@@ -287,7 +285,7 @@ public:
     Loggator        &setKey(const std::string &key, const std::string &value)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
-        _mapCustomKey["{" + key + "}"].value = value;
+        _mapCustomKey[key].value = value;
         return (*this);
     }
 
@@ -310,10 +308,15 @@ public:
             std::size_t indexFormat = _format.find(":", indexStart);
             if (indexFormat == std::string::npos || indexFormat > indexEnd)
             {
+                std::string key = _format.substr(indexStart + 1, indexEnd - indexStart - 1);
+                if (key == "TIME")
+                    _mapCustomKey[key].format = DEFAULT_TIME_FORMAT;
+                else
+                    _mapCustomKey[key].format = "%s";
                 indexStart = _format.find("{", indexStart + 1);
                 continue;
             }
-            std::string key = _format.substr(indexStart, indexFormat - indexStart) + "}";
+            std::string key = _format.substr(indexStart + 1, indexFormat - indexStart - 1);
             std::string formatKey = _format.substr(indexFormat + 1, indexEnd - indexFormat - 1);
             _mapCustomKey[key].format = std::move(formatKey);
             _format.erase(indexFormat, indexEnd - indexFormat);
@@ -362,7 +365,7 @@ public:
     {
         char bufferFormatTime[FORMAT_BUFFER_SIZE];
 
-        std::string retStr = _mapCustomKey.at("{TIME}").format;
+        std::string retStr = _mapCustomKey.at("TIME").format;
 
         std::size_t findPos = retStr.find("%N");
         if (findPos != std::string::npos)
@@ -478,62 +481,62 @@ public:
             std::size_t indexEnd = prompt.find("}", indexStart);
             if (indexEnd == std::string::npos)
                 break;
-            std::string key = prompt.substr(indexStart, indexEnd - indexStart + 1);
-            if (key == "{TIME}")
+            std::string key = prompt.substr(indexStart + 1, indexEnd - indexStart - 1);
+            if (key == "TIME")
             {
-                prompt.replace(indexStart, key.size(), formatTime(timeInfos));
+                prompt.replace(indexStart, 6, formatTime(timeInfos));
             }
-            else if (key == "{TYPE}")
+            else if (key == "TYPE")
             {
-                prompt.replace(indexStart, key.size(), formatKey(key, typeToStr(type)));
+                prompt.replace(indexStart, 6, formatKey(key, typeToStr(type)));
             }
-            else if (key == "{NAME}")
+            else if (key == "NAME")
             {
-                prompt.replace(indexStart, key.size(), formatKey(key, loggator._name));
+                prompt.replace(indexStart, 6, formatKey(key, loggator._name));
             }
-            else if (key == "{FUNC}")
+            else if (key == "FUNC")
             {
                 if (source.func != NULL)
-                    prompt.replace(indexStart, key.size(), formatKey(key, source.func));
+                    prompt.replace(indexStart, 6, formatKey(key, source.func));
                 else
-                    prompt.erase(indexStart, key.size());
+                    prompt.erase(indexStart, 6);
             }
-            else if (key == "{PATH}")
+            else if (key == "PATH")
             {
                 if (source.filename != NULL)
-                    prompt.replace(indexStart, key.size(), formatKey(key, source.filename));
+                    prompt.replace(indexStart, 6, formatKey(key, source.filename));
                 else
-                    prompt.erase(indexStart, key.size());
+                    prompt.erase(indexStart, 6);
             }
-            else if (key == "{FILE}")
+            else if (key == "FILE")
             {
                 if (source.filename != NULL)
                 {
                     const char *rchr = strrchr(source.filename, '/');
                     if (rchr != NULL)
-                        prompt.replace(indexStart, key.size(), formatKey(key, source.filename + (rchr - source.filename) + 1));
+                        prompt.replace(indexStart, 6, formatKey(key, source.filename + (rchr - source.filename) + 1));
                     else
-                        prompt.replace(indexStart, key.size(), formatKey(key, source.filename));
+                        prompt.replace(indexStart, 6, formatKey(key, source.filename));
                 }
                 else
-                    prompt.erase(indexStart, key.size());
+                    prompt.erase(indexStart, 6);
             }
-            else if (key == "{LINE}")
+            else if (key == "LINE")
             {
                 if (source.line > 0)
-                    prompt.replace(indexStart, key.size(), formatKey(key, std::to_string(source.line)));
+                    prompt.replace(indexStart, 6, formatKey(key, std::to_string(source.line)));
                 else
-                    prompt.erase(indexStart, key.size());
+                    prompt.erase(indexStart, 6);
             }
-            else if (key == "{THREAD_ID}")
+            else if (key == "THREAD_ID")
             {
                 std::stringstream stream;
                 stream << std::hex << std::uppercase << std::this_thread::get_id();
-                prompt.replace(indexStart, key.size(), formatKey(key, stream.str()));
+                prompt.replace(indexStart, 11, formatKey(key, stream.str()));
             }
             else
             {
-                prompt.replace(indexStart, key.size(), formatCustomKey(mapCustomKey, key));
+                prompt.replace(indexStart, key.size() + 2, formatCustomKey(mapCustomKey, key));
             }
             indexStart = prompt.find("{", indexStart);
         }
@@ -579,18 +582,6 @@ public:
         return SendFifo(*this, eTypeLog::Debug, sourceInfos);
     }
 
-    SendFifo        debug(const SourceInfos &sourceInfos, const char *format, ...) const
-    {
-        char    buffer[FORMAT_BUFFER_SIZE];
-        va_list vargs;
-        va_start(vargs, format);
-        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
-        va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Debug, sourceInfos);
-        fifo << buffer;
-        return fifo;
-    }
-
     SendFifo        debug(const char *format, ...) const
     {
         char    buffer[FORMAT_BUFFER_SIZE];
@@ -603,26 +594,9 @@ public:
         return fifo;
     }
 
-    SendFifo        trace(void) const
-    {
-        return SendFifo(*this, eTypeLog::Trace, {NULL, 0, NULL});
-    }
-
-    SendFifo        trace(const SourceInfos &sourceInfos) const
+    SendFifo        trace(const SourceInfos &sourceInfos = {NULL, 0, NULL}) const
     {
         return SendFifo(*this, eTypeLog::Trace, sourceInfos);
-    }
-
-    SendFifo        trace(const SourceInfos &sourceInfos, const char *format, ...) const
-    {
-        char    buffer[FORMAT_BUFFER_SIZE];
-        va_list vargs;
-        va_start(vargs, format);
-        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
-        va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Trace, sourceInfos);
-        fifo << buffer;
-        return fifo;
     }
 
     SendFifo        trace(const char *format, ...) const
@@ -642,18 +616,6 @@ public:
         return SendFifo(*this, eTypeLog::Info, sourceInfos);
     }
 
-    SendFifo        info(const SourceInfos &sourceInfos, const char *format, ...) const
-    {
-        char    buffer[FORMAT_BUFFER_SIZE];
-        va_list vargs;
-        va_start(vargs, format);
-        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
-        va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Info, sourceInfos);
-        fifo << buffer;
-        return fifo;
-    }
-
     SendFifo        info(const char *format, ...) const
     {
         char    buffer[FORMAT_BUFFER_SIZE];
@@ -669,18 +631,6 @@ public:
     SendFifo        warning(const SourceInfos &sourceInfos = {NULL, 0, NULL}) const
     {
         return SendFifo(*this, eTypeLog::Warning, sourceInfos);
-    }
-
-    SendFifo        warning(const SourceInfos &sourceInfos, const char *format, ...) const
-    {
-        char    buffer[FORMAT_BUFFER_SIZE];
-        va_list vargs;
-        va_start(vargs, format);
-        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
-        va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Warning, sourceInfos);
-        fifo << buffer;
-        return fifo;
     }
 
     SendFifo        warning(const char *format, ...) const
@@ -700,18 +650,6 @@ public:
         return SendFifo(*this, eTypeLog::Warn, sourceInfos);
     }
 
-    SendFifo        warn(const SourceInfos &sourceInfos, const char *format, ...) const
-    {
-        char    buffer[FORMAT_BUFFER_SIZE];
-        va_list vargs;
-        va_start(vargs, format);
-        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
-        va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Warn, sourceInfos);
-        fifo << buffer;
-        return fifo;
-    }
-
     SendFifo        warn(const char *format, ...) const
     {
         char    buffer[FORMAT_BUFFER_SIZE];
@@ -729,18 +667,6 @@ public:
         return SendFifo(*this, eTypeLog::Error, sourceInfos);
     }
 
-    SendFifo        error(const SourceInfos &sourceInfos, const char *format, ...) const
-    {
-        char    buffer[FORMAT_BUFFER_SIZE];
-        va_list vargs;
-        va_start(vargs, format);
-        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
-        va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Error, sourceInfos);
-        fifo << buffer;
-        return fifo;
-    }
-
     SendFifo        error(const char *format, ...) const
     {
         char    buffer[FORMAT_BUFFER_SIZE];
@@ -754,58 +680,40 @@ public:
     }
 
     template<typename T>
-    SendFifo        operator<<(const T& var)
+    SendFifo        operator<<(const T &var) const
     {
-        SendFifo fifo(*this, eTypeLog::Error, {NULL, 0, NULL});
+        SendFifo fifo(*this, eTypeLog::Debug, {NULL, 0, NULL});
         fifo << var;
         return fifo;
     }
 
-    SendFifo        operator[](const eTypeLog& type)
+    SendFifo        operator[](const eTypeLog &type) const
     {
         return SendFifo(*this, type, {NULL, 0, NULL});
     }
 
-    Loggator &operator()(eTypeLog type, const SourceInfos &sourceInfos, const char * format, ...)
-    {
-        char    buffer[FORMAT_BUFFER_SIZE];
-        va_list vargs;
-        va_start(vargs, format);
-        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
-        va_end(vargs);
-        std::string cacheStr(buffer);
-        if (cacheStr.back() != '\n')
-            cacheStr += "\n";
-        sendToStream(cacheStr, type, sourceInfos);
-        return *this;
-    }
-
-    Loggator &operator()(const eTypeLog &type, const char * format, ...)
+    SendFifo        operator()(const eTypeLog &type, const char * format, ...) const
     {
         char    buffer[FORMAT_BUFFER_SIZE];
         va_list vargs;
         va_start(vargs, format);
         vsnprintf(buffer, FORMAT_BUFFER_SIZE, format, vargs);
         va_end(vargs);
-        std::string cacheStr(buffer);
-        if (cacheStr.back() != '\n')
-            cacheStr += "\n";
-        sendToStream(cacheStr, type, {NULL, 0, NULL});
-        return *this;
+        SendFifo fifo(*this, type, {NULL, 0, NULL});
+        fifo << buffer;
+        return fifo;
     }
 
-    Loggator &operator()(const char * format, ...)
+    SendFifo        operator()(const char * format, ...) const
     {
         char    buffer[FORMAT_BUFFER_SIZE];
         va_list vargs;
         va_start(vargs, format);
         vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
-        std::string cacheStr(buffer);
-        if (cacheStr.back() != '\n')
-            cacheStr += "\n";
-        sendToStream(cacheStr, eTypeLog::Debug, {NULL, 0, NULL});
-        return *this;
+        SendFifo fifo(*this, eTypeLog::Error, {NULL, 0, NULL});
+        fifo << buffer;
+        return fifo;
     }
 
 private:

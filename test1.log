@@ -1,4 +1,24 @@
-ERROR 2018/04/30 18:17:52.265505 new: main: main.cpp:51 : error test1
-ERROR 2018/04/30 18:17:52.267543 new: main: main.cpp:65 : error test1 and test2
-DEBUG 2018/04/30 18:17:52.267713 new: main: main.cpp:68 : debug test1 and test2
-DEBUG 2018/04/30 18:17:52.267779 new: main: main.cpp:69 : debug test1 and test2
+ERROR 18/04/30 23:13:26.236191 new: main: main.cpp:61 : error test1
+ERROR 18/04/30 23:13:26.237901 new: main: main.cpp:75 : error test1 and test2
+DEBUG 18/04/30 23:13:26.237999 new: main: main.cpp:78 : debug test1 and test2
+DEBUG 18/04/30 23:13:26.238018 new: main: main.cpp:79 : debug test1 and test2
+DEBUG 2018/04/30 23:13:26.238442 new: 7F65E0340700: test in thread0
+DEBUG 2018/04/30 23:13:26.238495 new: 7F65E0340700: test in thread0
+DEBUG 2018/04/30 23:13:26.238517 new: 7F65E0340700: test in thread0
+DEBUG 2018/04/30 23:13:26.238536 new: 7F65E0340700: test in thread0
+DEBUG 2018/04/30 23:13:26.238555 new: 7F65E0340700: test in thread0
+DEBUG 2018/04/30 23:13:26.238700 new: 7F65DFB30700: test in thread1
+DEBUG 2018/04/30 23:13:26.238795 new: 7F65DF320700: test in thread2
+DEBUG 2018/04/30 23:13:26.238809 new: 7F65DFB30700: test in thread1
+DEBUG 2018/04/30 23:13:26.238849 new: 7F65DF320700: test in thread2
+DEBUG 2018/04/30 23:13:26.238874 new: 7F65DFB30700: test in thread1
+DEBUG 2018/04/30 23:13:26.238917 new: 7F65DF320700: test in thread2
+DEBUG 2018/04/30 23:13:26.238937 new: 7F65DFB30700: test in thread1
+DEBUG 2018/04/30 23:13:26.238995 new: 7F65DEB10700: test in thread3
+DEBUG 2018/04/30 23:13:26.239039 new: 7F65DEB10700: test in thread3
+DEBUG 2018/04/30 23:13:26.239061 new: 7F65DEB10700: test in thread3
+DEBUG 2018/04/30 23:13:26.239003 new: 7F65DFB30700: test in thread1
+DEBUG 2018/04/30 23:13:26.239081 new: 7F65DEB10700: test in thread3
+DEBUG 2018/04/30 23:13:26.238964 new: 7F65DF320700: test in thread2
+DEBUG 2018/04/30 23:13:26.239152 new: 7F65DEB10700: test in thread3
+DEBUG 2018/04/30 23:13:26.239167 new: 7F65DF320700: test in thread2

@@ -12,47 +12,94 @@
 # include <map>         // map
 # include <set>         // set
 
-# define FORMAT_BUFFER_SIZE     1024
-# define FORMAT_KEY_BUFFER_SIZE 127
-# define DEFAULT_FORMAT         "{TIME} {TYPE} {NAME}: "
-# define DEFAULT_TIME_FORMAT    "%y/%m/%d %X.%N"
+# define LFORMAT_BUFFER_SIZE     1024
+# define LFORMAT_KEY_BUFFER_SIZE 64
+# define LDEFAULT_FORMAT         "{TIME} {TYPE} {NAME}: "
+# define LDEFAULT_TIME_FORMAT    "%y/%m/%d %X.%N"
+
+# define LSOURCEINFOS SourceInfos{__FILE__, __LINE__, __func__}
+
+# define LPRIMITIVE_CAT(x, y) x ## y
+# define LCAT(x, y) LPRIMITIVE_CAT(x, y)
+
+// max 19 args
+# define LNARGS_SEQ(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _0, N, ...) N
+# define LNARGS(...) LNARGS_SEQ(__VA_ARGS__, 0, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, 1)
+# define LPRE_NARGS(...) LNARGS(__VA_ARGS__)
+# define LNOARGS() 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19
+# define LMACRO_CHOOSER(macro_prefix, ...) LCAT(macro_prefix, LPRE_NARGS(LNOARGS __VA_ARGS__ ()))
+
+// format macro
+# define LSENDF(_typeLog, ...)  send(Log::eTypeLog::_typeLog, LSOURCEINFOS, ##__VA_ARGS__)
+# define LDEBUGF(...)           LSENDF(Debug,   __VA_ARGS__)
+# define LINFOF(...)            LSENDF(Info,    __VA_ARGS__)
+# define LWARNF(...)            LSENDF(Warn,    __VA_ARGS__)
+# define LWARNINGF(...)         LSENDF(Warning, __VA_ARGS__)
+# define LERRORF(...)           LSENDF(Error,   __VA_ARGS__)
+
+// send macro
+# define LSEND(...)         LMACRO_CHOOSER(LSEND_, __VA_ARGS__)(__VA_ARGS__)
+# define LSEND_0()          send(Log::eTypeLog::Debug, LSOURCEINFOS)
+# define LSEND_1(_typeLog)  send(Log::eTypeLog::_typeLog, LSOURCEINFOS)
+# define LSEND_X(...)       LSENDF(__VA_ARGS__)
+
+// type macro
+# define LDEBUG(...)    LMACRO_CHOOSER(LDEBUG_, __VA_ARGS__)(__VA_ARGS__)
+# define LDEBUG_0()     send(Log::eTypeLog::Debug, LSOURCEINFOS)
+# define LDEBUG_1(...)  LDEBUGF(__VA_ARGS__)
+# define LDEBUG_X(...)  LDEBUGF(__VA_ARGS__)
+
+# define LINFO(...)     LMACRO_CHOOSER(LINFO_, __VA_ARGS__)(__VA_ARGS__)
+# define LINFO_0()      send(Log::eTypeLog::Info, LSOURCEINFOS)
+# define LINFO_1(...)   LINFOF(__VA_ARGS__)
+# define LINFO_X(...)   LINFOF(__VA_ARGS__)
+
+# define LWARN(...)     LMACRO_CHOOSER(LWARN_, __VA_ARGS__)(__VA_ARGS__)
+# define LWARNING(...)  LMACRO_CHOOSER(LWARN_, __VA_ARGS__)(__VA_ARGS__)
+# define LWARN_0()      send(Log::eTypeLog::Warn, LSOURCEINFOS)
+# define LWARN_1(...)   LWARNF(__VA_ARGS__)
+# define LWARN_X(...)   LWARNF(__VA_ARGS__)
+
+# define LERROR(...)    LMACRO_CHOOSER(LERROR_, __VA_ARGS__)(__VA_ARGS__)
+# define LERROR_0()     send(Log::eTypeLog::Error, LSOURCEINFOS)
+# define LERROR_1(...)  LERRORF(__VA_ARGS__)
+# define LERROR_X(...)  LERRORF(__VA_ARGS__)
 
 namespace Log
 {
 
 enum eTypeLog
 {
-    Debug           = 1<<0,
-    Trace           = 1<<1,
-    Info            = 1<<2,
-    Warning         = 1<<3,
-    Warn            = 1<<3,
-    Error           = 1<<4
+    Debug   = 1<<0,
+    Info    = 1<<1,
+    Warning = 1<<2,
+    Warn    = 1<<2,
+    Error   = 1<<3
 };
 
 enum eFilterLog
 {
-    EqDebug         = eTypeLog::Debug,
-    EqTrace         = eTypeLog::Trace,
-    EqInfo          = eTypeLog::Info,
-    EqWarning       = eTypeLog::Warning,
-    EqError         = eTypeLog::Error,
-    All             = EqDebug | EqTrace | EqInfo | EqWarning | EqError,
-    SupEqDebug      = All,
-    SupEqWarning    = EqWarning | EqError,
-    SupEqInfo       = EqInfo | SupEqWarning,
-    SupEqTrace      = EqTrace | SupEqInfo,
-    LessEqTrace     = EqDebug | EqTrace,
-    LessEqInfo      = LessEqTrace | EqInfo,
-    LessEqWarning   = LessEqInfo | EqWarning,
-    LessEqError     = All,
-    SupDebug        = SupEqTrace,
-    SupInfo         = SupEqWarning,
-    SupWarning      = EqError,
-    LessTrace       = EqDebug,
-    LessInfo        = LessEqTrace,
-    LessWarning     = LessEqInfo,
-    LessError       = LessEqWarning
+    EqualDebug          = eTypeLog::Debug,
+    EqualInfo           = eTypeLog::Info,
+    EqualWarning        = eTypeLog::Warning,
+    EqualError          = eTypeLog::Error,
+    All                 = EqualDebug | EqualInfo | EqualWarning | EqualError,
+    GreaterError        = 0,
+    GreaterWarning      = EqualError,
+    GreaterInfo         = EqualWarning | GreaterWarning,
+    GreaterDebug        = EqualInfo | GreaterInfo,
+    LessDebug           = 0,
+    LessInfo            = EqualDebug,
+    LessWarning         = EqualInfo | LessInfo,
+    LessError           = EqualWarning | LessWarning,
+    GreaterEqualDebug   = All,
+    GreaterEqualWarning = EqualWarning | GreaterWarning,
+    GreaterEqualInfo    = EqualInfo | GreaterInfo,
+    GreaterEqualError   = EqualError,
+    LessEqualDebug      = EqualDebug,
+    LessEqualInfo       = EqualInfo | LessInfo,
+    LessEqualWarning    = EqualWarning | LessWarning,
+    LessEqualError      = All
 };
 
 struct SourceInfos
@@ -132,47 +179,58 @@ public:
     Loggator(void) noexcept:
     _name(""),
     _filter(eFilterLog::All),
-    _format(DEFAULT_FORMAT),
+    _format(LDEFAULT_FORMAT),
     _outStream(&std::cerr),
     _muted(false)
     {
-        _mapCustomKey["TIME"].format = DEFAULT_TIME_FORMAT;
+        _mapCustomKey["TIME"].format = LDEFAULT_TIME_FORMAT;
         return ;
     }
 
-    Loggator(const std::string &name, const std::string &path, std::ios::openmode openMode = std::ios::app) noexcept:
+    Loggator(const eFilterLog filter) noexcept:
+    _name(""),
+    _filter(filter),
+    _format(LDEFAULT_FORMAT),
+    _outStream(&std::cerr),
+    _muted(false)
+    {
+        _mapCustomKey["TIME"].format = LDEFAULT_TIME_FORMAT;
+        return ;
+    }
+
+    Loggator(const std::string &name, const std::string &path, std::ios::openmode openMode = std::ios::app, const eFilterLog filter = eFilterLog::All) noexcept:
     _name(name),
-    _filter(eFilterLog::All),
-    _format(DEFAULT_FORMAT),
+    _filter(filter),
+    _format(LDEFAULT_FORMAT),
     _fileStream(path, std::ios::out | openMode),
     _outStream(&std::cerr),
     _muted(false)
     {
-        _mapCustomKey["TIME"].format = DEFAULT_TIME_FORMAT;
+        _mapCustomKey["TIME"].format = LDEFAULT_TIME_FORMAT;
         if (_fileStream.is_open())
             _outStream = &_fileStream;
         return ;
     }
 
-    Loggator(const std::string &name, std::ostream &oStream = std::cerr) noexcept:
+    Loggator(const std::string &name, std::ostream &oStream = std::cerr, const eFilterLog filter = eFilterLog::All) noexcept:
     _name(name),
-    _filter(eFilterLog::All),
-    _format(DEFAULT_FORMAT),
+    _filter(filter),
+    _format(LDEFAULT_FORMAT),
     _outStream(&oStream),
     _muted(false)
     {
-        _mapCustomKey["TIME"].format = DEFAULT_TIME_FORMAT;
+        _mapCustomKey["TIME"].format = LDEFAULT_TIME_FORMAT;
         return ;
     }
 
-    Loggator(std::ostream &oStream) noexcept:
+    Loggator(std::ostream &oStream, const eFilterLog filter = eFilterLog::All) noexcept:
     _name(""),
-    _filter(eFilterLog::All),
-    _format(DEFAULT_FORMAT),
+    _filter(filter),
+    _format(LDEFAULT_FORMAT),
     _outStream(&oStream),
     _muted(false)
     {
-        _mapCustomKey["TIME"].format = DEFAULT_TIME_FORMAT;
+        _mapCustomKey["TIME"].format = LDEFAULT_TIME_FORMAT;
         return ;
     }
 
@@ -180,7 +238,7 @@ public:
     _name(name),
     _filter(loggator._filter),
     _format(loggator._format),
-    _outStream(NULL),
+    _outStream(nullptr),
     _muted(loggator._muted)
     {
         std::lock_guard<std::mutex> lockGuard(loggator._mutex);
@@ -195,7 +253,7 @@ public:
     _name(loggator._name),
     _filter(loggator._filter),
     _format(loggator._format),
-    _outStream(NULL),
+    _outStream(nullptr),
     _muted(loggator._muted)
     {
         std::lock_guard<std::mutex> lockGuard(loggator._mutex);
@@ -310,7 +368,7 @@ public:
             {
                 std::string key = _format.substr(indexStart + 1, indexEnd - indexStart - 1);
                 if (key == "TIME")
-                    _mapCustomKey[key].format = DEFAULT_TIME_FORMAT;
+                    _mapCustomKey[key].format = LDEFAULT_TIME_FORMAT;
                 else
                     _mapCustomKey[key].format = "%s";
                 indexStart = _format.find("{", indexStart + 1);
@@ -363,7 +421,7 @@ public:
 
     std::string     formatTime(const timeInfos &infos) const
     {
-        char bufferFormatTime[FORMAT_BUFFER_SIZE];
+        char bufferFormatTime[LFORMAT_BUFFER_SIZE];
 
         std::string retStr = _mapCustomKey.at("TIME").format;
 
@@ -400,9 +458,6 @@ public:
             case eTypeLog::Debug:
                 return "DEBUG";
                 break;
-            case eTypeLog::Trace:
-                return "TRACE";
-                break;
             case eTypeLog::Info:
                 return "INFO ";
                 break;
@@ -421,7 +476,7 @@ public:
     void            sendToStream(const std::string str, const eTypeLog &type, const SourceInfos &source) const
     {
         const timeInfos timeInfos = getCurrentTimeInfos();
-        if (_outStream != NULL && _muted == false && _filter & type)
+        if (_outStream != nullptr && _muted == false && _filter & type)
         {
             std::lock_guard<std::mutex> lockGuard(_mutex);
             *(_outStream) << prompt(*this, type, _mapCustomKey, timeInfos, source) << str << std::flush;
@@ -439,7 +494,7 @@ public:
             if (setLog.find(child) != setLog.end())
                 continue;
             setLog.insert(child);
-            if (child->_outStream != NULL && child->_muted == false && child->_filter & type)
+            if (child->_outStream != nullptr && child->_muted == false && child->_filter & type)
             {
                 std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
                 *(child->_outStream) << child->prompt(loggator, type, _mapCustomKey, timeInfos, source) << str << std::flush;
@@ -455,8 +510,8 @@ public:
             return "";
         if (itMap->second.value.empty())
             return "";
-        char buffer[FORMAT_KEY_BUFFER_SIZE];
-        snprintf(buffer, FORMAT_KEY_BUFFER_SIZE - 1, itMap->second.format.c_str(), itMap->second.value.c_str());
+        char buffer[LFORMAT_KEY_BUFFER_SIZE];
+        snprintf(buffer, LFORMAT_KEY_BUFFER_SIZE - 1, itMap->second.format.c_str(), itMap->second.value.c_str());
         return std::string(buffer);
     }
 
@@ -467,8 +522,8 @@ public:
         std::map<const std::string, customKey>::const_iterator itMap = _mapCustomKey.find(key);
         if (itMap == _mapCustomKey.end())
             return value;
-        char buffer[FORMAT_KEY_BUFFER_SIZE];
-        snprintf(buffer, FORMAT_KEY_BUFFER_SIZE - 1, itMap->second.format.c_str(), value.c_str());
+        char buffer[LFORMAT_KEY_BUFFER_SIZE];
+        snprintf(buffer, LFORMAT_KEY_BUFFER_SIZE - 1, itMap->second.format.c_str(), value.c_str());
         return std::string(buffer);
     }
 
@@ -496,24 +551,24 @@ public:
             }
             else if (key == "FUNC")
             {
-                if (source.func != NULL)
+                if (source.func != nullptr)
                     prompt.replace(indexStart, 6, formatKey(key, source.func));
                 else
                     prompt.erase(indexStart, 6);
             }
             else if (key == "PATH")
             {
-                if (source.filename != NULL)
+                if (source.filename != nullptr)
                     prompt.replace(indexStart, 6, formatKey(key, source.filename));
                 else
                     prompt.erase(indexStart, 6);
             }
             else if (key == "FILE")
             {
-                if (source.filename != NULL)
+                if (source.filename != nullptr)
                 {
                     const char *rchr = strrchr(source.filename, '/');
-                    if (rchr != NULL)
+                    if (rchr != nullptr)
                         prompt.replace(indexStart, 6, formatKey(key, source.filename + (rchr - source.filename) + 1));
                     else
                         prompt.replace(indexStart, 6, formatKey(key, source.filename));
@@ -543,138 +598,121 @@ public:
         return prompt;
     }
 
-    SendFifo        send(const SourceInfos &sourceInfos = {NULL, 0, NULL}) const
+    SendFifo        send(const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
     {
         return SendFifo(*this, eTypeLog::Debug, sourceInfos);
     }
 
-    SendFifo        send(const eTypeLog &type, const SourceInfos &sourceInfos = {NULL, 0, NULL}) const
+    SendFifo        send(const eTypeLog &type, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
     {
         return SendFifo(*this, type, sourceInfos);
     }
 
     SendFifo        send(const eTypeLog &type, const char *format, ...) const
     {
-        char    buffer[FORMAT_BUFFER_SIZE];
+        char    buffer[LFORMAT_BUFFER_SIZE];
         va_list vargs;
         va_start(vargs, format);
-        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
+        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
-        SendFifo fifo(*this, type, {NULL, 0, NULL});
+        SendFifo fifo(*this, type, {nullptr, 0, nullptr});
         fifo << buffer;
         return fifo;
     }
 
     SendFifo        send(const eTypeLog &type, const SourceInfos &sourceInfos, const char *format, ...) const
     {
-        char    buffer[FORMAT_BUFFER_SIZE];
+        char    buffer[LFORMAT_BUFFER_SIZE];
         va_list vargs;
         va_start(vargs, format);
-        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
+        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
         SendFifo fifo(*this, type, sourceInfos);
         fifo << buffer;
         return fifo;
     }
 
-    SendFifo        debug(const SourceInfos &sourceInfos = {NULL, 0, NULL}) const
+    SendFifo        debug(const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
     {
         return SendFifo(*this, eTypeLog::Debug, sourceInfos);
     }
 
     SendFifo        debug(const char *format, ...) const
     {
-        char    buffer[FORMAT_BUFFER_SIZE];
+        char    buffer[LFORMAT_BUFFER_SIZE];
         va_list vargs;
         va_start(vargs, format);
-        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
+        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Debug, {NULL, 0, NULL});
+        SendFifo fifo(*this, eTypeLog::Debug, {nullptr, 0, nullptr});
         fifo << buffer;
         return fifo;
     }
 
-    SendFifo        trace(const SourceInfos &sourceInfos = {NULL, 0, NULL}) const
-    {
-        return SendFifo(*this, eTypeLog::Trace, sourceInfos);
-    }
-
-    SendFifo        trace(const char *format, ...) const
-    {
-        char    buffer[FORMAT_BUFFER_SIZE];
-        va_list vargs;
-        va_start(vargs, format);
-        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
-        va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Trace, {NULL, 0, NULL});
-        fifo << buffer;
-        return fifo;
-    }
-
-    SendFifo        info(const SourceInfos &sourceInfos = {NULL, 0, NULL}) const
+    SendFifo        info(const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
     {
         return SendFifo(*this, eTypeLog::Info, sourceInfos);
     }
 
     SendFifo        info(const char *format, ...) const
     {
-        char    buffer[FORMAT_BUFFER_SIZE];
+        char    buffer[LFORMAT_BUFFER_SIZE];
         va_list vargs;
         va_start(vargs, format);
-        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
+        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Info, {NULL, 0, NULL});
+        SendFifo fifo(*this, eTypeLog::Info, {nullptr, 0, nullptr});
         fifo << buffer;
         return fifo;
     }
 
-    SendFifo        warning(const SourceInfos &sourceInfos = {NULL, 0, NULL}) const
+    SendFifo        warning(const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
     {
         return SendFifo(*this, eTypeLog::Warning, sourceInfos);
     }
 
     SendFifo        warning(const char *format, ...) const
     {
-        char    buffer[FORMAT_BUFFER_SIZE];
+        char    buffer[LFORMAT_BUFFER_SIZE];
         va_list vargs;
         va_start(vargs, format);
-        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
+        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Warning, {NULL, 0, NULL});
+        SendFifo fifo(*this, eTypeLog::Warning, {nullptr, 0, nullptr});
         fifo << buffer;
         return fifo;
     }
 
-    SendFifo        warn(const SourceInfos &sourceInfos = {NULL, 0, NULL}) const
+    SendFifo        warn(const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
     {
         return SendFifo(*this, eTypeLog::Warn, sourceInfos);
     }
 
     SendFifo        warn(const char *format, ...) const
     {
-        char    buffer[FORMAT_BUFFER_SIZE];
+        char    buffer[LFORMAT_BUFFER_SIZE];
         va_list vargs;
         va_start(vargs, format);
-        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
+        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Warn, {NULL, 0, NULL});
+        SendFifo fifo(*this, eTypeLog::Warn, {nullptr, 0, nullptr});
         fifo << buffer;
         return fifo;
     }
 
-    SendFifo        error(const SourceInfos &sourceInfos = {NULL, 0, NULL}) const
+    SendFifo        error(const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
     {
         return SendFifo(*this, eTypeLog::Error, sourceInfos);
     }
 
     SendFifo        error(const char *format, ...) const
     {
-        char    buffer[FORMAT_BUFFER_SIZE];
+        char    buffer[LFORMAT_BUFFER_SIZE];
         va_list vargs;
         va_start(vargs, format);
-        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
+        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Error, {NULL, 0, NULL});
+        SendFifo fifo(*this, eTypeLog::Error, {nullptr, 0, nullptr});
         fifo << buffer;
         return fifo;
     }
@@ -682,36 +720,41 @@ public:
     template<typename T>
     SendFifo        operator<<(const T &var) const
     {
-        SendFifo fifo(*this, eTypeLog::Debug, {NULL, 0, NULL});
+        SendFifo fifo(*this, eTypeLog::Debug, {nullptr, 0, nullptr});
         fifo << var;
         return fifo;
     }
 
     SendFifo        operator[](const eTypeLog &type) const
     {
-        return SendFifo(*this, type, {NULL, 0, NULL});
-    }
-
-    SendFifo        operator()(const eTypeLog &type, const char * format, ...) const
-    {
-        char    buffer[FORMAT_BUFFER_SIZE];
-        va_list vargs;
-        va_start(vargs, format);
-        vsnprintf(buffer, FORMAT_BUFFER_SIZE, format, vargs);
-        va_end(vargs);
-        SendFifo fifo(*this, type, {NULL, 0, NULL});
-        fifo << buffer;
-        return fifo;
+        return SendFifo(*this, type, {nullptr, 0, nullptr});
     }
 
     SendFifo        operator()(const char * format, ...) const
     {
-        char    buffer[FORMAT_BUFFER_SIZE];
+        char    buffer[LFORMAT_BUFFER_SIZE];
         va_list vargs;
         va_start(vargs, format);
-        vsnprintf(buffer, FORMAT_BUFFER_SIZE - 1, format, vargs);
+        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::Error, {NULL, 0, NULL});
+        SendFifo fifo(*this, eTypeLog::Debug, {nullptr, 0, nullptr});
+        fifo << buffer;
+        return fifo;
+    }
+
+    SendFifo        operator()(const eTypeLog &type) const
+    {
+        return SendFifo(*this, type, {nullptr, 0, nullptr});
+    }
+
+    SendFifo        operator()(const eTypeLog &type, const char * format, ...) const
+    {
+        char    buffer[LFORMAT_BUFFER_SIZE];
+        va_list vargs;
+        va_start(vargs, format);
+        vsnprintf(buffer, LFORMAT_BUFFER_SIZE, format, vargs);
+        va_end(vargs);
+        SendFifo fifo(*this, type, {nullptr, 0, nullptr});
         fifo << buffer;
         return fifo;
     }
@@ -733,95 +776,5 @@ private:
 };
 
 } // end namespace
-
-# define SOURCEINFOS SourceInfos{__FILE__, __LINE__, __func__}
-
-# define NARGS_SEQ(_1, _2, _3, _4, _5, _6, _7, _8, _9, _0, N, ...) N
-# define NARGS(...) NARGS_SEQ(__VA_ARGS__, 0, 9, 8, 7, 6, 5, 4, 3, 2, 1)
-# define PRIMITIVE_CAT(x, y) x ## y
-# define CAT(x, y) PRIMITIVE_CAT(x, y)
-# define PRE_NARGS(...) NARGS(__VA_ARGS__)
-# define NOARGS() ,,,,,,,,,
-# define MACRO_CHOOSER(macro_prefix, ...) CAT(macro_prefix, PRE_NARGS(NOARGS __VA_ARGS__ ()))
-
-# define LSENDF(_typeLog, ...) send(Log::eTypeLog::_typeLog, SOURCEINFOS, ##__VA_ARGS__)
-# define LSEND(...) MACRO_CHOOSER(LSEND_, __VA_ARGS__)(__VA_ARGS__)
-# define LSEND_0() send(Log::eTypeLog::Debug, SOURCEINFOS)
-# define LSEND_1(_typeLog) send(Log::eTypeLog::_typeLog, SOURCEINFOS)
-# define LSEND_2(...) LSENDF(__VA_ARGS__)
-# define LSEND_3(...) LSENDF(__VA_ARGS__)
-# define LSEND_4(...) LSENDF(__VA_ARGS__)
-# define LSEND_5(...) LSENDF(__VA_ARGS__)
-# define LSEND_6(...) LSENDF(__VA_ARGS__)
-# define LSEND_7(...) LSENDF(__VA_ARGS__)
-# define LSEND_8(...) LSENDF(__VA_ARGS__)
-# define LSEND_9(...) LSENDF(__VA_ARGS__)
-
-# define LDEBUGF(...) send(Log::eTypeLog::Debug, SOURCEINFOS, ##__VA_ARGS__)
-# define LDEBUG(...) MACRO_CHOOSER(LDEBUG_, __VA_ARGS__)(__VA_ARGS__)
-# define LDEBUG_0() send(Log::eTypeLog::Debug, SOURCEINFOS)
-# define LDEBUG_1(...) LDEBUGF(__VA_ARGS__)
-# define LDEBUG_2(...) LDEBUGF(__VA_ARGS__)
-# define LDEBUG_3(...) LDEBUGF(__VA_ARGS__)
-# define LDEBUG_4(...) LDEBUGF(__VA_ARGS__)
-# define LDEBUG_5(...) LDEBUGF(__VA_ARGS__)
-# define LDEBUG_6(...) LDEBUGF(__VA_ARGS__)
-# define LDEBUG_7(...) LDEBUGF(__VA_ARGS__)
-# define LDEBUG_8(...) LDEBUGF(__VA_ARGS__)
-# define LDEBUG_9(...) LDEBUGF(__VA_ARGS__)
-
-# define LTRACEF(...) send(Log::eTypeLog::Trace, SOURCEINFOS, ##__VA_ARGS__)
-# define LTRACE(...) MACRO_CHOOSER(LTRACE_, __VA_ARGS__)(__VA_ARGS__)
-# define LTRACE_0() send(Log::eTypeLog::Trace, SOURCEINFOS)
-# define LTRACE_1(...) LTRACEF(__VA_ARGS__)
-# define LTRACE_2(...) LTRACEF(__VA_ARGS__)
-# define LTRACE_3(...) LTRACEF(__VA_ARGS__)
-# define LTRACE_4(...) LTRACEF(__VA_ARGS__)
-# define LTRACE_5(...) LTRACEF(__VA_ARGS__)
-# define LTRACE_6(...) LTRACEF(__VA_ARGS__)
-# define LTRACE_7(...) LTRACEF(__VA_ARGS__)
-# define LTRACE_8(...) LTRACEF(__VA_ARGS__)
-# define LTRACE_9(...) LTRACEF(__VA_ARGS__)
-
-# define LINFOF(...) send(Log::eTypeLog::Info, SOURCEINFOS, ##__VA_ARGS__)
-# define LINFO(...) MACRO_CHOOSER(LINFO_, __VA_ARGS__)(__VA_ARGS__)
-# define LINFO_0() send(Log::eTypeLog::Info, SOURCEINFOS)
-# define LINFO_1(...) LINFOF(__VA_ARGS__)
-# define LINFO_2(...) LINFOF(__VA_ARGS__)
-# define LINFO_3(...) LINFOF(__VA_ARGS__)
-# define LINFO_4(...) LINFOF(__VA_ARGS__)
-# define LINFO_5(...) LINFOF(__VA_ARGS__)
-# define LINFO_6(...) LINFOF(__VA_ARGS__)
-# define LINFO_7(...) LINFOF(__VA_ARGS__)
-# define LINFO_8(...) LINFOF(__VA_ARGS__)
-# define LINFO_9(...) LINFOF(__VA_ARGS__)
-
-# define LWARNINGF(...) send(Log::eTypeLog::Warning, SOURCEINFOS, ##__VA_ARGS__)
-# define LWARNING(...) MACRO_CHOOSER(LWARN_, __VA_ARGS__)(__VA_ARGS__)
-# define LWARNF(...) send(Log::eTypeLog::Warn, SOURCEINFOS, ##__VA_ARGS__)
-# define LWARN(...) MACRO_CHOOSER(LWARN_, __VA_ARGS__)(__VA_ARGS__)
-# define LWARN_0() send(Log::eTypeLog::Warn, SOURCEINFOS)
-# define LWARN_1(...) LWARNF(__VA_ARGS__)
-# define LWARN_2(...) LWARNF(__VA_ARGS__)
-# define LWARN_3(...) LWARNF(__VA_ARGS__)
-# define LWARN_4(...) LWARNF(__VA_ARGS__)
-# define LWARN_5(...) LWARNF(__VA_ARGS__)
-# define LWARN_6(...) LWARNF(__VA_ARGS__)
-# define LWARN_7(...) LWARNF(__VA_ARGS__)
-# define LWARN_8(...) LWARNF(__VA_ARGS__)
-# define LWARN_9(...) LWARNF(__VA_ARGS__)
-
-# define LERRORF(...) send(Log::eTypeLog::Error, SOURCEINFOS, ##__VA_ARGS__)
-# define LERROR(...) MACRO_CHOOSER(LERROR_, __VA_ARGS__)(__VA_ARGS__)
-# define LERROR_0() send(Log::eTypeLog::Error, SOURCEINFOS)
-# define LERROR_1(...) LERRORF(__VA_ARGS__)
-# define LERROR_2(...) LERRORF(__VA_ARGS__)
-# define LERROR_3(...) LERRORF(__VA_ARGS__)
-# define LERROR_4(...) LERRORF(__VA_ARGS__)
-# define LERROR_5(...) LERRORF(__VA_ARGS__)
-# define LERROR_6(...) LERRORF(__VA_ARGS__)
-# define LERROR_7(...) LERRORF(__VA_ARGS__)
-# define LERROR_8(...) LERRORF(__VA_ARGS__)
-# define LERROR_9(...) LERRORF(__VA_ARGS__)
 
 #endif // _LOGGATOR_HPP_

@@ -81,11 +81,9 @@ logExample.error("test4"); // no output
 #### Child
 [**addChild**, **subChild**, **listen**, **unlisten**]:
 ```cpp
-Loggator logExample1("example1", "example1.log", std::ios::trunc);
-Loggator logExample2("example2", "example2.log", std::ios::trunc);
+Loggator logExample1("example1", "example1.log", std::ios::trunc, eFilterLog::All);
+Loggator logExample2("example2", "example2.log", std::ios::trunc, eFilterLog::EqualInfo);
 logExample2.setFormat("{TIME:%X.%N} {NAME}: ");
-logExample1.setFilter(eFilterLog::All);
-logExample2.setFilter(eFilterLog::EqualInfo);
 logExample1.addChild(logExample2);
 logExample1.info("test1");
 logExample1.warn("test2");

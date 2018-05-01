@@ -163,7 +163,7 @@ logExample.LINFOF("%s%i", "test", 9) << " extra."; // unlimited args
 ```cpp
 Loggator logExample("example", std::cout);
 logExample.setFormat("{TYPE}: {LINE:%s: }");
-logExample() << "test1";
+logExample("%s", "test1");
 logExample(eTypeLog::Info) << "test2";
 logExample(eTypeLog::Info, "test3");
 logExample(eTypeLog::Info, "%s", "test4");

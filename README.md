@@ -18,7 +18,7 @@ This is a little **logger** for **c++11**.
 ## Format
 You can set a output format.
 *Example:* [**setFormat**]
-```
+```cpp
 Loggator logExample("example", std::cout);
 logExample.setFormat("{TYPE} {TIME:%x %X.%N}: {NAME:%s: }");
 logExample("test");
@@ -39,7 +39,7 @@ logExample("test");
 |**THREAD_ID**|Thread id|`"{THREAD_ID}"`|`7F4768D40700`|
 
 *Advance Example:* [**setFormat**]
-```
+```cpp
 Loggator logExample("example", std::cout);
 logExample.setFormat("{TYPE} {TIME:%Y/%m/%d %X.%N} {NAME}: {FUNC:%s: }{FILE:%s:}{LINE:%-3s: }{THREAD_ID}: ");
 logExample.LINFO("test");

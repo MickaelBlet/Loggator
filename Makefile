@@ -14,7 +14,7 @@ CC				=	g++
 # Optimisation compilator
 OPTI			=	-O2
 # c++ version
-STD				=	-std=c++11
+STD				=	-std=c++14
 # Flags Compilator
 FLAG_DEBUG		=	-Wall -Wextra
 FLAG_RELEASE	=	-Wall -Wextra -Werror

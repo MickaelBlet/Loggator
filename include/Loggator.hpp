@@ -16,8 +16,9 @@
 # include <fstream>     // ostream, ofstream
 # include <sstream>     // ostringstream
 # include <mutex>       // mutex, lock_guard
+# include <shared_mutex>
 # include <thread>      // this_thread::get_id
-#include <algorithm>
+# include <algorithm>
 # include <map>         // map
 # include <set>         // set
 
@@ -140,7 +141,7 @@ private:
          * @param type 
          * @param sourceInfos 
          */
-        SendFifo(const Loggator &loggator, eTypeLog type, SourceInfos sourceInfos) noexcept:
+        SendFifo(const Loggator &loggator, const eTypeLog type, const SourceInfos sourceInfos) noexcept:
         _log(loggator),
         _type(type),
         _sourceInfos(sourceInfos)
@@ -195,8 +196,8 @@ private:
         SendFifo &operator=(const SendFifo &) = delete;
 
         const Loggator      &_log;
-        eTypeLog            _type;
-        SourceInfos         _sourceInfos;
+        const eTypeLog      _type;
+        const SourceInfos   _sourceInfos;
         std::ostringstream  _cacheStream;
 
     };
@@ -290,14 +291,21 @@ public:
     _muted(loggator._muted)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex);
-        std::lock_guard<std::mutex> lockGuardLocal(this->_mutex);
-        std::lock_guard<std::mutex> lockGuard(loggator._mutex);
-        _logChilds = loggator._logChilds;
+        std::unique_lock<std::mutex> uniqueLock(_mutex);
+        std::unique_lock<std::mutex> uniqueLockParent(loggator._mutex);
+        for (Loggator *child : loggator._logChilds)
+        {
+            std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
+            this->_logChilds.insert(child);
+            child->_logParents.insert(this);
+        }
         _mapCustomKey = loggator._mapCustomKey;
-        _logChilds.insert(&loggator);
-        loggator._logChilds.insert(this);
-        if (sMapLoggators.find(name) == sMapLoggators.end())
-            sMapLoggators.emplace(name, this);
+        uniqueLock.unlock();
+        uniqueLockParent.unlock();
+        listen(loggator);
+        addChild(loggator);
+        if (sMapLoggators.find(_name) == sMapLoggators.end())
+            sMapLoggators.emplace(_name, this);
         return ;
     }
 
@@ -308,33 +316,56 @@ public:
     _outStream(nullptr),
     _muted(loggator._muted)
     {
-        std::lock_guard<std::mutex> lockGuardLocal(this->_mutex);
-        std::lock_guard<std::mutex> lockGuard(loggator._mutex);
-        _logChilds = loggator._logChilds;
+        std::unique_lock<std::mutex> uniqueLock(_mutex);
+        std::unique_lock<std::mutex> uniqueLockParent(loggator._mutex);
+        for (Loggator *child : loggator._logChilds)
+        {
+            std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
+            this->_logChilds.insert(child);
+            child->_logParents.insert(this);
+        }
         _mapCustomKey = loggator._mapCustomKey;
-        _logChilds.insert(&loggator);
-        loggator._logChilds.insert(this);
+        uniqueLock.unlock();
+        uniqueLockParent.unlock();
+        listen(loggator);
+        addChild(loggator);
         return ;
     }
 
     Loggator    &operator=(Loggator &rhs)
     {
-        std::lock_guard<std::mutex> lockGuardLocal(this->_mutex);
-        std::lock_guard<std::mutex> lockGuard(rhs._mutex);
+        std::lock_guard<std::mutex> lockGuard(this->_mutex);
+        std::lock_guard<std::mutex> lockGuardParent(rhs._mutex);
         this->_name = rhs._name;
         this->_filter = rhs._filter;
         this->_format = rhs._format;
         this->_muted = rhs._muted;
-        this->_logChilds = rhs._logChilds;
+        for (Loggator *child : rhs._logChilds)
+        {
+            std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
+            this->_logChilds.insert(child);
+            child->_logParents.insert(this);
+        }
         this->_mapCustomKey = rhs._mapCustomKey;
         return *this;
     }
 
     ~Loggator(void) noexcept
     {
-        if (_name == "")
-            return ;
-        sMapLoggators.erase(_name);
+        std::lock_guard<std::mutex> lockGuardStatic(sMapMutex);
+        std::cout << _name << std::endl;
+        std::lock_guard<std::mutex> lockGuard(_mutex);
+        for (Loggator *child : _logChilds)
+        {
+            std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
+            child->_logParents.erase(this);
+        }
+        for (Loggator *parent : _logParents)
+        {
+            std::lock_guard<std::mutex> lockGuardParent(parent->_mutex);
+            parent->_logChilds.erase(this);
+        }
+        return ;
     }
 
     static Loggator &getInstance(const std::string &name)
@@ -388,28 +419,36 @@ public:
     Loggator        &addChild(Loggator &loggator)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
+        std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
         _logChilds.insert(&loggator);
+        loggator._logParents.insert(this);
         return (*this);
     }
 
     Loggator        &subChild(Loggator &loggator)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
+        std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
         _logChilds.erase(&loggator);
+        loggator._logParents.erase(this);
         return (*this);
     }
 
     Loggator        &listen(Loggator &loggator)
     {
-        std::lock_guard<std::mutex> lockGuard(loggator._mutex);
+        std::lock_guard<std::mutex> lockGuard(_mutex);
+        std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
         loggator._logChilds.insert(this);
+        _logParents.insert(&loggator);
         return (*this);
     }
  
     Loggator        &unlisten(Loggator &loggator)
     {
-        std::lock_guard<std::mutex> lockGuard(loggator._mutex);
+        std::lock_guard<std::mutex> lockGuard(_mutex);
+        std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
         loggator._logChilds.erase(this);
+        _logParents.erase(&loggator);
         return (*this);
     }
 
@@ -658,17 +697,33 @@ private:
 
     void            sendToStream(const std::string str, const eTypeLog &type, const SourceInfos &source) const
     {
-        std::cout << __LINE__ << std::endl;
-        std::lock_guard<std::mutex> lockGuard(_mutex);
-        std::cout << __LINE__ << std::endl;
+        std::lock_guard<std::mutex> lockGuardStatic(sMapMutex);
         const timeInfos timeInfos = getCurrentTimeInfos();
         if (_outStream != nullptr && _muted == false && _filter & type)
         {
+            std::lock_guard<std::mutex> lockGuard(_mutex);
             *(_outStream) << prompt(*this, type, _mapCustomKey, timeInfos, source) << str << std::flush;
         }
         std::set<const Loggator*> tmpsetLog;
         tmpsetLog.insert(this);
         sendChild(tmpsetLog, *this, type, timeInfos, source, str);
+    }
+
+    void            sendChild(std::set<const Loggator*> &setLog, const Loggator &loggator, const eTypeLog &type, const timeInfos &timeInfos, const SourceInfos &source, const std::string &str) const
+    {
+        std::lock_guard<std::mutex> lockGuard(loggator._mutex);
+        for (const Loggator *child : loggator._logChilds)
+        {
+            if (setLog.find(child) != setLog.end())
+                continue;
+            setLog.insert(child);
+            if (child->_outStream != nullptr && child->_muted == false && child->_filter & type)
+            {
+                std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
+                *(child->_outStream) << child->prompt(loggator, type, _mapCustomKey, timeInfos, source) << str << std::flush;
+            }
+            sendChild(setLog, *child, type, timeInfos, source, str);
+        }
     }
 
     std::string     formatTime(const timeInfos &infos) const
@@ -722,22 +777,6 @@ private:
             default:
                 return "";
                 break;
-        }
-    }
-
-    void            sendChild(std::set<const Loggator*> &setLog, const Loggator &loggator, const eTypeLog &type, const timeInfos &timeInfos, const SourceInfos &source, const std::string &str) const
-    {
-        for (const Loggator *child : loggator._logChilds)
-        {
-            if (setLog.find(child) != setLog.end())
-                continue;
-            setLog.insert(child);
-            if (child->_outStream != nullptr && child->_muted == false && child->_filter & type)
-            {
-                std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
-                *(child->_outStream) << child->prompt(loggator, type, _mapCustomKey, timeInfos, source) << str << std::flush;
-            }
-            sendChild(setLog, *child, type, timeInfos, source, str);
         }
     }
 
@@ -844,6 +883,7 @@ private:
     std::string                             _format;
     std::ofstream                           _fileStream;
     std::ostream                            *_outStream;
+    std::set<Loggator*>                     _logParents;
     std::set<Loggator*>                     _logChilds;
     mutable std::mutex                      _mutex;
     std::map<const std::string, customKey>  _mapCustomKey;

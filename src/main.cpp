@@ -33,32 +33,32 @@ int     main(void)
         logExample.setName("");
         logExample.error("test3");
     }
-    std::cout << std::endl;
-    {
-        Loggator logExample1("example1", "example1.log", std::ios::trunc, eFilterLog::All);
-        Loggator logExample2("example2", "example2.log", std::ios::trunc, eFilterLog::EqualInfo);
-        logExample2.setFormat("{TIME:%X.%N} {NAME}: ");
-        logExample1.addChild(logExample2);
-        logExample1.info("test1");
-        logExample1.warn("test2");
-        logExample1.subChild(logExample2);
-        logExample1.info("test3");
-        logExample2.listen(logExample1);
-        logExample1.info("test4");
-        logExample2.unlisten(logExample1);
-        logExample1.info("test5");
-        logExample2.info("test6");
-    }
-    std::string line;
-    std::ifstream fileTestStream1("example1.log");
-    std::cout << "example1.log" << std::endl;
-    while (std::getline(fileTestStream1, line))
-        std::cout << line << std::endl;
-    std::cout << std::endl;
-    std::ifstream fileTestStream2("example2.log");
-    std::cout << "example2.log" << std::endl;
-    while (std::getline(fileTestStream2, line))
-        std::cout << line << std::endl;
+    // std::cout << std::endl;
+    // {
+    //     Loggator logExample1("example1", "example1.log", std::ios::trunc, eFilterLog::All);
+    //     Loggator logExample2("example2", "example2.log", std::ios::trunc, eFilterLog::EqualInfo);
+    //     logExample2.setFormat("{TIME:%X.%N} {NAME}: ");
+    //     logExample1.addChild(logExample2);
+    //     logExample1.info("test1");
+    //     logExample1.warn("test2");
+    //     logExample1.subChild(logExample2);
+    //     logExample1.info("test3");
+    //     logExample2.listen(logExample1);
+    //     logExample1.info("test4");
+    //     logExample2.unlisten(logExample1);
+    //     logExample1.info("test5");
+    //     logExample2.info("test6");
+    // }
+    // std::string line;
+    // std::ifstream fileTestStream1("example1.log");
+    // std::cout << "example1.log" << std::endl;
+    // while (std::getline(fileTestStream1, line))
+    //     std::cout << line << std::endl;
+    // std::cout << std::endl;
+    // std::ifstream fileTestStream2("example2.log");
+    // std::cout << "example2.log" << std::endl;
+    // while (std::getline(fileTestStream2, line))
+    //     std::cout << line << std::endl;
     std::cout << std::endl;
     {
         Loggator logExample("example", std::cout);
@@ -100,29 +100,25 @@ int     main(void)
         logExample[eTypeLog::Info] << "test7";
     }
     });
-    // std::thread thread2([&]{
-        // Loggator &testSingleton = Loggator::getInstance("main2");
-        // testSingleton << "yoooooooo" << "TEST: " << 42;
-    // });
+    std::thread thread2([&]{
+        Loggator &testSingleton1 = Loggator::getInstance("main2");
+        testSingleton1 << "yoooooooo" << "TEST: " << 2;
+    });
     std::thread thread3([&]{
-        Loggator testSingleton("test", Loggator::getInstance("main2"));
-        testSingleton << "yoooooooo" << "TEST: " << 42;
+        Loggator testSingleton2("test", Loggator::getInstance("main2"));
+        testSingleton2 << "yoooooooo" << "TEST: " << 3;
     });
     std::thread thread4([&]{
-        Loggator testSingleton(Loggator::getInstance("main2"));
-        testSingleton << "yoooooooo" << "TEST: " << 42;
+        Loggator testSingleton3(Loggator::getInstance("main2"));
+        testSingleton3 << "yoooooooo" << "TEST: " << 4;
     });
 
-    std::cout << __LINE__ << std::endl;
     thread1.join();
-    std::cout << __LINE__ << std::endl;
-    // thread2.join();
-    std::cout << __LINE__ << std::endl;
+    thread2.join();
     thread3.join();
-    std::cout << __LINE__ << std::endl;
     thread4.join();
-    Loggator logTest;
 
+    // Loggator logTest;
     // logTest("cerr");
     // logTest.setOutStream(std::cout);
     // logTest("cout");

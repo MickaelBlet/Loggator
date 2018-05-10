@@ -8,10 +8,10 @@
 
 4  reals types  **Warn** and **Warning** has the same type.
 
-|Log Type|Debug|Info|Warn|Warning|Error|
-|----------|-----|----|----|-------|-----|
-|**Functions**|debug|info|warn|warning|error|
-|**Macros**|LDEBUG|LINFO|LWARN|LWARNING|LERROR|
+|Log Type|DEBUG|INFO|WARN|WARNING|ERROR|CRIT|ALERT|FATAL|EMERG
+|--------|-----|----|----|-------|-----|----|-----|-----|-----
+|**Functions**|debug|info|warn|warning|error|crit|alert|fatal|emerg
+|**Macros**|LDEBUG|LINFO|LWARN|LWARNING|LERROR|LCRIT|LALERT|LFATAL|LEMERG
 
 
 
@@ -30,7 +30,7 @@ logExample("test");
 |Key|Description|Exemple|Output
 |---|-----------|-------|------|
 |**TIME**|Time from `strftime`|`"{TIME:%x %X.%N}"`|`01/01/70 01:23:45.678910`|
-|**TYPE**|Type of log|`"{TYPE}"`|`DEBUG`/`INFO`/`WARN`/`ERROR`|
+|**TYPE**|Type of log|`"{TYPE}"`|`DEBUG`/`INFO`/`WARN`/`ERROR`/`CRIT`/`ALERT`/`FATAL`/`EMERG`|
 |**NAME**|Name of loggator|`"{NAME}"`|`loggator`|
 |**FUNC**|Name of scope function|`"{FUNC}"`|`main`|
 |**PATH**|Path of source file|`"{PATH}"`|`src/main.cpp`|
@@ -168,6 +168,28 @@ logExample(eTypeLog::Info, "%s", "test4");
 logExample(eTypeLog::Info, "%s%i", "test", 5) << " extra.";
 logExample << "test6";
 logExample[eTypeLog::Info] << "test7";
+// output:
+// DEBUG: test1
+// INFO : test2
+// INFO : test3
+// INFO : test4
+// INFO : test5 extra.
+// DEBUG: test6
+// INFO : test7
+```
+
+#### getInstance
+```cpp
+Loggator logExample("example", std::cout);
+logExample.setFormat("{TYPE}: {LINE:%s: }");
+Loggator &refLogExample = Loggator::getInstance("example");
+refLogExample("%s", "test1");
+refLogExample(eTypeLog::Info) << "test2";
+refLogExample(eTypeLog::Info, "test3");
+refLogExample(eTypeLog::Info, "%s", "test4");
+refLogExample(eTypeLog::Info, "%s%i", "test", 5) << " extra.";
+refLogExample << "test6";
+refLogExample[eTypeLog::Info] << "test7";
 // output:
 // DEBUG: test1
 // INFO : test2

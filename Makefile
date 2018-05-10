@@ -14,7 +14,7 @@ CC				=	g++
 # Optimisation compilator
 OPTI			=	-O2
 # c++ version
-STD				=	-std=c++14
+STD				=	-std=c++1y
 # Flags Compilator
 FLAG_DEBUG		=	-Wall -Wextra
 FLAG_RELEASE	=	-Wall -Wextra -Werror
@@ -128,7 +128,7 @@ $(BIN_DEBUG_DIR)$(BIN_NAME):	$(OBJ_DEBUG) $(LIB_DEBUG) $(LIB_DEBUG_DIR)$(LIB_NAM
 
 $(BIN_TEST_DIR)$(BIN_NAME):		$(OBJ_TEST) $(LIB_TEST) $(LIB_TEST_DIR)$(LIB_NAME) | $(BIN_TEST_DIR)
 	@echo " /---------\\ \n -  TEST   - $(BIN_NAME)\n \\---------/ "
-	$(CC) $(DEBUG) $(STD) $(FLAG_DEBUG) $(DVERSION) -o $@ $^ $(LIB_TEST) $(LIB_EXT_MODULE) $(LIB_EXTERNAL) $(LIB_EXT_TEST)
+	$(CC) $(DEBUG) $(STD) $(FLAG_DEBUG) $(DVERSION) -o $@ $^ $(LIB_TEST) $(LIB_EXT_MODULE) $(LIB_EXT_TEST) $(LIB_EXTERNAL)
 
 $(BIN_RELEASE_DIR)$(BIN_NAME):	$(OBJ_RELEASE) $(LIB_RELEASE) $(LIB_RELEASE_DIR)$(LIB_NAME) | $(BIN_RELEASE_DIR)
 	@echo " /---------\\ \n - RELEASE - $(BIN_NAME)\n \\---------/ "
@@ -141,13 +141,12 @@ debug:
 test:
 	$(foreach lib, $(LIB_MODULE), $(MAKE) debug -C $(BUILD_DIR)$(shell basename $(lib) .a);)
 	$(MAKE) $(BIN_TEST_DIR)$(BIN_NAME)
-	./$(BIN_TEST_DIR)$(BIN_NAME)
 
 release:
 	$(foreach lib, $(LIB_MODULE), $(MAKE) release -C $(BUILD_DIR)$(shell basename $(lib) .a);)
 	$(MAKE) $(BIN_RELEASE_DIR)$(BIN_NAME)
 
-exe_test:
+exe_test:	test
 	./$(BIN_TEST_DIR)$(BIN_NAME)
 
 clean:

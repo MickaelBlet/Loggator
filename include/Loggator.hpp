@@ -16,9 +16,7 @@
 # include <fstream>     // ostream, ofstream
 # include <sstream>     // ostringstream
 # include <mutex>       // mutex, lock_guard
-# include <shared_mutex>
 # include <thread>      // this_thread::get_id
-# include <algorithm>
 # include <map>         // map
 # include <set>         // set
 
@@ -41,15 +39,17 @@
 
 // format macro
 # define LSENDF(_typeLog, ...)  send(Log::eTypeLog::_typeLog, LSOURCEINFOS, ##__VA_ARGS__)
-# define LDEBUGF(...)           LSENDF(DEBUG,   __VA_ARGS__)
-# define LINFOF(...)            LSENDF(INFO,    __VA_ARGS__)
-# define LWARNF(...)            LSENDF(WARN,    __VA_ARGS__)
-# define LWARNINGF(...)         LSENDF(WARNING, __VA_ARGS__)
-# define LERRORF(...)           LSENDF(ERROR,   __VA_ARGS__)
-# define LCRITF(...)            LSENDF(CRIT,    __VA_ARGS__)
-# define LALERTF(...)           LSENDF(ALERT,   __VA_ARGS__)
-# define LFATALF(...)           LSENDF(FATAL,   __VA_ARGS__)
-# define LEMERGF(...)           LSENDF(EMERG,   __VA_ARGS__)
+# define LDEBUGF(...)           LSENDF(DEBUG,       __VA_ARGS__)
+# define LINFOF(...)            LSENDF(INFO,        __VA_ARGS__)
+# define LWARNF(...)            LSENDF(WARN,        __VA_ARGS__)
+# define LWARNINGF(...)         LSENDF(WARNING,     __VA_ARGS__)
+# define LERRORF(...)           LSENDF(ERROR,       __VA_ARGS__)
+# define LCRITF(...)            LSENDF(CRIT,        __VA_ARGS__)
+# define LCRITICALF(...)        LSENDF(CRITICAL,    __VA_ARGS__)
+# define LALERTF(...)           LSENDF(ALERT,       __VA_ARGS__)
+# define LFATALF(...)           LSENDF(FATAL,       __VA_ARGS__)
+# define LEMERGF(...)           LSENDF(EMERG,       __VA_ARGS__)
+# define LEMERGENCYF(...)       LSENDF(EMERGENCY,   __VA_ARGS__)
 
 // send macro
 # define LSEND(...)         LMACRO_CHOOSER(LSEND_, __VA_ARGS__)(__VA_ARGS__)
@@ -58,61 +58,65 @@
 # define LSEND_X(...)       LSENDF(__VA_ARGS__)
 
 // type macro
-# define LDEBUG(...)    LMACRO_CHOOSER(LDEBUG_, __VA_ARGS__)(__VA_ARGS__)
-# define LDEBUG_0()     send(Log::eTypeLog::DEBUG, LSOURCEINFOS)
-# define LDEBUG_1(...)  LDEBUGF(__VA_ARGS__)
-# define LDEBUG_X(...)  LDEBUGF(__VA_ARGS__)
+# define LDEBUG(...)        LMACRO_CHOOSER(LDEBUG_, __VA_ARGS__)(__VA_ARGS__)
+# define LDEBUG_0()         send(Log::eTypeLog::DEBUG, LSOURCEINFOS)
+# define LDEBUG_1(...)      LDEBUGF(__VA_ARGS__)
+# define LDEBUG_X(...)      LDEBUGF(__VA_ARGS__)
 
-# define LINFO(...)     LMACRO_CHOOSER(LINFO_, __VA_ARGS__)(__VA_ARGS__)
-# define LINFO_0()      send(Log::eTypeLog::INFO, LSOURCEINFOS)
-# define LINFO_1(...)   LINFOF(__VA_ARGS__)
-# define LINFO_X(...)   LINFOF(__VA_ARGS__)
+# define LINFO(...)         LMACRO_CHOOSER(LINFO_, __VA_ARGS__)(__VA_ARGS__)
+# define LINFO_0()          send(Log::eTypeLog::INFO, LSOURCEINFOS)
+# define LINFO_1(...)       LINFOF(__VA_ARGS__)
+# define LINFO_X(...)       LINFOF(__VA_ARGS__)
 
-# define LWARN(...)     LMACRO_CHOOSER(LWARN_, __VA_ARGS__)(__VA_ARGS__)
-# define LWARNING(...)  LMACRO_CHOOSER(LWARN_, __VA_ARGS__)(__VA_ARGS__)
-# define LWARN_0()      send(Log::eTypeLog::WARN, LSOURCEINFOS)
-# define LWARN_1(...)   LWARNF(__VA_ARGS__)
-# define LWARN_X(...)   LWARNF(__VA_ARGS__)
+# define LWARN(...)         LMACRO_CHOOSER(LWARN_, __VA_ARGS__)(__VA_ARGS__)
+# define LWARNING(...)      LMACRO_CHOOSER(LWARN_, __VA_ARGS__)(__VA_ARGS__)
+# define LWARN_0()          send(Log::eTypeLog::WARN, LSOURCEINFOS)
+# define LWARN_1(...)       LWARNF(__VA_ARGS__)
+# define LWARN_X(...)       LWARNF(__VA_ARGS__)
 
-# define LERROR(...)    LMACRO_CHOOSER(LERROR_, __VA_ARGS__)(__VA_ARGS__)
-# define LERROR_0()     send(Log::eTypeLog::ERROR, LSOURCEINFOS)
-# define LERROR_1(...)  LERRORF(__VA_ARGS__)
-# define LERROR_X(...)  LERRORF(__VA_ARGS__)
+# define LERROR(...)        LMACRO_CHOOSER(LERROR_, __VA_ARGS__)(__VA_ARGS__)
+# define LERROR_0()         send(Log::eTypeLog::ERROR, LSOURCEINFOS)
+# define LERROR_1(...)      LERRORF(__VA_ARGS__)
+# define LERROR_X(...)      LERRORF(__VA_ARGS__)
 
-# define LCRIT(...)     LMACRO_CHOOSER(LCRIT_, __VA_ARGS__)(__VA_ARGS__)
-# define LCRIT_0()      send(Log::eTypeLog::CRIT, LSOURCEINFOS)
-# define LCRIT_1(...)   LCRITF(__VA_ARGS__)
-# define LCRIT_X(...)   LCRITF(__VA_ARGS__)
+# define LCRIT(...)         LMACRO_CHOOSER(LCRIT_, __VA_ARGS__)(__VA_ARGS__)
+# define LCRITICAL(...)     LMACRO_CHOOSER(LCRIT_, __VA_ARGS__)(__VA_ARGS__)
+# define LCRIT_0()          send(Log::eTypeLog::CRIT, LSOURCEINFOS)
+# define LCRIT_1(...)       LCRITF(__VA_ARGS__)
+# define LCRIT_X(...)       LCRITF(__VA_ARGS__)
 
-# define LALERT(...)    LMACRO_CHOOSER(LALERT_, __VA_ARGS__)(__VA_ARGS__)
-# define LALERT_0()     send(Log::eTypeLog::ALERT, LSOURCEINFOS)
-# define LALERT_1(...)  LALERTF(__VA_ARGS__)
-# define LALERT_X(...)  LALERTF(__VA_ARGS__)
+# define LALERT(...)        LMACRO_CHOOSER(LALERT_, __VA_ARGS__)(__VA_ARGS__)
+# define LALERT_0()         send(Log::eTypeLog::ALERT, LSOURCEINFOS)
+# define LALERT_1(...)      LALERTF(__VA_ARGS__)
+# define LALERT_X(...)      LALERTF(__VA_ARGS__)
 
-# define LFATAL(...)    LMACRO_CHOOSER(LFATAL_, __VA_ARGS__)(__VA_ARGS__)
-# define LFATAL_0()     send(Log::eTypeLog::FATAL, LSOURCEINFOS)
-# define LFATAL_1(...)  LFATALF(__VA_ARGS__)
-# define LFATAL_X(...)  LFATALF(__VA_ARGS__)
+# define LFATAL(...)        LMACRO_CHOOSER(LFATAL_, __VA_ARGS__)(__VA_ARGS__)
+# define LFATAL_0()         send(Log::eTypeLog::FATAL, LSOURCEINFOS)
+# define LFATAL_1(...)      LFATALF(__VA_ARGS__)
+# define LFATAL_X(...)      LFATALF(__VA_ARGS__)
 
-# define LEMERG(...)    LMACRO_CHOOSER(LEMERG_, __VA_ARGS__)(__VA_ARGS__)
-# define LEMERG_0()     send(Log::eTypeLog::EMERG, LSOURCEINFOS)
-# define LEMERG_1(...)  LEMERGF(__VA_ARGS__)
-# define LEMERG_X(...)  LEMERGF(__VA_ARGS__)
+# define LEMERG(...)        LMACRO_CHOOSER(LEMERG_, __VA_ARGS__)(__VA_ARGS__)
+# define LEMERGENCY(...)    LMACRO_CHOOSER(LEMERG_, __VA_ARGS__)(__VA_ARGS__)
+# define LEMERG_0()         send(Log::eTypeLog::EMERG, LSOURCEINFOS)
+# define LEMERG_1(...)      LEMERGF(__VA_ARGS__)
+# define LEMERG_X(...)      LEMERGF(__VA_ARGS__)
 
 namespace Log
 {
 
 enum eTypeLog
 {
-    DEBUG   = 1<<0,
-    INFO    = 1<<1,
-    WARN    = 1<<2,
-    WARNING = 1<<2,
-    ERROR   = 1<<3,
-    CRIT    = 1<<4,
-    ALERT   = 1<<5,
-    FATAL   = 1<<6,
-    EMERG   = 1<<6
+    DEBUG       = 1<<0,
+    INFO        = 1<<1,
+    WARN        = 1<<2,
+    WARNING     = 1<<2,
+    ERROR       = 1<<3,
+    CRIT        = 1<<4,
+    CRITICAL    = 1<<4,
+    ALERT       = 1<<5,
+    EMERG       = 1<<6,
+    EMERGENCY   = 1<<6,
+    FATAL       = 1<<7
 };
 
 enum eFilterLog
@@ -120,26 +124,32 @@ enum eFilterLog
     EQUAL_DEBUG             = eTypeLog::DEBUG,
     EQUAL_INFO              = eTypeLog::INFO,
     EQUAL_WARN              = eTypeLog::WARN,
-    EQUAL_WARNING           = eTypeLog::WARN,
+    EQUAL_WARNING           = eTypeLog::WARNING,
     EQUAL_ERROR             = eTypeLog::ERROR,
     EQUAL_CRIT              = eTypeLog::CRIT,
+    EQUAL_CRITICAL          = eTypeLog::CRITICAL,
     EQUAL_ALERT             = eTypeLog::ALERT,
-    EQUAL_FATAL             = eTypeLog::FATAL,
     EQUAL_EMERG             = eTypeLog::EMERG,
-    ALL                     = EQUAL_DEBUG | EQUAL_INFO | EQUAL_WARN | EQUAL_ERROR | EQUAL_CRIT | EQUAL_ALERT | EQUAL_FATAL,
-    GREATER_EMERG           = 0,
-    GREATER_FATAL           = EQUAL_EMERG,
-    GREATER_ALERT           = EQUAL_FATAL | GREATER_FATAL,
+    EQUAL_EMERGENCY         = eTypeLog::EMERGENCY,
+    EQUAL_FATAL             = eTypeLog::FATAL,
+    ALL                     = EQUAL_DEBUG | EQUAL_INFO | EQUAL_WARN | EQUAL_ERROR | EQUAL_CRIT | EQUAL_ALERT | EQUAL_FATAL | EQUAL_EMERG,
+    GREATER_FATAL           = 0,
+    GREATER_EMERG           = EQUAL_FATAL,
+    GREATER_EMERGENCY       = GREATER_EMERG,
+    GREATER_ALERT           = EQUAL_EMERG | GREATER_EMERG,
     GREATER_CRIT            = EQUAL_ALERT | GREATER_ALERT,
+    GREATER_CRITICAL        = GREATER_CRIT,
     GREATER_ERROR           = EQUAL_CRIT | GREATER_CRIT,
     GREATER_WARN            = EQUAL_ERROR | GREATER_ERROR,
     GREATER_WARNING         = GREATER_WARN,
     GREATER_INFO            = EQUAL_WARN | GREATER_WARN,
     GREATER_DEBUG           = EQUAL_INFO | GREATER_INFO,
-    GREATER_EQUAL_EMERG     = EQUAL_EMERG,
     GREATER_EQUAL_FATAL     = EQUAL_FATAL,
-    GREATER_EQUAL_ALERT     = EQUAL_ALERT | EQUAL_FATAL,
+    GREATER_EQUAL_EMERG     = EQUAL_EMERG | GREATER_EMERG,
+    GREATER_EQUAL_EMERGENCY = GREATER_EQUAL_EMERG,
+    GREATER_EQUAL_ALERT     = EQUAL_ALERT | GREATER_ALERT,
     GREATER_EQUAL_CRIT      = EQUAL_CRIT | GREATER_CRIT,
+    GREATER_EQUAL_CRITICAL  = GREATER_EQUAL_CRIT,
     GREATER_EQUAL_ERROR     = EQUAL_ERROR | GREATER_ERROR,
     GREATER_EQUAL_WARN      = EQUAL_WARN | GREATER_WARN,
     GREATER_EQUAL_WARNING   = GREATER_EQUAL_WARN,
@@ -151,18 +161,22 @@ enum eFilterLog
     LESS_WARNING            = LESS_WARN,
     LESS_ERROR              = EQUAL_WARN | LESS_WARN,
     LESS_CRIT               = EQUAL_ERROR | LESS_ERROR,
+    LESS_CRITICAL           = LESS_CRIT,
     LESS_ALERT              = EQUAL_CRIT | LESS_CRIT,
-    LESS_FATAL              = EQUAL_ALERT | LESS_ALERT,
-    LESS_EMERG              = EQUAL_FATAL | LESS_FATAL,
+    LESS_EMERG              = EQUAL_ALERT | LESS_ALERT,
+    LESS_EMERGENCY          = LESS_EMERG,
+    LESS_FATAL              = EQUAL_EMERG | LESS_EMERG,
     LESS_EQUAL_DEBUG        = EQUAL_DEBUG,
     LESS_EQUAL_INFO         = EQUAL_INFO | LESS_INFO,
     LESS_EQUAL_WARN         = EQUAL_WARN | LESS_WARN,
     LESS_EQUAL_WARNING      = LESS_EQUAL_WARN,
     LESS_EQUAL_ERROR        = EQUAL_ERROR | LESS_ERROR,
     LESS_EQUAL_CRIT         = EQUAL_CRIT | LESS_CRIT,
+    LESS_EQUAL_CRITICAL     = LESS_EQUAL_CRIT,
     LESS_EQUAL_ALERT        = EQUAL_ALERT | LESS_ALERT,
-    LESS_EQUAL_FATAL        = EQUAL_FATAL | LESS_FATAL,
-    LESS_EQUAL_EMERG        = EQUAL_EMERG | LESS_EMERG
+    LESS_EQUAL_EMERG        = EQUAL_EMERG | LESS_EMERG,
+    LESS_EQUAL_EMERGENCY    = LESS_EQUAL_EMERG,
+    LESS_EQUAL_FATAL        = EQUAL_FATAL | LESS_FATAL
 };
 
 struct SourceInfos
@@ -208,10 +222,10 @@ private:
          * @param sendFifo 
          */
         SendFifo(SendFifo &&sendFifo) noexcept:
+        _cacheStream(std::move(sendFifo._cacheStream)),
         _log(sendFifo._log),
         _type(std::move(sendFifo._type)),
-        _sourceInfos(std::move(sendFifo._sourceInfos)),
-        _cacheStream(std::move(sendFifo._cacheStream))
+        _sourceInfos(std::move(sendFifo._sourceInfos))
         {
             return ;
         }
@@ -229,18 +243,98 @@ private:
             return ;
         }
 
+        /*************************************************************************/
+
         /**
-         * @brief override operator << to object _cacheStream
+         * @brief 
+         * 
+         * @param type 
+         * @return SendFifo 
+         */
+        SendFifo& operator[](const eTypeLog &type)
+        {
+            _type = type;
+            return *this;
+        }
+
+        /**
+         * @brief 
+         * 
+         * @param type 
+         * @return SendFifo 
+         */
+        SendFifo& operator<<(const eTypeLog &type)
+        {
+            _type = type;
+            return *this;
+        }
+
+        /**
+         * @brief override operator << to object
          * 
          * @tparam T 
          * @param var 
          * @return std::ostringstream& 
          */
         template<typename T>
-        std::ostringstream& operator<<(const T& var)
+        SendFifo& operator<<(const T& var)
         {
             _cacheStream << var;
-            return _cacheStream;
+            return *this;
+        }
+
+        /**
+         * @brief overide operator << to object
+         * 
+         * @param manip function pointer (std::endl, std::flush, ...)
+         * @return std::ostringstream& 
+         */
+        SendFifo& operator<<(std::ostream&(*manip)(std::ostream&))
+        {
+            manip(_cacheStream);
+            return *this;
+        }
+
+        /**
+         * @brief 
+         * 
+         * @return SendFifo 
+         */
+        SendFifo& operator()(void)
+        {
+            return *this;
+        }
+
+        /**
+         * @brief 
+         * 
+         * @param format 
+         * @param ... 
+         * @return SendFifo 
+         */
+        SendFifo& operator()(const char * format, ...)
+        {
+            char    buffer[LFORMAT_BUFFER_SIZE];
+            va_list vargs;
+            va_start(vargs, format);
+            vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
+            va_end(vargs);
+            _cacheStream << buffer;
+            return *this;
+        }
+
+        /**
+         * @brief 
+         * 
+         * @tparam T 
+         * @param var 
+         * @return SendFifo 
+         */
+        template<typename T>
+        SendFifo& operator()(const T& var)
+        {
+            _cacheStream << var;
+            return *this;
         }
 
     private:
@@ -248,10 +342,10 @@ private:
         SendFifo(const SendFifo &) = delete;
         SendFifo &operator=(const SendFifo &) = delete;
 
-        const Loggator      &_log;
-        const eTypeLog      _type;
-        const SourceInfos   _sourceInfos;
         std::ostringstream  _cacheStream;
+        const Loggator      &_log;
+        eTypeLog            _type;
+        const SourceInfos   _sourceInfos;
 
     };
 
@@ -330,8 +424,12 @@ public:
         _mapCustomKey["TIME"].format = LDEFAULT_TIME_FORMAT;
         if (_fileStream.is_open())
             _outStream = &_fileStream;
-        if (sMapLoggators().find(_name) == sMapLoggators().end())
+        // if name is not empty and not in static list of loggators
+        if (_name.empty() == false && sMapLoggators().find(_name) == sMapLoggators().end())
+        {
+            // add new loggator in static list
             sMapLoggators().emplace(_name, this);
+        }
         return ;
     }
 
@@ -351,8 +449,12 @@ public:
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
         _mapCustomKey["TIME"].format = LDEFAULT_TIME_FORMAT;
-        if (sMapLoggators().find(name) == sMapLoggators().end())
-            sMapLoggators().emplace(name, this);
+        // if name is not empty and not in static list of loggators
+        if (_name.empty() == false && sMapLoggators().find(_name) == sMapLoggators().end())
+        {
+            // add new loggator in static list
+            sMapLoggators().emplace(_name, this);
+        }
         return ;
     }
 
@@ -392,8 +494,12 @@ public:
         loggator._logParents.insert(this);
         _logChilds.insert(&loggator);
         _mapCustomKey = loggator._mapCustomKey;
-        if (sMapLoggators().find(_name) == sMapLoggators().end())
+        // if name is not empty and not in static list of loggators
+        if (_name.empty() == false && sMapLoggators().find(_name) == sMapLoggators().end())
+        {
+            // add new loggator in static list
             sMapLoggators().emplace(_name, this);
+        }
         return ;
     }
 
@@ -423,7 +529,7 @@ public:
      * @param rhs 
      * @return Loggator& 
      */
-    Loggator    &operator=(Loggator &rhs)
+    Loggator    &operator=(const Loggator &rhs)
     {
         std::lock_guard<std::mutex> lockGuard(this->_mutex);
         std::lock_guard<std::mutex> lockGuardParent(rhs._mutex);
@@ -433,9 +539,9 @@ public:
         for (Loggator *child : rhs._logChilds)
         {
             std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
-            this->_logChilds.insert(child);
             child->_logParents.insert(this);
         }
+        this->_logChilds = rhs._logChilds;
         this->_mapCustomKey = rhs._mapCustomKey;
         return *this;
     }
@@ -474,9 +580,11 @@ public:
         return ;
     }
 
+    /*************************************************************************/
+
     /**
-     * @brief Get the Instance object
-     * 
+     * @brief Get the Instance Loggator object by name
+     * throw runtime_error if instance not found
      * @param name 
      * @return Loggator& 
      */
@@ -515,8 +623,12 @@ public:
         std::lock_guard<std::mutex> lockGuard(_mutex);
         _name = name;
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
-        if (sMapLoggators().find(name) != sMapLoggators().end())
-            sMapLoggators().emplace(name, this);
+        // if name is not empty and not in static list of loggators
+        if (_name.empty() == false && sMapLoggators().find(_name) == sMapLoggators().end())
+        {
+            // add new loggator in static list
+            sMapLoggators().emplace(_name, this);
+        }
     }
 
     /**
@@ -729,10 +841,12 @@ public:
      * @return true  : if file is open
      * @return false : if file is not open
      */
-    bool            isOpened(void) const
+    bool            isOpen(void) const
     {
         return _fileStream.is_open();
     }
+
+    /*************************************************************************/
 
     /**
      * @brief 
@@ -797,264 +911,76 @@ public:
         return fifo;
     }
 
+    #define LFUNCTION_TYPE(_type, _name)                                \
+    SendFifo        _name(void) const                                   \
+    {                                                                   \
+        return SendFifo(*this, eTypeLog::_type, {nullptr, 0, nullptr}); \
+    }                                                                   \
+    SendFifo        _name(const char *format, ...) const                \
+    {                                                                   \
+        char    buffer[LFORMAT_BUFFER_SIZE];                            \
+        va_list vargs;                                                  \
+        va_start(vargs, format);                                        \
+        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);      \
+        va_end(vargs);                                                  \
+        SendFifo fifo(*this, eTypeLog::_type, {nullptr, 0, nullptr});   \
+        fifo << buffer;                                                 \
+        return fifo;                                                    \
+    }                                                                   \
+    template<typename T>                                                \
+    SendFifo        _name(const T& var) const                           \
+    {                                                                   \
+        SendFifo fifo(*this, eTypeLog::_type, {nullptr, 0, nullptr});   \
+        fifo << var;                                                    \
+        return fifo;                                                    \
+    }
+
+    LFUNCTION_TYPE(DEBUG,   debug);
+    LFUNCTION_TYPE(INFO,    info);
+    LFUNCTION_TYPE(WARN,    warn);
+    LFUNCTION_TYPE(WARN,    warning);
+    LFUNCTION_TYPE(ERROR,   error);
+    LFUNCTION_TYPE(CRIT,    crit);
+    LFUNCTION_TYPE(CRIT,    critical);
+    LFUNCTION_TYPE(ALERT,   alert);
+    LFUNCTION_TYPE(EMERG,   emerg);
+    LFUNCTION_TYPE(EMERG,   emergency);
+    LFUNCTION_TYPE(FATAL,   fatal);
+
+    /*************************************************************************/
+
     /**
      * @brief 
      * 
+     * @param type 
      * @return SendFifo 
      */
-    SendFifo        debug(void) const
+    SendFifo        operator[](const eTypeLog &type) const
     {
-        return SendFifo(*this, eTypeLog::DEBUG, {nullptr, 0, nullptr});
+        return SendFifo(*this, type, {nullptr, 0, nullptr});
     }
 
     /**
      * @brief 
      * 
-     * @param format 
-     * @param ... 
+     * @param type 
      * @return SendFifo 
      */
-    SendFifo        debug(const char *format, ...) const
+    SendFifo        operator<<(const eTypeLog &type) const
     {
-        char    buffer[LFORMAT_BUFFER_SIZE];
-        va_list vargs;
-        va_start(vargs, format);
-        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
-        va_end(vargs);
+        return SendFifo(*this, type, {nullptr, 0, nullptr});
+    }
+
+    /**
+     * @brief 
+     * 
+     * @param manip 
+     * @return SendFifo 
+     */
+    SendFifo        operator<<(std::ostream&(*manip)(std::ostream&))
+    {
         SendFifo fifo(*this, eTypeLog::DEBUG, {nullptr, 0, nullptr});
-        fifo << buffer;
-        return fifo;
-    }
-
-    /**
-     * @brief 
-     * 
-     * @return SendFifo 
-     */
-    SendFifo        info(void) const
-    {
-        return SendFifo(*this, eTypeLog::INFO, {nullptr, 0, nullptr});
-    }
-
-    /**
-     * @brief 
-     * 
-     * @param format 
-     * @param ... 
-     * @return SendFifo 
-     */
-    SendFifo        info(const char *format, ...) const
-    {
-        char    buffer[LFORMAT_BUFFER_SIZE];
-        va_list vargs;
-        va_start(vargs, format);
-        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
-        va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::INFO, {nullptr, 0, nullptr});
-        fifo << buffer;
-        return fifo;
-    }
-
-    /**
-     * @brief 
-     * 
-     * @return SendFifo 
-     */
-    SendFifo        warning(void) const
-    {
-        return SendFifo(*this, eTypeLog::WARNING, {nullptr, 0, nullptr});
-    }
-
-    /**
-     * @brief 
-     * 
-     * @param format 
-     * @param ... 
-     * @return SendFifo 
-     */
-    SendFifo        warning(const char *format, ...) const
-    {
-        char    buffer[LFORMAT_BUFFER_SIZE];
-        va_list vargs;
-        va_start(vargs, format);
-        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
-        va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::WARNING, {nullptr, 0, nullptr});
-        fifo << buffer;
-        return fifo;
-    }
-
-    /**
-     * @brief 
-     * 
-     * @return SendFifo 
-     */
-    SendFifo        warn(void) const
-    {
-        return SendFifo(*this, eTypeLog::WARN, {nullptr, 0, nullptr});
-    }
-
-    /**
-     * @brief 
-     * 
-     * @param format 
-     * @param ... 
-     * @return SendFifo 
-     */
-    SendFifo        warn(const char *format, ...) const
-    {
-        char    buffer[LFORMAT_BUFFER_SIZE];
-        va_list vargs;
-        va_start(vargs, format);
-        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
-        va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::WARN, {nullptr, 0, nullptr});
-        fifo << buffer;
-        return fifo;
-    }
-
-    /**
-     * @brief 
-     * 
-     * @return SendFifo 
-     */
-    SendFifo        error(void) const
-    {
-        return SendFifo(*this, eTypeLog::ERROR, {nullptr, 0, nullptr});
-    }
-
-    /**
-     * @brief 
-     * 
-     * @param format 
-     * @param ... 
-     * @return SendFifo 
-     */
-    SendFifo        error(const char *format, ...) const
-    {
-        char    buffer[LFORMAT_BUFFER_SIZE];
-        va_list vargs;
-        va_start(vargs, format);
-        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
-        va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::ERROR, {nullptr, 0, nullptr});
-        fifo << buffer;
-        return fifo;
-    }
-
-    /**
-     * @brief 
-     * 
-     * @return SendFifo 
-     */
-    SendFifo        crit(void) const
-    {
-        return SendFifo(*this, eTypeLog::CRIT, {nullptr, 0, nullptr});
-    }
-
-    /**
-     * @brief 
-     * 
-     * @param format 
-     * @param ... 
-     * @return SendFifo 
-     */
-    SendFifo        crit(const char *format, ...) const
-    {
-        char    buffer[LFORMAT_BUFFER_SIZE];
-        va_list vargs;
-        va_start(vargs, format);
-        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
-        va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::CRIT, {nullptr, 0, nullptr});
-        fifo << buffer;
-        return fifo;
-    }
-
-    /**
-     * @brief 
-     * 
-     * @return SendFifo 
-     */
-    SendFifo        alert(void) const
-    {
-        return SendFifo(*this, eTypeLog::ALERT, {nullptr, 0, nullptr});
-    }
-
-    /**
-     * @brief 
-     * 
-     * @param format 
-     * @param ... 
-     * @return SendFifo 
-     */
-    SendFifo        alert(const char *format, ...) const
-    {
-        char    buffer[LFORMAT_BUFFER_SIZE];
-        va_list vargs;
-        va_start(vargs, format);
-        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
-        va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::ALERT, {nullptr, 0, nullptr});
-        fifo << buffer;
-        return fifo;
-    }
-
-    /**
-     * @brief 
-     * 
-     * @return SendFifo 
-     */
-    SendFifo        fatal(void) const
-    {
-        return SendFifo(*this, eTypeLog::FATAL, {nullptr, 0, nullptr});
-    }
-
-    /**
-     * @brief 
-     * 
-     * @param format 
-     * @param ... 
-     * @return SendFifo 
-     */
-    SendFifo        fatal(const char *format, ...) const
-    {
-        char    buffer[LFORMAT_BUFFER_SIZE];
-        va_list vargs;
-        va_start(vargs, format);
-        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
-        va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::FATAL, {nullptr, 0, nullptr});
-        fifo << buffer;
-        return fifo;
-    }
-
-    /**
-     * @brief 
-     * 
-     * @return SendFifo 
-     */
-    SendFifo        emerg(void) const
-    {
-        return SendFifo(*this, eTypeLog::EMERG, {nullptr, 0, nullptr});
-    }
-
-    /**
-     * @brief 
-     * 
-     * @param format 
-     * @param ... 
-     * @return SendFifo 
-     */
-    SendFifo        emerg(const char *format, ...) const
-    {
-        char    buffer[LFORMAT_BUFFER_SIZE];
-        va_list vargs;
-        va_start(vargs, format);
-        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
-        va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::EMERG, {nullptr, 0, nullptr});
-        fifo << buffer;
+        fifo << manip;
         return fifo;
     }
 
@@ -1076,12 +1002,11 @@ public:
     /**
      * @brief 
      * 
-     * @param type 
      * @return SendFifo 
      */
-    SendFifo        operator[](const eTypeLog &type) const
+    SendFifo        operator()(void) const
     {
-        return SendFifo(*this, type, {nullptr, 0, nullptr});
+        return SendFifo(*this, eTypeLog::DEBUG, {nullptr, 0, nullptr});
     }
 
     /**
@@ -1100,6 +1025,21 @@ public:
         va_end(vargs);
         SendFifo fifo(*this, eTypeLog::DEBUG, {nullptr, 0, nullptr});
         fifo << buffer;
+        return fifo;
+    }
+
+    /**
+     * @brief 
+     * 
+     * @tparam T 
+     * @param var 
+     * @return SendFifo 
+     */
+    template<typename T>
+    SendFifo        operator()(const T& var) const
+    {
+        SendFifo fifo(*this, eTypeLog::DEBUG, {nullptr, 0, nullptr});
+        fifo << var;
         return fifo;
     }
 
@@ -1134,6 +1074,21 @@ public:
         return fifo;
     }
 
+    /**
+     * @brief 
+     * 
+     * @tparam T 
+     * @param type 
+     * @param var 
+     * @return SendFifo 
+     */
+    template<typename T>
+    SendFifo        operator()(const eTypeLog &type, const T& var) const
+    {
+        SendFifo fifo(*this, type, {nullptr, 0, nullptr});
+        fifo << var;
+        return fifo;
+    }
 
 private:
 
@@ -1203,7 +1158,7 @@ private:
             snprintf(bufferFormatTime, 7, "%06ld", infos.msec);
             retStr.replace(findPos, 2, bufferFormatTime, 6);
         }
-        strftime(bufferFormatTime, 126, retStr.c_str(), infos.tm);
+        strftime(bufferFormatTime, LFORMAT_BUFFER_SIZE - 1, retStr.c_str(), infos.tm);
         return std::string(bufferFormatTime);
     }
 
@@ -1250,10 +1205,10 @@ private:
                 return "CRIT ";
             case eTypeLog::ALERT:
                 return "ALERT";
+            case eTypeLog::EMERG:
+                return "EMERG";
             case eTypeLog::FATAL:
                 return "FATAL";
-            // case eTypeLog::EMERG:
-                // return "EMERG";
             default:
                 return "";
         }
@@ -1385,8 +1340,8 @@ private:
      */
     static std::mutex &sMapMutex(void)
     {
-        static std::mutex sMapMutex;
-        return sMapMutex;
+        static std::mutex singletonMapMutex;
+        return singletonMapMutex;
     }
 
     /**
@@ -1396,12 +1351,11 @@ private:
      */
     static std::map<const std::string, Loggator*> &sMapLoggators(void)
     {
-        static std::map<const std::string, Loggator*> sMapLoggators;
-        return sMapLoggators;
+        static std::map<const std::string, Loggator*> singletonMapLoggators;
+        return singletonMapLoggators;
     }
 
     Loggator(const Loggator &) = delete;
-    Loggator &operator=(const Loggator &) = delete;
 
     std::string                             _name;
     int                                     _filter;

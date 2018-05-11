@@ -30,14 +30,14 @@ int     main(void)
     std::cout << std::endl;
     {
         Loggator logExample("example", std::cout);
-        logExample.setFormat("{TYPE} {TIME:%Y/%m/%d %X.%N} {NAME}: {FUNC:%s: }{FILE:%s:}{LINE:%-3s: }{THREAD_ID}: ");
+        logExample.setFormat("{TYPE:%-5s} {TIME:%Y/%m/%d %X.%N} {NAME}: {FUNC:%s: }{FILE:%s:}{LINE:%-3s: }{THREAD_ID}: ");
         logExample.LINFO("test1");
         logExample.info("test2");
     }
     std::cout << std::endl;
     {
         Loggator logExample("example", std::cout);
-        logExample.setFormat("{TYPE} {NAME:%s: }{customKey:%s: }");
+        logExample.setFormat("{TYPE:%-5s} {NAME:%s: }{customKey:%s: }");
         logExample.warn("test1");
         logExample.setKey("customKey", "myKey");
         logExample.warning("test2");
@@ -60,7 +60,7 @@ int     main(void)
         logExample2.listen(logExample1);
         logExample1.info("test4");
         logExample2.unlisten(logExample1);
-        logExample1.info("test5");
+        logExample1.error("test5");
         logExample2.info("test6");
     }
     std::string line;
@@ -76,7 +76,7 @@ int     main(void)
     std::cout << std::endl;
     {
         Loggator logExample("example", std::cout);
-        logExample.setFormat("{TYPE}: {LINE:%s: }");
+        logExample.setFormat("{TYPE:%-5s}: {LINE:%s: }");
         logExample.send() << "test1";
         logExample.send(eTypeLog::INFO) << "test2";
         logExample.send(eTypeLog::INFO, "test3");
@@ -90,7 +90,7 @@ int     main(void)
     std::cout << std::endl;
     {
         Loggator logExample("example", std::cout);
-        logExample.setFormat("{TYPE}: {LINE:%s: }");
+        logExample.setFormat("{TYPE:%-5s}: {LINE:%s: }");
         logExample.debug() << "test1"; 
         logExample.info() << "test2";
         logExample.info("test3");
@@ -104,7 +104,7 @@ int     main(void)
     std::cout << std::endl;
     {
         Loggator logExample("example", std::cout);
-        logExample.setFormat("{TYPE}: {LINE:%s: }");
+        logExample.setFormat("{TYPE:%-5s}: {LINE:%s: }");
         logExample("%s", "test1");
         logExample(eTypeLog::INFO) << "test2";
         logExample(eTypeLog::INFO, "test3");
@@ -117,12 +117,6 @@ int     main(void)
     logExample  << eTypeLog::ERROR << "error"
                 << eTypeLog::FATAL << "fatal"
                 << eTypeLog::EMERG << "emerg";
-    logExample[eTypeLog::CRITICAL] << std::flush << std::hex << 66;
-    logExample << std::endl;
-    for (int i = 0; i < 10; i++)
-    {
-        logExample.LDEBUG() << i;
-    }
     });
     std::thread thread2([&]{
         Loggator &testSingleton2 = Loggator::getInstance("main2");
@@ -154,7 +148,15 @@ int     main(void)
 
     main.critical(42);
 
-    Loggator::getInstance("main")[eTypeLog::ERROR]("%s: %i", "yolo", 42)[eTypeLog::EMERGENCY] << " " << "yulu";
+    std::stringstream ss;
+    ss << "test";
+    main.LALERT()(ss.str()) << "test" << " change type.";
+    main.LDEBUG() << "test";
+    Loggator emptyName = main;
+    emptyName.setName("");
+    emptyName.LFATAL() << "test";
+
+    Loggator::getInstance("main")[eTypeLog::ERROR]("%s: %i", "yolo", 42)[eTypeLog::EMERGENCY] << " " << "yulu: " << std::hex << 66;
 
     return 0;
 }

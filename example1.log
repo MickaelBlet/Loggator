@@ -1,8 +1,8 @@
-INFO  05/11/18 03:22:41.443747 example1: test1
-WARN  05/11/18 03:22:41.443835 example1: test2
-CRIT  05/11/18 03:22:41.443862 example1: test2
-FATAL 05/11/18 03:22:41.443884 example1: test2
-ALERT 05/11/18 03:22:41.443904 example1: test2
-INFO  05/11/18 03:22:41.443924 example1: test3
-INFO  05/11/18 03:22:41.443944 example1: test4
-INFO  05/11/18 03:22:41.443977 example1: test5
+05/11/18 22:29:01.376067 [INFO ] example1: test1
+05/11/18 22:29:01.376234 [WARN ] example1: test2
+05/11/18 22:29:01.376271 [CRIT ] example1: test2
+05/11/18 22:29:01.376295 [FATAL] example1: test2
+05/11/18 22:29:01.376316 [ALERT] example1: test2
+05/11/18 22:29:01.376337 [INFO ] example1: test3
+05/11/18 22:29:01.376356 [INFO ] example1: test4
+05/11/18 22:29:01.376389 [ERROR] example1: test5

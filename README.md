@@ -25,62 +25,62 @@
 ## Filters
 |Log Type|DEBUG|INFO|WARN|ERROR|CRIT|ALERT|EMERG|FATAL
 |-|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:
-|EQUAL_DEBUG|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|EQUAL_INFO|` ` [ ] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|EQUAL_WARN|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|EQUAL_WARNING|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|EQUAL_ERROR|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|EQUAL_CRIT|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|EQUAL_CRITICAL|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|EQUAL_ALERT|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `
-|EQUAL_EMERG|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [ ] ` `
-|EQUAL_EMERGENCY|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [ ] ` `
-|EQUAL_FATAL|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `
-|GREATER_DEBUG|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
-|GREATER_INFO|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
-|GREATER_WARN|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
-|GREATER_WARNING|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
-|GREATER_ERROR|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
-|GREATER_CRIT|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
-|GREATER_CRITICAL|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
-|GREATER_ALERT|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `
-|GREATER_EMERG|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `
-|GREATER_EMERGENCY|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `
-|GREATER_FATAL|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|GREATER_EQUAL_DEBUG|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
-|GREATER_EQUAL_INFO|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
-|GREATER_EQUAL_WARN|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
-|GREATER_EQUAL_WARNING|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
-|GREATER_EQUAL_ERROR|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
-|GREATER_EQUAL_CRIT|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
-|GREATER_EQUAL_CRITICAL|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
-|GREATER_EQUAL_ALERT|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
-|GREATER_EQUAL_EMERG|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `
-|GREATER_EQUAL_EMERGENCY|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `
-|GREATER_EQUAL_FATAL|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `
-|LESS_DEBUG|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|LESS_INFO|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|LESS_WARN|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|LESS_WARNING|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|LESS_ERROR|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|LESS_CRIT|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|LESS_CRITICAL|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|LESS_ALERT|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|LESS_EMERG|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `
-|LESS_EMERGENCY|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `
-|LESS_FATAL|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `
-|LESS_EQUAL_DEBUG|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|LESS_EQUAL_INFO|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|LESS_EQUAL_WARN|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|LESS_EQUAL_WARNING|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|LESS_EQUAL_ERROR|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|LESS_EQUAL_CRIT|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|LESS_EQUAL_CRITICAL|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
-|LESS_EQUAL_ALERT|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `
-|LESS_EQUAL_EMERG|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `
-|LESS_EQUAL_EMERGENCY|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `
-|LESS_EQUAL_FATAL|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
-|ALL|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
+|EQUAL_DEBUG|X| | | | | | | 
+|EQUAL_INFO| |X| | | | | | 
+|EQUAL_WARN| | |X| | | | | 
+|EQUAL_WARNING| | |X| | | | | 
+|EQUAL_ERROR| | | |X| | | | 
+|EQUAL_CRIT| | | | |X| | | 
+|EQUAL_CRITICAL| | | | |X| | | 
+|EQUAL_ALERT| | | | | |X| | 
+|EQUAL_EMERG| | | | | | |X| 
+|EQUAL_EMERGENCY| | | | | | |X| 
+|EQUAL_FATAL| | | | | | | |X
+|GREATER_DEBUG| |X|X|X|X|X|X|X
+|GREATER_INFO| | |X|X|X|X|X|X
+|GREATER_WARN| | | |X|X|X|X|X
+|GREATER_WARNING| | | |X|X|X|X|X
+|GREATER_ERROR| | | | |X|X|X|X
+|GREATER_CRIT| | | | | |X|X|X
+|GREATER_CRITICAL| | | | | |X|X|X
+|GREATER_ALERT| | | | | | |X|X
+|GREATER_EMERG| | | | | | | |X
+|GREATER_EMERGENCY| | | | | | | |X
+|GREATER_FATAL| | | | | | | | 
+|GREATER_EQUAL_DEBUG|X|X|X|X|X|X|X|X
+|GREATER_EQUAL_INFO| |X|X|X|X|X|X|X
+|GREATER_EQUAL_WARN| | |X|X|X|X|X|X
+|GREATER_EQUAL_WARNING| | |X|X|X|X|X|X
+|GREATER_EQUAL_ERROR| | | |X|X|X|X|X
+|GREATER_EQUAL_CRIT| | | | |X|X|X|X
+|GREATER_EQUAL_CRITICAL| | | | |X|X|X|X
+|GREATER_EQUAL_ALERT| | | | | |X|X|X
+|GREATER_EQUAL_EMERG| | | | | | |X|X
+|GREATER_EQUAL_EMERGENCY| | | | | | |X|X
+|GREATER_EQUAL_FATAL| | | | | | | |X
+|LESS_DEBUG| | | | | | | | 
+|LESS_INFO|X| | | | | | | 
+|LESS_WARN|X|X| | | | | | 
+|LESS_WARNING|X|X| | | | | | 
+|LESS_ERROR|X|X|X| | | | | 
+|LESS_CRIT|X|X|X|X| | | | 
+|LESS_CRITICAL|X|X|X|X| | | | 
+|LESS_ALERT|X|X|X|X|X| | | 
+|LESS_EMERG|X|X|X|X|X|X| | 
+|LESS_EMERGENCY|X|X|X|X|X|X| | 
+|LESS_FATAL|X|X|X|X|X|X|X| 
+|LESS_EQUAL_DEBUG|X| | | | | | | 
+|LESS_EQUAL_INFO|X|X| | | | | | 
+|LESS_EQUAL_WARN|X|X|X| | | | | 
+|LESS_EQUAL_WARNING|X|X|X| | | | | 
+|LESS_EQUAL_ERROR|X|X|X|X| | | | 
+|LESS_EQUAL_CRIT|X|X|X|X|X| | | 
+|LESS_EQUAL_CRITICAL|X|X|X|X|X| | | 
+|LESS_EQUAL_ALERT|X|X|X|X|X|X| | 
+|LESS_EQUAL_EMERG|X|X|X|X|X|X|X| 
+|LESS_EQUAL_EMERGENCY|X|X|X|X|X|X|X| 
+|LESS_EQUAL_FATAL|X|X|X|X|X|X|X|X
+|ALL|X|X|X|X|X|X|X|X
 
 You can use bit composition (example):
 ```cpp

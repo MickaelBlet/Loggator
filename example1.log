@@ -1,8 +1,0 @@
-05/12/18 22:08:12.706601 [INFO ] example1: test1
-05/12/18 22:08:12.706711 [WARN ] example1: test2
-05/12/18 22:08:12.706740 [CRIT ] example1: test2
-05/12/18 22:08:12.706763 [FATAL] example1: test2
-05/12/18 22:08:12.706783 [ALERT] example1: test2
-05/12/18 22:08:12.706804 [INFO ] example1: test3
-05/12/18 22:08:12.706823 [INFO ] example1: test4
-05/12/18 22:08:12.706856 [ERROR] example1: test5

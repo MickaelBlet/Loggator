@@ -109,14 +109,14 @@ Loggator(void);
 /// muted       : false
 Loggator(int filter);
 
-/// name        : @param name
+/// name        : @param name (if not empty add in static map for getInstance method)
 /// fileOpen    : @param path + @param openMode
 /// filter      : @param filter
 /// outStream   : if file is_open <fileStream> else <std::cerr>
 /// muted       : false
 Loggator(const std::string &name, const std::string &path, std::ios::openmode openMode = std::ios::app, int filter = eFilterLog::ALL);
 
-/// name        : @param name
+/// name        : @param name (if not empty add in static map for getInstance method)
 /// filter      : @param filter
 /// outStream   : @param oStream
 /// muted       : false
@@ -128,7 +128,7 @@ Loggator(const std::string &name, std::ostream &oStream = std::cerr, int filter 
 /// muted       : false
 Loggator(std::ostream &oStream, int filter = eFilterLog::ALL);
 
-/// name        : @param name
+/// name        : @param name (if not empty add in static map for getInstance method)
 /// filter      : ALL
 /// outStream   : nullptr
 /// muted       : false
@@ -143,75 +143,50 @@ Loggator(const std::string &name, Loggator &loggator);
 Loggator(Loggator &loggator);
 ```
 
-## Format
-
-Set a output format.
-[**setFormat**]:
+## Operator =
 ```cpp
-Loggator logExample("example", std::cout);
-logExample.setFormat("{TYPE} {TIME:%x %X.%N}: {NAME:%s: }");
-logExample("test");
-// output:
-// DEBUG 01/01/70 01:23:45.678910: example: test
+/// filter      : @param rhs.filter
+/// format      : @param rhs.format
+/// filter      : @param rhs.filter
+/// muted       : @param rhs.muted
+Loggator    &operator=(const Loggator &rhs);
 ```
 
-
-|Key|Description|Exemple|Output
-|---|-----------|-------|------|
-|**TIME**|Time from `strftime`|`"{TIME:%x %X.%N}"`|`01/01/70 01:23:45.678910`|
-|**TYPE**|Type of log|`"{TYPE}"`|`DEBUG`/`INFO`/`WARN`/`ERROR`/`CRIT`/`ALERT`/`FATAL`/`EMERG`|
-|**NAME**|Name of loggator|`"{NAME}"`|`loggator`|
-|**FUNC**|Name of scope function|`"{FUNC}"`|`main`|
-|**PATH**|Path of source file|`"{PATH}"`|`src/main.cpp`|
-|**FILE**|Filename of source file|`"{FILE}"`|`main.cpp`|
-|**LINE**|Line at source file|`"{LINE}"`|`42`|
-|**THREAD_ID**|Thread id|`"{THREAD_ID}"`|`7F4768D40700`|
-
-Set with printf format the *output* of **keys**
-
-No print *empty* **keys**
-[**setFormat**]:
+## getInstance
 ```cpp
 Loggator logExample("example", std::cout);
-logExample.setFormat("{TYPE} {TIME:%Y/%m/%d %X.%N} {NAME}: {FUNC:%s: }{FILE:%s:}{LINE:%-3s: }{THREAD_ID}: ");
-logExample.LINFO("test1");
-logExample.info("test2");
-// output:
-// INFO  70/01/01 01:23:45.678910 example: main: main.cpp:42 : 7F4768D40700: test1
-// INFO  70/01/01 01:23:45.678910 example: 7F4768D40700: test1
+Loggator &refLogExample = Loggator::getInstance("example"); // OK
+Loggator &badRefLogExample = Loggator::getInstance("test"); // throw runtime error
 ```
-#### Custom Keys
-[**setKey**]:
+
+## setOutStream
 ```cpp
-Loggator logExample("example", std::cout);
-logExample.setFormat("{TYPE} {NAME:%s: }{customKey:%s: }");
-logExample.warn("test1");
-logExample.setKey("customKey", "myKey");
-logExample.warning("test2");
-logExample.setName("");
-logExample.error("test3");
-// output:
-// WARN  example: test1
-// WARN  example: myKey: test2
-// ERROR myKey: test3
+Loggator logExample("example");
+logExample.setOutStream(std::cout);
 ```
-#### Filter
-[**setFilter**, **addFilter**, **subFilter**]:
+
+## setName
+```cpp
+Loggator logExample("example");
+logExample.setName("new name"); // if not empty add in static map for getInstance method
+```
+
+## setFilter, addFilter, subFilter
 ```cpp
 Loggator logExample("example", std::cout);
-logExample.setFilter(eFilterLog::EqualInfo);
+logExample.setFilter(EQUAL_INFO);
 logExample.error("test1"); // no output
 logExample.info("test2"); // output
-logExample.addFilter(eFilterLog::EqualError);
+logExample.addFilter(EQUAL_ERROR);
 logExample.error("test3"); // output
-logExample.subFilter(eFilterLog::EqualError);
+logExample.subFilter(EQUAL_ERROR);
 logExample.error("test4"); // no output
 ```
-#### Child
-[**addChild**, **subChild**, **listen**, **unlisten**]:
+
+## addChild, subChild, listen, unlisten
 ```cpp
-Loggator logExample1("example1", "example1.log", std::ios::trunc, eFilterLog::All);
-Loggator logExample2("example2", "example2.log", std::ios::trunc, eFilterLog::EqualInfo);
+Loggator logExample1("example1", "example1.log", std::ios::trunc, ALL);
+Loggator logExample2("example2", "example2.log", std::ios::trunc, EQUAL_INFO);
 logExample2.setFormat("{TIME:%X.%N} {NAME}: ");
 logExample1.addChild(logExample2);
 logExample1.info("test1");
@@ -236,8 +211,97 @@ logExample2.info("test6");
 // 01:23:45.678940 example1: test4
 // 01:23:45.678960 example2: test6
 ```
-#### Send
-[**send**]:
+
+## setKeys
+```cpp
+Loggator logExample("example", std::cout);
+logExample.setFormat("{TYPE} {NAME:%s: }{customKey:%s: }");
+logExample.warn("test1");
+logExample.setKey("customKey", "myKey");
+logExample.warning("test2");
+logExample.setName("");
+logExample.error("test3");
+// output:
+// WARN  example: test1
+// WARN  example: myKey: test2
+// ERROR myKey: test3
+```
+
+## setMuted
+```cpp
+Loggator logExample("example", std::cout);
+logExample.setFormat("{TYPE} {NAME:%s: }{customKey:%s: }");
+logExample.warn("test1");
+logExample.setMuted(true);
+logExample.warn("test1"); // not write
+// output:
+// WARN  example: test1
+```
+
+## Format
+
+Set a output format.
+[**setFormat**]:
+```cpp
+Loggator logExample("example", std::cout);
+logExample.setFormat("{TYPE} {TIME:%x %X.%N}: {NAME:%s: }");
+logExample("test");
+// output:
+// DEBUG 01/01/70 01:23:45.678910: example: test
+```
+
+|Key|Description|Exemple|Output
+|---|-----------|-------|------|
+|**TIME**|Time from `strftime`|`"{TIME:%x_%X.%N}"`|`01/01/70 01:23:45.678910`|
+|**TYPE**|Type of log|`"{TYPE}"`|`DEBUG`/`INFO`/`WARN`/`ERROR`/`CRIT`/`ALERT`/`FATAL`/`EMERG`|
+|**NAME**|Name of loggator|`"{NAME}"`|`loggator`|
+|**FUNC**|Name of scope function|`"{FUNC}"`|`main`|
+|**PATH**|Path of source file|`"{PATH}"`|`src/main.cpp`|
+|**FILE**|Filename of source file|`"{FILE}"`|`main.cpp`|
+|**LINE**|Line at source file|`"{LINE}"`|`42`|
+|**THREAD_ID**|Thread id|`"{THREAD_ID}"`|`7F4768D40700`|
+
+Set with printf format the *output* of **keys**
+
+No print *empty* **keys**
+[**setFormat**]:
+```cpp
+Loggator logExample("example", std::cout);
+logExample.setFormat("{TYPE} {TIME:%Y/%m/%d %X.%N} {NAME}: {FUNC:%s: }{FILE:%s:}{LINE:%-3s: }{THREAD_ID}: ");
+logExample.LINFO("test1");
+logExample.info("test2");
+// output:
+// INFO  70/01/01 01:23:45.678910 example: main: main.cpp:42 : 7F4768D40700: test1
+// INFO  70/01/01 01:23:45.678910 example: 7F4768D40700: test1
+```
+
+## isMuted
+```cpp
+Loggator logExample("example", std::cout);
+logExample.isMuted(); // return false
+logExample.setMuted(true);
+logExample.isMuted(); // return true
+```
+
+## open
+```cpp
+Loggator logExample("example", std::cout);
+logExample.open("test1.log"); // return true if open success else return false
+```
+
+## close
+```cpp
+Loggator logExample("example", "test.log");
+logExample.close(); // close the file if filestream is open
+```
+
+## isOpen
+```cpp
+Loggator logExample("example");
+logExample.isOpen(); // return true if file is open else return false
+```
+
+## Send
 ```cpp
 Loggator logExample("example", std::cout);
 logExample.setFormat("{TYPE}: {LINE:%s: }");
@@ -261,7 +325,8 @@ logExample.LSENDF(Info, "%s%i", "test", 9) << " extra."; // unlimited args
 // INFO : 44: test8 extra.
 // INFO : 45: test9 extra.
 ```
-#### Functions Macros type
+
+## Functions Macros type
 [**debug**, **LDEBUG**, **info**, **LINFO**, **warn**, **LWARN**, **warning**, **LWARNING**, **error**, **LERROR**]:
 ```cpp
 Loggator logExample("example", std::cout);
@@ -286,7 +351,8 @@ logExample.LINFOF("%s%i", "test", 9) << " extra."; // unlimited args
 // INFO : 44: test8 extra.
 // INFO : 45: test9 extra.
 ```
-#### Operator [] ()
+
+## Operator [] ()
 ```cpp
 Loggator logExample("example", std::cout);
 logExample.setFormat("{TYPE}: {LINE:%s: }");
@@ -297,28 +363,6 @@ logExample(eTypeLog::Info, "%s", "test4");
 logExample(eTypeLog::Info, "%s%i", "test", 5) << " extra.";
 logExample << "test6";
 logExample[eTypeLog::Info] << "test7";
-// output:
-// DEBUG: test1
-// INFO : test2
-// INFO : test3
-// INFO : test4
-// INFO : test5 extra.
-// DEBUG: test6
-// INFO : test7
-```
-
-#### getInstance
-```cpp
-Loggator logExample("example", std::cout);
-logExample.setFormat("{TYPE}: {LINE:%s: }");
-Loggator &refLogExample = Loggator::getInstance("example");
-refLogExample("%s", "test1");
-refLogExample(eTypeLog::Info) << "test2";
-refLogExample(eTypeLog::Info, "test3");
-refLogExample(eTypeLog::Info, "%s", "test4");
-refLogExample(eTypeLog::Info, "%s%i", "test", 5) << " extra.";
-refLogExample << "test6";
-refLogExample[eTypeLog::Info] << "test7";
 // output:
 // DEBUG: test1
 // INFO : test2

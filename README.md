@@ -1,20 +1,91 @@
 # Loggator
 
 
-**Logger** for **c++11**.
+**Logger** for **C++11**.
 
 
 ## Log Types
 
-4  reals types  **Warn** and **Warning** has the same type.
+8  reals types  (**Warn** and **Warning**, **Crit** and **Critical**, **Emerg** and **Emergency**) has the same type.
 
-|Log Type|DEBUG|INFO|WARN|WARNING|ERROR|CRIT|ALERT|FATAL|EMERG
-|--------|-----|----|----|-------|-----|----|-----|-----|-----
-|**Functions**|debug|info|warn|warning|error|crit|alert|fatal|emerg
-|**Macros**|LDEBUG|LINFO|LWARN|LWARNING|LERROR|LCRIT|LALERT|LFATAL|LEMERG
+|Log Type|Functions|Macros
+|--------|---------|------
+|DEBUG   |debug|LDEBUG
+|INFO    |info|LINFO
+|WARN    |warn|LWARN
+|WARNING |warning|LWARNING
+|ERROR   |error|LERROR
+|CRIT    |crit|LCRIT
+|CRITICAL|critical|LCRITICAL
+|ALERT|alert|LALERT
+|EMERG|emerg|LEMERG
+|EMERGENCY|emergency|LEMERGENCY
+|FATAL|fatal|LFATAL
 
+## Filters
+|Log Type|DEBUG|INFO|WARN|ERROR|CRIT|ALERT|EMERG|FATAL
+|-|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:
+|EQUAL_DEBUG|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|EQUAL_INFO|` ` [ ] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|EQUAL_WARN|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|EQUAL_WARNING|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|EQUAL_ERROR|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|EQUAL_CRIT|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|EQUAL_CRITICAL|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|EQUAL_ALERT|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `
+|EQUAL_EMERG|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [ ] ` `
+|EQUAL_EMERGENCY|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [ ] ` `
+|EQUAL_FATAL|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `
+|GREATER_DEBUG|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
+|GREATER_INFO|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
+|GREATER_WARN|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
+|GREATER_WARNING|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
+|GREATER_ERROR|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
+|GREATER_CRIT|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
+|GREATER_CRITICAL|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
+|GREATER_ALERT|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `
+|GREATER_EMERG|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `
+|GREATER_EMERGENCY|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `
+|GREATER_FATAL|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|GREATER_EQUAL_DEBUG|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
+|GREATER_EQUAL_INFO|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
+|GREATER_EQUAL_WARN|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
+|GREATER_EQUAL_WARNING|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
+|GREATER_EQUAL_ERROR|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
+|GREATER_EQUAL_CRIT|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
+|GREATER_EQUAL_CRITICAL|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
+|GREATER_EQUAL_ALERT|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
+|GREATER_EQUAL_EMERG|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `
+|GREATER_EQUAL_EMERGENCY|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `|` ` [x] ` `
+|GREATER_EQUAL_FATAL|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [x] ` `
+|LESS_DEBUG|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|LESS_INFO|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|LESS_WARN|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|LESS_WARNING|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|LESS_ERROR|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|LESS_CRIT|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|LESS_CRITICAL|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|LESS_ALERT|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|LESS_EMERG|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `
+|LESS_EMERGENCY|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `
+|LESS_FATAL|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `
+|LESS_EQUAL_DEBUG|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|LESS_EQUAL_INFO|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|LESS_EQUAL_WARN|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|LESS_EQUAL_WARNING|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|LESS_EQUAL_ERROR|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|LESS_EQUAL_CRIT|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|LESS_EQUAL_CRITICAL|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `|` ` [ ] ` `
+|LESS_EQUAL_ALERT|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `|` ` [ ] ` `
+|LESS_EQUAL_EMERG|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `
+|LESS_EQUAL_EMERGENCY|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [ ] ` `
+|LESS_EQUAL_FATAL|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
+|ALL|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `|` ` [x] ` `
 
-
+You can use bit composition (example):
+```cpp
+EQUAL_DEBUG | EQUAL_WARN | EQUAL_FATAL // filter DEBUG or WARN or FATAL logs
+```
 ## Format
 Set a output format.
 [**setFormat**]:

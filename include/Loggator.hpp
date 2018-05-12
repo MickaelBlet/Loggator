@@ -49,9 +49,9 @@
 # define LCRITF(...)            LSENDF(CRIT,        __VA_ARGS__)
 # define LCRITICALF(...)        LSENDF(CRITICAL,    __VA_ARGS__)
 # define LALERTF(...)           LSENDF(ALERT,       __VA_ARGS__)
-# define LFATALF(...)           LSENDF(FATAL,       __VA_ARGS__)
 # define LEMERGF(...)           LSENDF(EMERG,       __VA_ARGS__)
 # define LEMERGENCYF(...)       LSENDF(EMERGENCY,   __VA_ARGS__)
+# define LFATALF(...)           LSENDF(FATAL,       __VA_ARGS__)
 
 // send macro
 # define LSEND(...)         LMACRO_CHOOSER(LSEND_, __VA_ARGS__)(__VA_ARGS__)
@@ -92,16 +92,16 @@
 # define LALERT_1(...)      LALERTF(__VA_ARGS__)
 # define LALERT_X(...)      LALERTF(__VA_ARGS__)
 
-# define LFATAL(...)        LMACRO_CHOOSER(LFATAL_, __VA_ARGS__)(__VA_ARGS__)
-# define LFATAL_0()         LSENDF(FATAL)
-# define LFATAL_1(...)      LFATALF(__VA_ARGS__)
-# define LFATAL_X(...)      LFATALF(__VA_ARGS__)
-
 # define LEMERG(...)        LMACRO_CHOOSER(LEMERG_, __VA_ARGS__)(__VA_ARGS__)
 # define LEMERGENCY(...)    LMACRO_CHOOSER(LEMERG_, __VA_ARGS__)(__VA_ARGS__)
 # define LEMERG_0()         LSENDF(EMERG)
 # define LEMERG_1(...)      LEMERGF(__VA_ARGS__)
 # define LEMERG_X(...)      LEMERGF(__VA_ARGS__)
+
+# define LFATAL(...)        LMACRO_CHOOSER(LFATAL_, __VA_ARGS__)(__VA_ARGS__)
+# define LFATAL_0()         LSENDF(FATAL)
+# define LFATAL_1(...)      LFATALF(__VA_ARGS__)
+# define LFATAL_X(...)      LFATALF(__VA_ARGS__)
 
 namespace Log
 {
@@ -250,8 +250,8 @@ private:
         /**
          * @brief override operator [] to object
          * 
-         * @param type 
-         * @return SendFifo& 
+         * @param type       : new type of instance
+         * @return SendFifo& : instance of current object
          */
         SendFifo& operator[](const eTypeLog &type)
         {

@@ -19,20 +19,20 @@ TEST(Loggator, setKey)
     logTest.LINFO("test1");
 
     // CHECK OUTPUT
-    EXPECT_EQ(oss.str(), "INFO  test1: setKey.cpp: test1\n");
+    EXPECT_EQ(oss.str(), "INFO test1: setKey.cpp: test1\n");
     CLEAR_STRINGSTREAM(oss);
 
     logTest.setKey("customKey1", "testKey");
     logTest.LINFO("test2");
 
     // CHECK OUTPUT
-    EXPECT_EQ(oss.str(), "INFO  test1: setKey.cpp: testKey: test2\n");
+    EXPECT_EQ(oss.str(), "INFO test1: setKey.cpp: testKey: test2\n");
     CLEAR_STRINGSTREAM(oss);
 
     logTest.setKey("customKey2", "testKey");
     logTest.LINFO("test3");
 
     // CHECK OUTPUT
-    EXPECT_EQ(oss.str(), "INFO  test1: setKey.cpp: testKey: testKey: test3\n");
+    EXPECT_EQ(oss.str(), "INFO test1: setKey.cpp: testKey: testKey: test3\n");
     CLEAR_STRINGSTREAM(oss);
 }

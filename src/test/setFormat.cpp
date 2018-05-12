@@ -19,13 +19,13 @@ TEST(Loggator, setFormat)
     logTest.LINFO("test1");
 
     // CHECK OUTPUT
-    EXPECT_EQ(oss.str(), "INFO  test1: setFormat.cpp: test1\n");
+    EXPECT_EQ(oss.str(), "INFO test1: setFormat.cpp: test1\n");
     CLEAR_STRINGSTREAM(oss);
 
     logTest.info("test2");
 
     // CHECK OUTPUT
-    EXPECT_EQ(oss.str(), "INFO  test1: test2\n");
+    EXPECT_EQ(oss.str(), "INFO test1: test2\n");
     CLEAR_STRINGSTREAM(oss);
 
     logTest.setFormat("{TIME:%y/%m/%d %H:%M:%S.%N: }");

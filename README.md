@@ -82,9 +82,17 @@
 |LESS_EQUAL_FATAL|X|X|X|X|X|X|X|X
 |ALL|X|X|X|X|X|X|X|X
 
-You can use bit composition (example):
+Use bit composition (example):
 ```cpp
-EQUAL_DEBUG | EQUAL_WARN | EQUAL_FATAL // filter DEBUG or WARN or FATAL logs
+Loggator logExample(EQUAL_DEBUG | EQUAL_WARN | EQUAL_FATAL);
+logExample[DEBUG] << "example Debug"; // OK
+logExample[INFO]  << "example Info";  //    KO
+logExample[WARN]  << "example Warn";  // OK
+logExample[ERROR] << "example Error"; //    KO
+logExample[CRIT]  << "example Crit";  //    KO
+logExample[ALERT] << "example Alert"; //    KO
+logExample[EMERG] << "example Emerg"; //    KO
+logExample[FATAL] << "example Fatal"; // OK
 ```
 ## Format
 Set a output format.

@@ -1,20 +1,91 @@
 # Loggator
 
 
-**Logger** for **c++11**.
+**Logger** for **C++11**.
 
 
 ## Log Types
 
-4  reals types  **Warn** and **Warning** has the same type.
+8  reals types  (**Warn** and **Warning**, **Crit** and **Critical**, **Emerg** and **Emergency**) has the same type.
 
-|Log Type|DEBUG|INFO|WARN|WARNING|ERROR|CRIT|ALERT|FATAL|EMERG
-|--------|-----|----|----|-------|-----|----|-----|-----|-----
-|**Functions**|debug|info|warn|warning|error|crit|alert|fatal|emerg
-|**Macros**|LDEBUG|LINFO|LWARN|LWARNING|LERROR|LCRIT|LALERT|LFATAL|LEMERG
+|Log Type|Functions|Macros
+|--------|---------|------
+|DEBUG   |debug|LDEBUG
+|INFO    |info|LINFO
+|WARN    |warn|LWARN
+|WARNING |warning|LWARNING
+|ERROR   |error|LERROR
+|CRIT    |crit|LCRIT
+|CRITICAL|critical|LCRITICAL
+|ALERT|alert|LALERT
+|EMERG|emerg|LEMERG
+|EMERGENCY|emergency|LEMERGENCY
+|FATAL|fatal|LFATAL
 
+## Filters
+|Log Type|DEBUG|INFO|WARN|ERROR|CRIT|ALERT|EMERG|FATAL
+|-|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:
+|EQUAL_DEBUG|X| | | | | | | 
+|EQUAL_INFO| |X| | | | | | 
+|EQUAL_WARN| | |X| | | | | 
+|EQUAL_WARNING| | |X| | | | | 
+|EQUAL_ERROR| | | |X| | | | 
+|EQUAL_CRIT| | | | |X| | | 
+|EQUAL_CRITICAL| | | | |X| | | 
+|EQUAL_ALERT| | | | | |X| | 
+|EQUAL_EMERG| | | | | | |X| 
+|EQUAL_EMERGENCY| | | | | | |X| 
+|EQUAL_FATAL| | | | | | | |X
+|GREATER_DEBUG| |X|X|X|X|X|X|X
+|GREATER_INFO| | |X|X|X|X|X|X
+|GREATER_WARN| | | |X|X|X|X|X
+|GREATER_WARNING| | | |X|X|X|X|X
+|GREATER_ERROR| | | | |X|X|X|X
+|GREATER_CRIT| | | | | |X|X|X
+|GREATER_CRITICAL| | | | | |X|X|X
+|GREATER_ALERT| | | | | | |X|X
+|GREATER_EMERG| | | | | | | |X
+|GREATER_EMERGENCY| | | | | | | |X
+|GREATER_FATAL| | | | | | | | 
+|GREATER_EQUAL_DEBUG|X|X|X|X|X|X|X|X
+|GREATER_EQUAL_INFO| |X|X|X|X|X|X|X
+|GREATER_EQUAL_WARN| | |X|X|X|X|X|X
+|GREATER_EQUAL_WARNING| | |X|X|X|X|X|X
+|GREATER_EQUAL_ERROR| | | |X|X|X|X|X
+|GREATER_EQUAL_CRIT| | | | |X|X|X|X
+|GREATER_EQUAL_CRITICAL| | | | |X|X|X|X
+|GREATER_EQUAL_ALERT| | | | | |X|X|X
+|GREATER_EQUAL_EMERG| | | | | | |X|X
+|GREATER_EQUAL_EMERGENCY| | | | | | |X|X
+|GREATER_EQUAL_FATAL| | | | | | | |X
+|LESS_DEBUG| | | | | | | | 
+|LESS_INFO|X| | | | | | | 
+|LESS_WARN|X|X| | | | | | 
+|LESS_WARNING|X|X| | | | | | 
+|LESS_ERROR|X|X|X| | | | | 
+|LESS_CRIT|X|X|X|X| | | | 
+|LESS_CRITICAL|X|X|X|X| | | | 
+|LESS_ALERT|X|X|X|X|X| | | 
+|LESS_EMERG|X|X|X|X|X|X| | 
+|LESS_EMERGENCY|X|X|X|X|X|X| | 
+|LESS_FATAL|X|X|X|X|X|X|X| 
+|LESS_EQUAL_DEBUG|X| | | | | | | 
+|LESS_EQUAL_INFO|X|X| | | | | | 
+|LESS_EQUAL_WARN|X|X|X| | | | | 
+|LESS_EQUAL_WARNING|X|X|X| | | | | 
+|LESS_EQUAL_ERROR|X|X|X|X| | | | 
+|LESS_EQUAL_CRIT|X|X|X|X|X| | | 
+|LESS_EQUAL_CRITICAL|X|X|X|X|X| | | 
+|LESS_EQUAL_ALERT|X|X|X|X|X|X| | 
+|LESS_EQUAL_EMERG|X|X|X|X|X|X|X| 
+|LESS_EQUAL_EMERGENCY|X|X|X|X|X|X|X| 
+|LESS_EQUAL_FATAL|X|X|X|X|X|X|X|X
+|ALL|X|X|X|X|X|X|X|X
 
-
+You can use bit composition (example):
+```cpp
+EQUAL_DEBUG | EQUAL_WARN | EQUAL_FATAL // filter DEBUG or WARN or FATAL logs
+```
 ## Format
 Set a output format.
 [**setFormat**]:

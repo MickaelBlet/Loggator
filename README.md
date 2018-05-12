@@ -1,8 +1,6 @@
 # Loggator
 
-
 **Logger** for **C++11**.
-
 
 ## Log Types
 
@@ -23,6 +21,7 @@
 |FATAL|fatal|LFATAL
 
 ## Filters
+
 |Log Type|DEBUG|INFO|WARN|ERROR|CRIT|ALERT|EMERG|FATAL
 |-|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:
 |EQUAL_DEBUG|X| | | | | | | 
@@ -94,7 +93,58 @@ logExample[ALERT] << "example Alert"; //    KO
 logExample[EMERG] << "example Emerg"; //    KO
 logExample[FATAL] << "example Fatal"; // OK
 ```
+
+## Constructor
+
+```cpp
+/// name        : ""
+/// filter      : ALL
+/// outStream   : std::cerr
+/// muted       : false
+Loggator(void);
+
+/// name        : ""
+/// filter      : @param filter
+/// outStream   : std::cerr
+/// muted       : false
+Loggator(int filter);
+
+/// name        : @param name
+/// fileOpen    : @param path + @param openMode
+/// filter      : @param filter
+/// outStream   : if file is_open <fileStream> else <std::cerr>
+/// muted       : false
+Loggator(const std::string &name, const std::string &path, std::ios::openmode openMode = std::ios::app, int filter = eFilterLog::ALL);
+
+/// name        : @param name
+/// filter      : @param filter
+/// outStream   : @param oStream
+/// muted       : false
+Loggator(const std::string &name, std::ostream &oStream = std::cerr, int filter = eFilterLog::ALL);
+
+/// name        : ""
+/// filter      : @param filter
+/// outStream   : @param oStream
+/// muted       : false
+Loggator(std::ostream &oStream, int filter = eFilterLog::ALL);
+
+/// name        : @param name
+/// filter      : ALL
+/// outStream   : nullptr
+/// muted       : false
+/// child       : @param loggator
+Loggator(const std::string &name, Loggator &loggator);
+
+/// name        : ""
+/// filter      : ALL
+/// outStream   : nullptr
+/// muted       : false
+/// child       : @param loggator
+Loggator(Loggator &loggator);
+```
+
 ## Format
+
 Set a output format.
 [**setFormat**]:
 ```cpp

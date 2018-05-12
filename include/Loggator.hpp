@@ -210,7 +210,7 @@ private:
          * @param type 
          * @param sourceInfos 
          */
-        SendFifo(const Loggator &loggator, const eTypeLog &type, const SourceInfos &sourceInfos) noexcept:
+        SendFifo(const Loggator &loggator, const eTypeLog &type = eTypeLog::DEBUG, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) noexcept:
         _log(loggator),
         _type(type),
         _sourceInfos(sourceInfos)
@@ -383,7 +383,7 @@ public:
     _name(std::string()),
     _filter(eFilterLog::ALL),
     _outStream(&std::cerr),
-    _muted(false)
+    _mute(false)
     {
         setFormat(LDEFAULT_FORMAT);
         return ;
@@ -394,11 +394,11 @@ public:
      * 
      * @param filter
      */
-    Loggator(const eFilterLog &filter) noexcept:
+    Loggator(int filter) noexcept:
     _name(std::string()),
     _filter(filter),
     _outStream(&std::cerr),
-    _muted(false)
+    _mute(false)
     {
         setFormat(LDEFAULT_FORMAT);
         return ;
@@ -412,12 +412,12 @@ public:
      * @param openMode 
      * @param filter 
      */
-    Loggator(const std::string &name, const std::string &path, std::ios::openmode openMode = std::ios::app, const eFilterLog &filter = eFilterLog::ALL) noexcept:
+    Loggator(const std::string &name, const std::string &path, std::ios::openmode openMode = std::ios::app, int filter = eFilterLog::ALL) noexcept:
     _name(name),
     _filter(filter),
     _fileStream(path, std::ios::out | openMode),
     _outStream(&std::cerr),
-    _muted(false)
+    _mute(false)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
         setFormat(LDEFAULT_FORMAT);
@@ -439,11 +439,11 @@ public:
      * @param oStream 
      * @param filter 
      */
-    Loggator(const std::string &name, std::ostream &oStream = std::cerr, const eFilterLog &filter = eFilterLog::ALL) noexcept:
+    Loggator(const std::string &name, std::ostream &oStream = std::cerr, int filter = eFilterLog::ALL) noexcept:
     _name(name),
     _filter(filter),
     _outStream(&oStream),
-    _muted(false)
+    _mute(false)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
         setFormat(LDEFAULT_FORMAT);
@@ -462,11 +462,11 @@ public:
      * @param oStream 
      * @param filter 
      */
-    Loggator(std::ostream &oStream, const eFilterLog &filter = eFilterLog::ALL) noexcept:
+    Loggator(std::ostream &oStream, int filter = eFilterLog::ALL) noexcept:
     _name(std::string()),
     _filter(filter),
     _outStream(&oStream),
-    _muted(false)
+    _mute(false)
     {
         setFormat(LDEFAULT_FORMAT);
         return ;
@@ -483,7 +483,7 @@ public:
     _filter(loggator._filter),
     _format(loggator._format),
     _outStream(nullptr),
-    _muted(loggator._muted)
+    _mute(loggator._mute)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
         std::lock_guard<std::mutex> lockGuard(_mutex);
@@ -510,7 +510,7 @@ public:
     _filter(loggator._filter),
     _format(loggator._format),
     _outStream(nullptr),
-    _muted(loggator._muted)
+    _mute(loggator._mute)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
         std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
@@ -532,7 +532,7 @@ public:
         std::lock_guard<std::mutex> lockGuardParent(rhs._mutex);
         this->_filter = rhs._filter;
         this->_format = rhs._format;
-        this->_muted = rhs._muted;
+        this->_mute = rhs._mute;
         for (Loggator *child : rhs._logChilds)
         {
             std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
@@ -762,7 +762,7 @@ public:
     void            setMuted(bool mute)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
-        _muted = mute;
+        _mute = mute;
     }
 
     /**
@@ -819,7 +819,7 @@ public:
      */
     bool            isMuted(void) const
     {
-        return (_muted == true);
+        return (_mute == true);
     }
 
     /**
@@ -886,7 +886,7 @@ public:
      */
     SendFifo        send(void) const
     {
-        return SendFifo(*this, eTypeLog::DEBUG, {nullptr, 0, nullptr});
+        return SendFifo(*this);
     }
 
     /**
@@ -904,7 +904,7 @@ public:
         va_start(vargs, format);
         vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
-        SendFifo fifo(*this, type, {nullptr, 0, nullptr});
+        SendFifo fifo(*this, type);
         fifo << buffer;
         return fifo;
     }
@@ -946,7 +946,7 @@ public:
     #define LFUNCTION_TYPE(_type, _name)                                    \
     SendFifo        _name(void) const                                       \
     {                                                                       \
-        return SendFifo(*this, eTypeLog::_type, {nullptr, 0, nullptr});     \
+        return SendFifo(*this, eTypeLog::_type);                            \
     }                                                                       \
     SendFifo        _name(const char *format, ...) const                    \
     {                                                                       \
@@ -955,14 +955,14 @@ public:
         va_start(vargs, format);                                            \
         vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);          \
         va_end(vargs);                                                      \
-        SendFifo fifo(*this, eTypeLog::_type, {nullptr, 0, nullptr});       \
+        SendFifo fifo(*this, eTypeLog::_type);                              \
         fifo << buffer;                                                     \
         return fifo;                                                        \
     }                                                                       \
     template<typename T>                                                    \
     SendFifo        _name(const T& var) const                               \
     {                                                                       \
-        SendFifo fifo(*this, eTypeLog::_type, {nullptr, 0, nullptr});       \
+        SendFifo fifo(*this, eTypeLog::_type);                              \
         fifo << var;                                                        \
         return fifo;                                                        \
     }
@@ -991,7 +991,7 @@ public:
      */
     SendFifo        operator[](const eTypeLog &type) const
     {
-        return SendFifo(*this, type, {nullptr, 0, nullptr});
+        return SendFifo(*this, type);
     }
 
     /**
@@ -1002,7 +1002,7 @@ public:
      */
     SendFifo        operator<<(const eTypeLog &type) const
     {
-        return SendFifo(*this, type, {nullptr, 0, nullptr});
+        return SendFifo(*this, type);
     }
 
     /**
@@ -1013,7 +1013,7 @@ public:
      */
     SendFifo        operator<<(std::ostream&(*manip)(std::ostream&))
     {
-        SendFifo fifo(*this, eTypeLog::DEBUG, {nullptr, 0, nullptr});
+        SendFifo fifo(*this);
         fifo << manip;
         return fifo;
     }
@@ -1028,7 +1028,7 @@ public:
     template<typename T>
     SendFifo        operator<<(const T &var) const
     {
-        SendFifo fifo(*this, eTypeLog::DEBUG, {nullptr, 0, nullptr});
+        SendFifo fifo(*this);
         fifo << var;
         return fifo;
     }
@@ -1040,7 +1040,7 @@ public:
      */
     SendFifo        operator()(void) const
     {
-        return SendFifo(*this, eTypeLog::DEBUG, {nullptr, 0, nullptr});
+        return SendFifo(*this);
     }
 
     /**
@@ -1057,7 +1057,7 @@ public:
         va_start(vargs, format);
         vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
-        SendFifo fifo(*this, eTypeLog::DEBUG, {nullptr, 0, nullptr});
+        SendFifo fifo(*this);
         fifo << buffer;
         return fifo;
     }
@@ -1072,7 +1072,7 @@ public:
     template<typename T>
     SendFifo        operator()(const T& var) const
     {
-        SendFifo fifo(*this, eTypeLog::DEBUG, {nullptr, 0, nullptr});
+        SendFifo fifo(*this);
         fifo << var;
         return fifo;
     }
@@ -1085,7 +1085,7 @@ public:
      */
     SendFifo        operator()(const eTypeLog &type) const
     {
-        return SendFifo(*this, type, {nullptr, 0, nullptr});
+        return SendFifo(*this, type);
     }
 
     /**
@@ -1103,7 +1103,7 @@ public:
         va_start(vargs, format);
         vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
         va_end(vargs);
-        SendFifo fifo(*this, type, {nullptr, 0, nullptr});
+        SendFifo fifo(*this, type);
         fifo << buffer;
         return fifo;
     }
@@ -1119,7 +1119,7 @@ public:
     template<typename T>
     SendFifo        operator()(const eTypeLog &type, const T& var) const
     {
-        SendFifo fifo(*this, type, {nullptr, 0, nullptr});
+        SendFifo fifo(*this, type);
         fifo << var;
         return fifo;
     }
@@ -1136,7 +1136,7 @@ private:
     void            sendToStream(const std::string &str, const eTypeLog &type, const SourceInfos &source) const
     {
         const timeInfos timeInfos = getCurrentTimeInfos();
-        if (_outStream != nullptr && _muted == false && _filter & type)
+        if (_outStream != nullptr && _mute == false && _filter & type)
         {
             std::lock_guard<std::mutex> lockGuard(_mutex);
             *(_outStream) << prompt(this->_name, type, _mapCustomKey, timeInfos, source) << str << std::flush;
@@ -1165,7 +1165,7 @@ private:
             if (setLog.find(child) != setLog.end())
                 continue;
             setLog.insert(child);
-            if (child->_outStream != nullptr && child->_muted == false && child->_filter & type)
+            if (child->_outStream != nullptr && child->_mute == false && child->_filter & type)
             {
                 std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
                 *(child->_outStream) << child->prompt(name, type, _mapCustomKey, timeInfos, source) << str << std::flush;
@@ -1403,7 +1403,7 @@ private:
     std::set<Loggator*>                     _logChilds;
     mutable std::mutex                      _mutex;
     std::map<const std::string, customKey>  _mapCustomKey;
-    bool                                    _muted;
+    bool                                    _mute;
 
 };
 

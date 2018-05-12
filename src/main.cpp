@@ -158,5 +158,15 @@ int     main(void)
 
     Loggator::getInstance("main")[eTypeLog::ERROR]("%s: %i", "yolo", 42)[eTypeLog::EMERGENCY] << " " << "yulu: " << std::hex << 66;
 
+    Loggator logExample(EQUAL_DEBUG | EQUAL_WARN | EQUAL_FATAL);
+    logExample[DEBUG] << "example Debug"; // OK
+    logExample[INFO]  << "example Info";  //    KO
+    logExample[WARN]  << "example Warn";  // OK
+    logExample[ERROR] << "example Error"; //    KO
+    logExample[CRIT]  << "example Crit";  //    KO
+    logExample[ALERT] << "example Alert"; //    KO
+    logExample[EMERG] << "example Emerg"; //    KO
+    logExample[FATAL] << "example Fatal"; // OK
+
     return 0;
 }

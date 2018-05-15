@@ -221,16 +221,8 @@ private:
         /**
          * @brief Construct a new Send Fifo object
          * 
-         * @param sendFifo 
          */
-        SendFifo(SendFifo &&sendFifo) noexcept:
-        _cacheStream(std::move(sendFifo._cacheStream)),
-        _log(sendFifo._log),
-        _type(std::move(sendFifo._type)),
-        _sourceInfos(std::move(sendFifo._sourceInfos))
-        {
-            return ;
-        }
+        SendFifo(SendFifo &&) = default;
 
         /**
          * @brief Destroy the Send Fifo object
@@ -571,7 +563,7 @@ public:
                     sMapLoggators().erase(it);
                     break;
                 }
-                it++;
+                ++it;
             }
         }
         return ;
@@ -629,7 +621,7 @@ public:
                     sMapLoggators().erase(it);
                     break;
                 }
-                it++;
+                ++it;
             }
         }
         _name = name;
@@ -789,7 +781,7 @@ public:
             {
                 // get name of key
                 std::string key = _format.substr(indexStart + 1, indexEnd - indexStart - 1);
-                // if key is specifique "TIME" set default format
+                // if key is specific "TIME" set default format
                 if (key == "TIME")
                     _mapCustomKey[key].format = LDEFAULT_TIME_FORMAT;
                 else
@@ -1138,9 +1130,12 @@ private:
         const timeInfos timeInfos = getCurrentTimeInfos();
         if (_outStream != nullptr && _mute == false && _filter & type)
         {
-            std::lock_guard<std::mutex> lockGuard(_mutex);
+            _mutex.lock();
             *(_outStream) << prompt(this->_name, type, _mapCustomKey, timeInfos, source) << str << std::flush;
+            _mutex.unlock();
         }
+        if (_logChilds.empty())
+            return;
         std::set<const Loggator*> tmpsetLog;
         tmpsetLog.insert(this);
         sendChild(tmpsetLog, *this, this->_name, type, timeInfos, source, str);
@@ -1159,17 +1154,23 @@ private:
      */
     void            sendChild(std::set<const Loggator*> &setLog, const Loggator &loggator, const std::string &name, const eTypeLog &type, const timeInfos &timeInfos, const SourceInfos &source, const std::string &str) const
     {
-        std::lock_guard<std::mutex> lockGuard(loggator._mutex);
-        for (const Loggator *child : loggator._logChilds)
+        // create a cpy of LogChild for no dead lock
+        _mutex.lock();
+        std::set<Loggator*> cpyLogChilds = loggator._logChilds;
+        _mutex.unlock();
+        for (const Loggator *child : cpyLogChilds)
         {
             if (setLog.find(child) != setLog.end())
                 continue;
             setLog.insert(child);
             if (child->_outStream != nullptr && child->_mute == false && child->_filter & type)
             {
-                std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
+                child->_mutex.lock();
                 *(child->_outStream) << child->prompt(name, type, _mapCustomKey, timeInfos, source) << str << std::flush;
+                child->_mutex.unlock();
             }
+            if (child->_logChilds.empty())
+                continue;
             sendChild(setLog, *child, name, type, timeInfos, source, str);
         }
     }

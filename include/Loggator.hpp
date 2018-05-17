@@ -1131,13 +1131,13 @@ private:
         if (_outStream != nullptr && _mute == false && _filter & type)
         {
             _mutex.lock();
-            *(_outStream) << prompt(this->_name, type, _mapCustomKey, timeInfos, source) << str << std::flush;
+            std::string tmpPrompt = prompt(this->_name, type, _mapCustomKey, timeInfos, source);
+            _outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(str.c_str(), str.size()).flush();
             _mutex.unlock();
         }
         if (_logChilds.empty())
             return;
-        std::set<const Loggator*> tmpsetLog;
-        tmpsetLog.insert(this);
+        std::set<const Loggator*> tmpsetLog = {this};
         sendChild(tmpsetLog, *this, this->_name, type, timeInfos, source, str);
     }
 
@@ -1155,9 +1155,9 @@ private:
     void            sendChild(std::set<const Loggator*> &setLog, const Loggator &loggator, const std::string &name, const eTypeLog &type, const timeInfos &timeInfos, const SourceInfos &source, const std::string &str) const
     {
         // create a cpy of LogChild for no dead lock
-        _mutex.lock();
+        loggator._mutex.lock();
         std::set<Loggator*> cpyLogChilds = loggator._logChilds;
-        _mutex.unlock();
+        loggator._mutex.unlock();
         for (const Loggator *child : cpyLogChilds)
         {
             if (setLog.find(child) != setLog.end())
@@ -1166,7 +1166,8 @@ private:
             if (child->_outStream != nullptr && child->_mute == false && child->_filter & type)
             {
                 child->_mutex.lock();
-                *(child->_outStream) << child->prompt(name, type, _mapCustomKey, timeInfos, source) << str << std::flush;
+                std::string tmpPrompt = child->prompt(name, type, _mapCustomKey, timeInfos, source);
+                child->_outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(str.c_str(), str.size()).flush();
                 child->_mutex.unlock();
             }
             if (child->_logChilds.empty())

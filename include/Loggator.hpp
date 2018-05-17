@@ -106,7 +106,7 @@
 namespace Log
 {
 
-enum eTypeLog
+enum eTypeLog : int
 {
     DEBUG       = 1<<0,
     INFO        = 1<<1,
@@ -121,7 +121,7 @@ enum eTypeLog
     FATAL       = 1<<7
 };
 
-enum eFilterLog
+enum eFilterLog : int
 {
     EQUAL_DEBUG             = eTypeLog::DEBUG,
     EQUAL_INFO              = eTypeLog::INFO,
@@ -327,6 +327,54 @@ private:
         template<typename T>
         SendFifo& operator()(const T& var)
         {
+            _cacheStream << var;
+            return *this;
+        }
+
+        /**
+         * @brief override operator () to object
+         * 
+         * @param type 
+         * @return SendFifo& 
+         */
+        SendFifo& operator()(const eTypeLog &type)
+        {
+            _type = type;
+            return *this;
+        }
+
+        /**
+         * @brief override operator () to object
+         * 
+         * @param type 
+         * @param format 
+         * @param ... 
+         * @return SendFifo : temporary instance of SendFifo
+         */
+        SendFifo& operator()(const eTypeLog &type, const char * format, ...)
+        {
+            _type = type;
+            char    buffer[LFORMAT_BUFFER_SIZE];
+            va_list vargs;
+            va_start(vargs, format);
+            vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
+            va_end(vargs);
+            _cacheStream << buffer;
+            return *this;
+        }
+
+        /**
+         * @brief override operator () to object
+         * 
+         * @tparam T 
+         * @param type 
+         * @param var 
+         * @return SendFifo : temporary instance of SendFifo
+         */
+        template<typename T>
+        SendFifo& operator()(const eTypeLog &type, const T& var)
+        {
+            _type = type;
             _cacheStream << var;
             return *this;
         }
@@ -1348,7 +1396,9 @@ private:
                         prompt.replace(indexStart, 6, formatKey(key, source.filename));
                 }
                 else
+                {
                     prompt.erase(indexStart, 6);
+                }
             }
             else if (key == "LINE")
             {

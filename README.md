@@ -306,14 +306,14 @@ logExample.isOpen(); // return true if file is open else return false
 Loggator logExample("example", std::cout);
 logExample.setFormat("{TYPE}: {LINE:%s: }");
 logExample.send() << "test1";
-logExample.send(eTypeLog::Info) << "test2";
-logExample.send(eTypeLog::Info, "test3");
-logExample.send(eTypeLog::Info, "%s", "test4");
-logExample.send(eTypeLog::Info, "%s%i", "test", 5) << " extra.";
+logExample.send(eTypeLog::INFO) << "test2";
+logExample.send(eTypeLog::INFO, "test3");
+logExample.send(eTypeLog::INFO, "%s", "test4");
+logExample.send(eTypeLog::INFO, "%s%i", "test", 5) << " extra.";
 logExample.LSEND() << "test6";
-logExample.LSEND(Info) << "test7";
-logExample.LSEND(Info, "%s%i", "test", 8) << " extra."; // limited 19 args
-logExample.LSENDF(Info, "%s%i", "test", 9) << " extra."; // unlimited args
+logExample.LSEND(INFO) << "test7";
+logExample.LSEND(INFO, "%s%i", "test", 8) << " extra."; // limited 19 args
+logExample.LSENDF(INFO, "%s%i", "test", 9) << " extra."; // unlimited args
 // output:
 // DEBUG: test1
 // INFO : test2
@@ -352,17 +352,19 @@ logExample.LINFOF("%s%i", "test", 9) << " extra."; // unlimited args
 // INFO : 45: test9 extra.
 ```
 
-## Operator [] ()
+## Operator [] () <<
 ```cpp
 Loggator logExample("example", std::cout);
 logExample.setFormat("{TYPE}: {LINE:%s: }");
 logExample("%s", "test1");
-logExample(eTypeLog::Info) << "test2";
-logExample(eTypeLog::Info, "test3");
-logExample(eTypeLog::Info, "%s", "test4");
-logExample(eTypeLog::Info, "%s%i", "test", 5) << " extra.";
+logExample(eTypeLog::INFO) << "test2";
+logExample(eTypeLog::INFO, "test3");
+logExample(eTypeLog::INFO, "%s", "test4");
+logExample(eTypeLog::INFO, "%s%i", "test", 5) << " extra.";
 logExample << "test6";
-logExample[eTypeLog::Info] << "test7";
+logExample[eTypeLog::INFO] << "test7";
+logExample << "test8" << eTypeLog::INFO;
+logExample.LSEND() << "test9" << eTypeLog::INFO;
 // output:
 // DEBUG: test1
 // INFO : test2
@@ -371,4 +373,6 @@ logExample[eTypeLog::Info] << "test7";
 // INFO : test5 extra.
 // DEBUG: test6
 // INFO : test7
+// INFO : test8
+// INFO : 42: test9
 ```

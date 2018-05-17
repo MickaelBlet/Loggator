@@ -38,7 +38,7 @@ int     main(void)
     //     thread[nbThread].join();
     // }
 
-    Loggator logDebug("debug", "Debug.log", std::ios::trunc, eFilterLog::GREATER_EQUAL_DEBUG);
+    Loggator logDebug("debug", std::cout);//"Debug.log", std::ios::trunc, eFilterLog::GREATER_EQUAL_DEBUG);
     // logDebug.setFormat("{TIME:%S.%N}: ");
     Loggator logInfo( "info",  "Info.log",  std::ios::trunc, eFilterLog::GREATER_EQUAL_INFO);
     Loggator logError("error", "Error.log", std::ios::trunc, eFilterLog::GREATER_EQUAL_ERROR);
@@ -52,9 +52,9 @@ int     main(void)
     {
         thread[nbThread] = std::thread([&]{
             Loggator logThread("Thread" + std::to_string(nbThread), Loggator::getInstance("debug"));
-        for (int i = 0; i < 10000; ++i)
+        for (int i = 0; i < 1000; ++i)
         {
-            logThread.LDEBUG() << "DEBUG test !!!";
+            logThread.LDEBUG("%i: ", __LINE__) << "DEBUG test !!!";
             logThread.LINFO() << "INFO test !!!";
             logThread.LERROR() << "ERROR test !!!";
         }

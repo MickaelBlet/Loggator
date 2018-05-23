@@ -27,7 +27,7 @@
 
 /*****************************************************************************/
 
-# define LSOURCEINFOS SourceInfos{__FILE__, __LINE__, __func__}
+# define LSOURCEINFOS Log::SourceInfos{__FILE__, __LINE__, __func__}
 
 # define LPRIMITIVE_CAT(x, y) x ## y
 # define LCAT(x, y) LPRIMITIVE_CAT(x, y)
@@ -1051,7 +1051,7 @@ public:
      * @param manip function pointer (std::endl, std::flush, ...)
      * @return SendFifo : temporary instance of SendFifo
      */
-    SendFifo        operator<<(std::ostream&(*manip)(std::ostream&))
+    SendFifo        operator<<(std::ostream&(*manip)(std::ostream&)) const
     {
         SendFifo fifo(*this);
         fifo << manip;

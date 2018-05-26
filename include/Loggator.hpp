@@ -106,7 +106,7 @@
 namespace Log
 {
 
-enum eTypeLog : int
+enum class eTypeLog: int
 {
     DEBUG       = 1<<0,
     INFO        = 1<<1,
@@ -121,19 +121,21 @@ enum eTypeLog : int
     FATAL       = 1<<7
 };
 
-enum eFilterLog : int
+namespace eFilterLog
 {
-    EQUAL_DEBUG             = eTypeLog::DEBUG,
-    EQUAL_INFO              = eTypeLog::INFO,
-    EQUAL_WARN              = eTypeLog::WARN,
-    EQUAL_WARNING           = eTypeLog::WARNING,
-    EQUAL_ERROR             = eTypeLog::ERROR,
-    EQUAL_CRIT              = eTypeLog::CRIT,
-    EQUAL_CRITICAL          = eTypeLog::CRITICAL,
-    EQUAL_ALERT             = eTypeLog::ALERT,
-    EQUAL_EMERG             = eTypeLog::EMERG,
-    EQUAL_EMERGENCY         = eTypeLog::EMERGENCY,
-    EQUAL_FATAL             = eTypeLog::FATAL,
+enum : int
+{
+    EQUAL_DEBUG             = static_cast<int>(eTypeLog::DEBUG),
+    EQUAL_INFO              = static_cast<int>(eTypeLog::INFO),
+    EQUAL_WARN              = static_cast<int>(eTypeLog::WARN),
+    EQUAL_WARNING           = static_cast<int>(eTypeLog::WARNING),
+    EQUAL_ERROR             = static_cast<int>(eTypeLog::ERROR),
+    EQUAL_CRIT              = static_cast<int>(eTypeLog::CRIT),
+    EQUAL_CRITICAL          = static_cast<int>(eTypeLog::CRITICAL),
+    EQUAL_ALERT             = static_cast<int>(eTypeLog::ALERT),
+    EQUAL_EMERG             = static_cast<int>(eTypeLog::EMERG),
+    EQUAL_EMERGENCY         = static_cast<int>(eTypeLog::EMERGENCY),
+    EQUAL_FATAL             = static_cast<int>(eTypeLog::FATAL),
     ALL                     = EQUAL_DEBUG | EQUAL_INFO | EQUAL_WARN | EQUAL_ERROR | EQUAL_CRIT | EQUAL_ALERT | EQUAL_EMERG | EQUAL_FATAL,
     GREATER_FATAL           = 0,
     GREATER_EMERG           = EQUAL_FATAL,
@@ -180,6 +182,7 @@ enum eFilterLog : int
     LESS_EQUAL_EMERGENCY    = LESS_EQUAL_EMERG,
     LESS_EQUAL_FATAL        = EQUAL_FATAL | LESS_FATAL
 };
+}
 
 struct SourceInfos
 {
@@ -389,7 +392,7 @@ private:
         eTypeLog            _type;
         const SourceInfos   _sourceInfos;
 
-    };
+    }; // end class SendFifo
 
     /**
      * @brief 
@@ -711,8 +714,7 @@ public:
     void            subFilter(int filter)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
-        if (_filter | filter)
-            _filter -= filter;
+        _filter &= ~filter;
     }
 
     /**
@@ -728,7 +730,7 @@ public:
         std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
         _logChilds.insert(&loggator);
         loggator._logParents.insert(this);
-        return (*this);
+        return *this;
     }
 
     /**
@@ -744,7 +746,7 @@ public:
         std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
         _logChilds.erase(&loggator);
         loggator._logParents.erase(this);
-        return (*this);
+        return *this;
     }
 
     /**
@@ -760,7 +762,7 @@ public:
         std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
         loggator._logChilds.insert(this);
         _logParents.insert(&loggator);
-        return (*this);
+        return *this;
     }
 
     /**
@@ -776,7 +778,7 @@ public:
         std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
         loggator._logChilds.erase(this);
         _logParents.erase(&loggator);
-        return (*this);
+        return *this;
     }
 
     /**
@@ -791,7 +793,7 @@ public:
         std::lock_guard<std::mutex> lockGuard(_mutex);
         // add new value key in custom key map
         _mapCustomKey[key].value = value;
-        return (*this);
+        return *this;
     }
 
     /**
@@ -815,31 +817,33 @@ public:
         std::lock_guard<std::mutex> lockGuard(_mutex);
         _format = format;
         // search first occurrence of '{'
-        std::size_t indexStart = _format.find("{");
+        std::size_t indexStart = _format.find('{');
+        std::size_t indexEnd;
+        std::size_t indexFormat;
         while (indexStart != std::string::npos)
         {
             // search first occurrence of '}' after indexStart
-            std::size_t indexEnd = _format.find("}", indexStart);
+            indexEnd = _format.find('}', indexStart);
             if (indexEnd == std::string::npos)
                 break;
             // search first occurrence of ':' after indexStart
-            std::size_t indexFormat = _format.find(":", indexStart);
+            indexFormat = _format.find(':', indexStart);
             // if occurrence ':' not found or ':' is not in between '{' and '}'
             if (indexFormat == std::string::npos || indexFormat > indexEnd)
             {
                 // get name of key
-                std::string key = _format.substr(indexStart + 1, indexEnd - indexStart - 1);
+                const std::string &key = _format.substr(indexStart + 1, indexEnd - indexStart - 1);
                 // if key is specific "TIME" set default format
                 if (key == "TIME")
                     _mapCustomKey[key].format = LDEFAULT_TIME_FORMAT;
                 else
                     _mapCustomKey[key].format = "%s";
                 // jump to next occurrence '{' after indexStart + 1
-                indexStart = _format.find("{", indexStart + 1);
+                indexStart = _format.find('{', indexStart + 1);
                 continue;
             }
             // get name of key {[...]:...}
-            std::string key = _format.substr(indexStart + 1, indexFormat - indexStart - 1);
+            const std::string &key = _format.substr(indexStart + 1, indexFormat - indexStart - 1);
             // get format of key {...:[...]}
             std::string formatKey = _format.substr(indexFormat + 1, indexEnd - indexFormat - 1);
             // add new format key in custom key map
@@ -847,7 +851,7 @@ public:
             // erase the format key in string object _format {...[:...]}
             _format.erase(indexFormat, indexEnd - indexFormat);
             // jump to next occurrence '{' after indexStart + 1
-            indexStart = _format.find("{", indexStart + 1);
+            indexStart = _format.find('{', indexStart + 1);
         }
     }
 
@@ -1164,7 +1168,7 @@ public:
         return fifo;
     }
 
-private:
+protected:
 
     /**
      * @brief write in _outStream and _outStream_child
@@ -1176,7 +1180,7 @@ private:
     void            sendToStream(const std::string &str, const eTypeLog &type, const SourceInfos &source) const
     {
         const timeInfos timeInfos = getCurrentTimeInfos();
-        if (_outStream != nullptr && _mute == false && _filter & type)
+        if (_outStream != nullptr && _mute == false && _filter & static_cast<int>(type))
         {
             _mutex.lock();
             std::string tmpPrompt = prompt(this->_name, type, _mapCustomKey, timeInfos, source);
@@ -1211,7 +1215,7 @@ private:
             if (setLog.find(child) != setLog.end())
                 continue;
             setLog.insert(child);
-            if (child->_outStream != nullptr && child->_mute == false && child->_filter & type)
+            if (child->_outStream != nullptr && child->_mute == false && child->_filter & static_cast<int>(type))
             {
                 child->_mutex.lock();
                 std::string tmpPrompt = child->prompt(name, type, _mapCustomKey, timeInfos, source);
@@ -1242,8 +1246,7 @@ private:
             snprintf(bufferFormatTime, 7, "%06ld", infos.msec);
             retStr.replace(findPos, 2, bufferFormatTime, 6);
         }
-        strftime(bufferFormatTime, LFORMAT_BUFFER_SIZE - 1, retStr.c_str(), infos.tm);
-        return std::string(bufferFormatTime);
+        return std::string(bufferFormatTime, 0, std::strftime(bufferFormatTime, LFORMAT_BUFFER_SIZE - 1, retStr.c_str(), infos.tm));
     }
 
     /**
@@ -1313,8 +1316,7 @@ private:
         if (itMap->second.value.empty())
             return "";
         char buffer[LFORMAT_KEY_BUFFER_SIZE];
-        snprintf(buffer, LFORMAT_KEY_BUFFER_SIZE - 1, itMap->second.format.c_str(), itMap->second.value.c_str());
-        return std::string(buffer);
+        return std::string(buffer, 0, snprintf(buffer, LFORMAT_KEY_BUFFER_SIZE - 1, itMap->second.format.c_str(), itMap->second.value.c_str()));
     }
 
     /**
@@ -1332,8 +1334,7 @@ private:
         if (itMap == _mapCustomKey.end())
             return value;
         char buffer[LFORMAT_KEY_BUFFER_SIZE];
-        snprintf(buffer, LFORMAT_KEY_BUFFER_SIZE - 1, itMap->second.format.c_str(), value.c_str());
-        return std::string(buffer);
+        return std::string(buffer, 0, snprintf(buffer, LFORMAT_KEY_BUFFER_SIZE - 1, itMap->second.format.c_str(), value.c_str()));
     }
 
     /**
@@ -1350,15 +1351,16 @@ private:
     {
         std::string prompt = _format;
         // search first occurrence of '{'
-        std::size_t indexStart = prompt.find("{");
+        std::size_t indexStart = prompt.find('{');
+        std::size_t indexEnd;
         while (indexStart != std::string::npos)
         {
             // search first occurrence of '}' after indexStart
-            std::size_t indexEnd = prompt.find("}", indexStart);
+            indexEnd = prompt.find('}', indexStart);
             if (indexEnd == std::string::npos)
                 break;
             // get name of key
-            std::string key = prompt.substr(indexStart + 1, indexEnd - indexStart - 1);
+            const std::string &key = prompt.substr(indexStart + 1, indexEnd - indexStart - 1);
             if (key == "TIME")
             {
                 prompt.replace(indexStart, 6, formatTime(timeInfos));
@@ -1417,7 +1419,7 @@ private:
             {
                 prompt.replace(indexStart, key.size() + 2, formatCustomKey(mapCustomKey, key));
             }
-            indexStart = prompt.find("{", indexStart);
+            indexStart = prompt.find('{', indexStart);
         }
         return prompt;
     }

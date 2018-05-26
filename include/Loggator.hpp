@@ -243,6 +243,19 @@ private:
         /*********************************************************************/
 
         /**
+         * @brief use write function of stringStream
+         * 
+         * @param cstr 
+         * @param size 
+         * @return SendFifo& : instance of current object
+         */
+        SendFifo& write(const char *cstr, std::streamsize size)
+        {
+            _cacheStream.write(cstr, size);
+            return *this;
+        }
+
+        /**
          * @brief override operator [] to object
          * 
          * @param type       : new type of instance
@@ -314,9 +327,8 @@ private:
             char    buffer[LFORMAT_BUFFER_SIZE];
             va_list vargs;
             va_start(vargs, format);
-            vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
+            _cacheStream.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
             va_end(vargs);
-            _cacheStream << buffer;
             return *this;
         }
 
@@ -360,7 +372,7 @@ private:
             char    buffer[LFORMAT_BUFFER_SIZE];
             va_list vargs;
             va_start(vargs, format);
-            vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
+            _cacheStream.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
             va_end(vargs);
             _cacheStream << buffer;
             return *this;
@@ -649,6 +661,7 @@ public:
      */
     void            setOutStream(std::ostream &os)
     {
+        close();
         std::lock_guard<std::mutex> lockGuard(_mutex);
         _outStream = &os;
     }
@@ -943,13 +956,12 @@ public:
      */
     SendFifo        send(const eTypeLog &type, const char *format, ...) const
     {
-        char    buffer[LFORMAT_BUFFER_SIZE];
-        va_list vargs;
+        char        buffer[LFORMAT_BUFFER_SIZE];
+        SendFifo    fifo(*this, type);
+        va_list     vargs;
         va_start(vargs, format);
-        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
+        fifo.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
         va_end(vargs);
-        SendFifo fifo(*this, type);
-        fifo << buffer;
         return fifo;
     }
 
@@ -977,38 +989,36 @@ public:
      */
     SendFifo        send(const eTypeLog &type, const SourceInfos &sourceInfos, const char *format, ...) const
     {
-        char    buffer[LFORMAT_BUFFER_SIZE];
-        va_list vargs;
+        char        buffer[LFORMAT_BUFFER_SIZE];
+        SendFifo    fifo(*this, type, sourceInfos);
+        va_list     vargs;
         va_start(vargs, format);
-        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
+        fifo.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
         va_end(vargs);
-        SendFifo fifo(*this, type, sourceInfos);
-        fifo << buffer;
         return fifo;
     }
 
-    #define LFUNCTION_TYPE(_type, _name)                                    \
-    SendFifo        _name(void) const                                       \
-    {                                                                       \
-        return SendFifo(*this, eTypeLog::_type);                            \
-    }                                                                       \
-    SendFifo        _name(const char *format, ...) const                    \
-    {                                                                       \
-        char    buffer[LFORMAT_BUFFER_SIZE];                                \
-        va_list vargs;                                                      \
-        va_start(vargs, format);                                            \
-        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);          \
-        va_end(vargs);                                                      \
-        SendFifo fifo(*this, eTypeLog::_type);                              \
-        fifo << buffer;                                                     \
-        return fifo;                                                        \
-    }                                                                       \
-    template<typename T>                                                    \
-    SendFifo        _name(const T& var) const                               \
-    {                                                                       \
-        SendFifo fifo(*this, eTypeLog::_type);                              \
-        fifo << var;                                                        \
-        return fifo;                                                        \
+    #define LFUNCTION_TYPE(_type, _name)                                                    \
+    SendFifo        _name(void) const                                                       \
+    {                                                                                       \
+        return SendFifo(*this, eTypeLog::_type);                                            \
+    }                                                                                       \
+    SendFifo        _name(const char *format, ...) const                                    \
+    {                                                                                       \
+        char        buffer[LFORMAT_BUFFER_SIZE];                                            \
+        SendFifo    fifo(*this, eTypeLog::_type);                                           \
+        va_list     vargs;                                                                  \
+        va_start(vargs, format);                                                            \
+        fifo.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs)); \
+        va_end(vargs);                                                                      \
+        return fifo;                                                                        \
+    }                                                                                       \
+    template<typename T>                                                                    \
+    SendFifo        _name(const T& var) const                                               \
+    {                                                                                       \
+        SendFifo fifo(*this, eTypeLog::_type);                                              \
+        fifo << var;                                                                        \
+        return fifo;                                                                        \
     }
 
     LFUNCTION_TYPE(DEBUG,   debug);
@@ -1096,13 +1106,12 @@ public:
      */
     SendFifo        operator()(const char * format, ...) const
     {
-        char    buffer[LFORMAT_BUFFER_SIZE];
-        va_list vargs;
+        char        buffer[LFORMAT_BUFFER_SIZE];
+        SendFifo    fifo(*this);
+        va_list     vargs;
         va_start(vargs, format);
-        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
+        fifo.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
         va_end(vargs);
-        SendFifo fifo(*this);
-        fifo << buffer;
         return fifo;
     }
 
@@ -1142,13 +1151,12 @@ public:
      */
     SendFifo        operator()(const eTypeLog &type, const char * format, ...) const
     {
-        char    buffer[LFORMAT_BUFFER_SIZE];
-        va_list vargs;
+        char        buffer[LFORMAT_BUFFER_SIZE];
+        SendFifo    fifo(*this, type);
+        va_list     vargs;
         va_start(vargs, format);
-        vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs);
+        fifo.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
         va_end(vargs);
-        SendFifo fifo(*this, type);
-        fifo << buffer;
         return fifo;
     }
 
@@ -1243,7 +1251,7 @@ protected:
         std::size_t findPos = retStr.find("%N");
         if (findPos != std::string::npos)
         {
-            snprintf(bufferFormatTime, 7, "%06ld", infos.msec);
+            std::snprintf(bufferFormatTime, 7, "%06ld", infos.msec);
             retStr.replace(findPos, 2, bufferFormatTime, 6);
         }
         return std::string(bufferFormatTime, 0, std::strftime(bufferFormatTime, LFORMAT_BUFFER_SIZE - 1, retStr.c_str(), infos.tm));
@@ -1316,7 +1324,7 @@ protected:
         if (itMap->second.value.empty())
             return "";
         char buffer[LFORMAT_KEY_BUFFER_SIZE];
-        return std::string(buffer, 0, snprintf(buffer, LFORMAT_KEY_BUFFER_SIZE - 1, itMap->second.format.c_str(), itMap->second.value.c_str()));
+        return std::string(buffer, 0, std::snprintf(buffer, LFORMAT_KEY_BUFFER_SIZE - 1, itMap->second.format.c_str(), itMap->second.value.c_str()));
     }
 
     /**
@@ -1334,7 +1342,7 @@ protected:
         if (itMap == _mapCustomKey.end())
             return value;
         char buffer[LFORMAT_KEY_BUFFER_SIZE];
-        return std::string(buffer, 0, snprintf(buffer, LFORMAT_KEY_BUFFER_SIZE - 1, itMap->second.format.c_str(), value.c_str()));
+        return std::string(buffer, 0, std::snprintf(buffer, LFORMAT_KEY_BUFFER_SIZE - 1, itMap->second.format.c_str(), value.c_str()));
     }
 
     /**

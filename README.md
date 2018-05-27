@@ -83,15 +83,15 @@
 
 Use bit composition (example):
 ```cpp
-Loggator logExample(EQUAL_DEBUG | EQUAL_WARN | EQUAL_FATAL);
-logExample[DEBUG] << "example Debug"; // OK
-logExample[INFO]  << "example Info";  //    KO
-logExample[WARN]  << "example Warn";  // OK
-logExample[ERROR] << "example Error"; //    KO
-logExample[CRIT]  << "example Crit";  //    KO
-logExample[ALERT] << "example Alert"; //    KO
-logExample[EMERG] << "example Emerg"; //    KO
-logExample[FATAL] << "example Fatal"; // OK
+Loggator logExample(eFilterLog::EQUAL_DEBUG | eFilterLog::EQUAL_WARN | eFilterLog::EQUAL_FATAL);
+logExample[eTypeLog::DEBUG] << "example Debug"; // OK
+logExample[eTypeLog::INFO]  << "example Info";  //    KO
+logExample[eTypeLog::WARN]  << "example Warn";  // OK
+logExample[eTypeLog::ERROR] << "example Error"; //    KO
+logExample[eTypeLog::CRIT]  << "example Crit";  //    KO
+logExample[eTypeLog::ALERT] << "example Alert"; //    KO
+logExample[eTypeLog::EMERG] << "example Emerg"; //    KO
+logExample[eTypeLog::FATAL] << "example Fatal"; // OK
 ```
 
 ## Constructor

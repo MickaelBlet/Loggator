@@ -108,6 +108,7 @@ namespace Log
 
 enum class eTypeLog: int
 {
+    NONE        = 0,
     DEBUG       = 1<<0,
     INFO        = 1<<1,
     WARN        = 1<<2,
@@ -233,10 +234,13 @@ private:
          */
         ~SendFifo(void) noexcept
         {
-            std::string cacheStr = std::move(_cacheStream.str());
-            if (cacheStr.back() != '\n')
-                cacheStr += '\n';
-            _log.sendToStream(cacheStr, _type, _sourceInfos);
+            if (_type != eTypeLog::NONE)
+            {
+                std::string cacheStr = std::move(_cacheStream.str());
+                if (cacheStr.back() != '\n')
+                    cacheStr += '\n';
+                _log.sendToStream(cacheStr, _type, _sourceInfos);
+            }
             return ;
         }
 
@@ -618,7 +622,7 @@ public:
         }
         if (_name.empty() == false)
         {
-            std::map<const std::string, Log::Loggator*>::iterator it = sMapLoggators().begin();
+            std::map<std::string, Log::Loggator*>::iterator it = sMapLoggators().begin();
             while (it != sMapLoggators().end())
             {
                 if (it->second == this)
@@ -643,7 +647,7 @@ public:
     static Loggator &getInstance(const std::string &name)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
-        std::map<const std::string, Loggator*>::iterator it = sMapLoggators().find(name);
+        std::map<std::string, Loggator*>::iterator it = sMapLoggators().find(name);
         if (it != sMapLoggators().end())
         {
             return (*(it->second));
@@ -677,7 +681,7 @@ public:
         std::lock_guard<std::mutex> lockGuard(_mutex);
         if (_name.empty() == false)
         {
-            std::map<const std::string, Log::Loggator*>::iterator it = sMapLoggators().begin();
+            std::map<std::string, Log::Loggator*>::iterator it = sMapLoggators().begin();
             while (it != sMapLoggators().end())
             {
                 if (it->second == this)
@@ -806,6 +810,11 @@ public:
         std::lock_guard<std::mutex> lockGuard(_mutex);
         // add new value key in custom key map
         _mapCustomKey[key].value = value;
+        std::stringstream streamThreadIDKey;
+        streamThreadIDKey << std::hex << std::uppercase << std::this_thread::get_id() << key;
+        std::string threadIDKey = std::move(streamThreadIDKey.str());
+        _mapCustomKey[threadIDKey].format = _mapCustomKey[key].format;
+        _mapCustomKey[threadIDKey].value = value;
         return *this;
     }
 
@@ -1225,10 +1234,12 @@ protected:
             setLog.insert(child);
             if (child->_outStream != nullptr && child->_mute == false && child->_filter & static_cast<int>(type))
             {
+                _mutex.lock();
                 child->_mutex.lock();
                 std::string tmpPrompt = child->prompt(name, type, _mapCustomKey, timeInfos, source);
                 child->_outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(str.c_str(), str.size()).flush();
                 child->_mutex.unlock();
+                _mutex.unlock();
             }
             if (child->_logChilds.empty())
                 continue;
@@ -1264,13 +1275,13 @@ protected:
      */
     const timeInfos getCurrentTimeInfos(void) const
     {
-        time_t timer;
+        std::time_t timer;
         struct tm* tm_info;
         struct timespec ts;
 
-        time(&timer);
+        std::time(&timer);
 
-        tm_info = localtime(&timer);
+        tm_info = std::localtime(&timer);
 
         if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
             ts.tv_nsec = 0;
@@ -1316,9 +1327,12 @@ protected:
      * @param key 
      * @return std::string : format custom key
      */
-    std::string     formatCustomKey(const std::map<const std::string, customKey> &mapCustomKey, const std::string &key) const
+    std::string     formatCustomKey(const std::map<std::string, customKey> &mapCustomKey, const std::string &threadId, const std::string &key) const
     {
-        std::map<const std::string, customKey>::const_iterator itMap = mapCustomKey.find(key);
+        std::map<std::string, customKey>::const_iterator itMap;
+        itMap = mapCustomKey.find(threadId + key);
+        if (itMap == mapCustomKey.end())
+            itMap = mapCustomKey.find(key);
         if (itMap == mapCustomKey.end())
             return "";
         if (itMap->second.value.empty())
@@ -1338,7 +1352,7 @@ protected:
     {
         if (value.empty())
             return "";
-        std::map<const std::string, customKey>::const_iterator itMap = _mapCustomKey.find(key);
+        std::map<std::string, customKey>::const_iterator itMap = _mapCustomKey.find(key);
         if (itMap == _mapCustomKey.end())
             return value;
         char buffer[LFORMAT_KEY_BUFFER_SIZE];
@@ -1355,7 +1369,7 @@ protected:
      * @param source 
      * @return std::string 
      */
-    std::string     prompt(const std::string &name, const eTypeLog &type, const std::map<const std::string, customKey> &mapCustomKey, const timeInfos &timeInfos, const SourceInfos &source) const
+    std::string     prompt(const std::string &name, const eTypeLog &type, const std::map<std::string, customKey> &mapCustomKey, const timeInfos &timeInfos, const SourceInfos &source) const
     {
         std::string prompt = _format;
         // search first occurrence of '{'
@@ -1417,15 +1431,19 @@ protected:
                 else
                     prompt.erase(indexStart, 6);
             }
-            else if (key == "THREAD_ID")
-            {
-                std::stringstream stream;
-                stream << std::hex << std::uppercase << std::this_thread::get_id();
-                prompt.replace(indexStart, 11, formatKey(key, stream.str()));
-            }
             else
             {
-                prompt.replace(indexStart, key.size() + 2, formatCustomKey(mapCustomKey, key));
+                // get thread id
+                std::stringstream streamThreadID;
+                streamThreadID << std::hex << std::uppercase << std::this_thread::get_id();
+                if (key == "THREAD_ID")
+                {
+                    prompt.replace(indexStart, 11, formatKey(key, streamThreadID.str()));
+                }
+                else
+                {
+                    prompt.replace(indexStart, key.size() + 2, formatCustomKey(mapCustomKey, streamThreadID.str(), key));
+                }
             }
             indexStart = prompt.find('{', indexStart);
         }
@@ -1446,11 +1464,11 @@ protected:
     /**
      * @brief singleton static map Loggator
      * 
-     * @return std::map<const std::string, Loggator*>& 
+     * @return std::map<std::string, Loggator*>& 
      */
-    static std::map<const std::string, Loggator*> &sMapLoggators(void)
+    static std::map<std::string, Loggator* > &sMapLoggators(void)
     {
-        static std::map<const std::string, Loggator*> singletonMapLoggators;
+        static std::map<std::string, Loggator* > singletonMapLoggators;
         return singletonMapLoggators;
     }
 
@@ -1464,7 +1482,7 @@ protected:
     std::set<Loggator*>                     _logParents;
     std::set<Loggator*>                     _logChilds;
     mutable std::mutex                      _mutex;
-    std::map<const std::string, customKey>  _mapCustomKey;
+    std::map<std::string, customKey>        _mapCustomKey;
     bool                                    _mute;
 
 };

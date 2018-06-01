@@ -24,6 +24,7 @@
 # define LFORMAT_KEY_BUFFER_SIZE 64
 # define LDEFAULT_TIME_FORMAT    "%x %X.%N"
 # define LDEFAULT_FORMAT         "{TIME:" LDEFAULT_TIME_FORMAT "} {TYPE:[%-5s]} {PATH:%s:}{LINE:%s:}{FUNC:%s: }{NAME:%s: }"
+// # define LALWAYS_FORMAT_AT_NEWLINE
 
 /*****************************************************************************/
 
@@ -421,17 +422,6 @@ private:
         const long       msec;
     };
 
-    /**
-     * @brief 
-     * std::string format : style printf (exemple: "%10s")
-     * std::string value  : value of key
-     */
-    struct customKey
-    {
-        std::string format;
-        std::string value;
-    };
-
 public:
 
     /**
@@ -549,7 +539,8 @@ public:
         std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
         loggator._logParents.insert(this);
         _logChilds.insert(&loggator);
-        _mapCustomKey = loggator._mapCustomKey;
+        _mapCustomFormatKey = loggator._mapCustomFormatKey;
+        _mapCustomValueKey = loggator._mapCustomValueKey;
         // if name is not empty and not in static list of loggators
         if (_name.empty() == false && sMapLoggators().find(_name) == sMapLoggators().end())
         {
@@ -575,7 +566,8 @@ public:
         std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
         loggator._logParents.insert(this);
         _logChilds.insert(&loggator);
-        _mapCustomKey = loggator._mapCustomKey;
+        _mapCustomFormatKey = loggator._mapCustomFormatKey;
+        _mapCustomValueKey = loggator._mapCustomValueKey;
         return ;
     }
 
@@ -598,7 +590,8 @@ public:
             child->_logParents.insert(this);
         }
         this->_logChilds = rhs._logChilds;
-        this->_mapCustomKey = rhs._mapCustomKey;
+        this->_mapCustomFormatKey = rhs._mapCustomFormatKey;
+        this->_mapCustomValueKey = rhs._mapCustomValueKey;
         return *this;
     }
 
@@ -805,16 +798,18 @@ public:
      * @param value : value of key
      * @return Loggator& : instance of current object
      */
-    Loggator        &setKey(const std::string &key, const std::string &value)
+    Loggator        &setKey(const std::string &key, const std::string &value, bool overrideDefaultKey = false)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
-        // add new value key in custom key map
-        _mapCustomKey[key].value = value;
+        if (overrideDefaultKey || _mapCustomValueKey.find(key) == _mapCustomValueKey.end())
+        {
+            // add new value key in custom key map
+            _mapCustomValueKey[key] = value;
+        }
         std::stringstream streamThreadIDKey;
         streamThreadIDKey << std::hex << std::uppercase << std::this_thread::get_id() << key;
         std::string threadIDKey = std::move(streamThreadIDKey.str());
-        _mapCustomKey[threadIDKey].format = _mapCustomKey[key].format;
-        _mapCustomKey[threadIDKey].value = value;
+        _mapCustomValueKey[threadIDKey] = value;
         return *this;
     }
 
@@ -857,9 +852,9 @@ public:
                 const std::string &key = _format.substr(indexStart + 1, indexEnd - indexStart - 1);
                 // if key is specific "TIME" set default format
                 if (key == "TIME")
-                    _mapCustomKey[key].format = LDEFAULT_TIME_FORMAT;
+                    _mapCustomFormatKey[key] = LDEFAULT_TIME_FORMAT;
                 else
-                    _mapCustomKey[key].format = "%s";
+                    _mapCustomFormatKey[key] = "%s";
                 // jump to next occurrence '{' after indexStart + 1
                 indexStart = _format.find('{', indexStart + 1);
                 continue;
@@ -869,7 +864,7 @@ public:
             // get format of key {...:[...]}
             std::string formatKey = _format.substr(indexFormat + 1, indexEnd - indexFormat - 1);
             // add new format key in custom key map
-            _mapCustomKey[key].format = std::move(formatKey);
+            _mapCustomFormatKey[key] = std::move(formatKey);
             // erase the format key in string object _format {...[:...]}
             _format.erase(indexFormat, indexEnd - indexFormat);
             // jump to next occurrence '{' after indexStart + 1
@@ -1200,8 +1195,20 @@ protected:
         if (_outStream != nullptr && _mute == false && _filter & static_cast<int>(type))
         {
             _mutex.lock();
-            std::string tmpPrompt = prompt(this->_name, type, _mapCustomKey, timeInfos, source);
-            _outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(str.c_str(), str.size()).flush();
+            std::string tmpPrompt = prompt(this->_name, type, _mapCustomValueKey, timeInfos, source);
+            #ifdef LALWAYS_FORMAT_AT_NEWLINE
+                std::size_t indexSub = 0;
+                std::size_t indexNewLine = str.find('\n');
+                while (indexNewLine != std::string::npos)
+                {
+                    const std::string &sub = str.substr(indexSub, indexNewLine + 1 - indexSub);
+                    _outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(sub.c_str(), sub.size()).flush();
+                    indexSub = indexNewLine + 1;
+                    indexNewLine = str.find('\n', indexSub);
+                }
+            #else
+                _outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(str.c_str(), str.size()).flush();
+            #endif
             _mutex.unlock();
         }
         if (_logChilds.empty())
@@ -1236,8 +1243,20 @@ protected:
             {
                 _mutex.lock();
                 child->_mutex.lock();
-                std::string tmpPrompt = child->prompt(name, type, _mapCustomKey, timeInfos, source);
-                child->_outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(str.c_str(), str.size()).flush();
+                std::string tmpPrompt = child->prompt(name, type, _mapCustomValueKey, timeInfos, source);
+                #ifdef LALWAYS_FORMAT_AT_NEWLINE
+                    std::size_t indexSub = 0;
+                    std::size_t indexNewLine = str.find('\n');
+                    while (indexNewLine != std::string::npos)
+                    {
+                        const std::string &sub = str.substr(indexSub, indexNewLine + 1 - indexSub);
+                        child->_outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(sub.c_str(), sub.size()).flush();
+                        indexSub = indexNewLine + 1;
+                        indexNewLine = str.find('\n', indexSub);
+                    }
+                #else
+                    child->_outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(str.c_str(), str.size()).flush();
+                #endif
                 child->_mutex.unlock();
                 _mutex.unlock();
             }
@@ -1257,7 +1276,7 @@ protected:
     {
         char bufferFormatTime[LFORMAT_BUFFER_SIZE];
 
-        std::string retStr = _mapCustomKey.at("TIME").format;
+        std::string retStr = _mapCustomFormatKey.at("TIME");
 
         std::size_t findPos = retStr.find("%N");
         if (findPos != std::string::npos)
@@ -1327,18 +1346,22 @@ protected:
      * @param key 
      * @return std::string : format custom key
      */
-    std::string     formatCustomKey(const std::map<std::string, customKey> &mapCustomKey, const std::string &threadId, const std::string &key) const
+    std::string     formatCustomKey(const std::map<std::string, std::string> &mapCustomValueKey, const std::string &threadId, const std::string &key) const
     {
-        std::map<std::string, customKey>::const_iterator itMap;
-        itMap = mapCustomKey.find(threadId + key);
-        if (itMap == mapCustomKey.end())
-            itMap = mapCustomKey.find(key);
-        if (itMap == mapCustomKey.end())
+        std::map<std::string, std::string>::const_iterator itFormatMap;
+        itFormatMap = _mapCustomFormatKey.find(key);
+        if (itFormatMap == _mapCustomFormatKey.end())
             return "";
-        if (itMap->second.value.empty())
+        std::map<std::string, std::string>::const_iterator itValueMap;
+        itValueMap = mapCustomValueKey.find(threadId + key);
+        if (itValueMap == mapCustomValueKey.end())
+            itValueMap = mapCustomValueKey.find(key);
+        if (itValueMap == mapCustomValueKey.end())
+            return "";
+        if (itValueMap->second.empty())
             return "";
         char buffer[LFORMAT_KEY_BUFFER_SIZE];
-        return std::string(buffer, 0, std::snprintf(buffer, LFORMAT_KEY_BUFFER_SIZE - 1, itMap->second.format.c_str(), itMap->second.value.c_str()));
+        return std::string(buffer, 0, std::snprintf(buffer, LFORMAT_KEY_BUFFER_SIZE - 1, itFormatMap->second.c_str(), itValueMap->second.c_str()));
     }
 
     /**
@@ -1352,11 +1375,11 @@ protected:
     {
         if (value.empty())
             return "";
-        std::map<std::string, customKey>::const_iterator itMap = _mapCustomKey.find(key);
-        if (itMap == _mapCustomKey.end())
+        std::map<std::string, std::string>::const_iterator itMap = _mapCustomFormatKey.find(key);
+        if (itMap == _mapCustomFormatKey.end())
             return value;
         char buffer[LFORMAT_KEY_BUFFER_SIZE];
-        return std::string(buffer, 0, std::snprintf(buffer, LFORMAT_KEY_BUFFER_SIZE - 1, itMap->second.format.c_str(), value.c_str()));
+        return std::string(buffer, 0, std::snprintf(buffer, LFORMAT_KEY_BUFFER_SIZE - 1, itMap->second.c_str(), value.c_str()));
     }
 
     /**
@@ -1369,7 +1392,7 @@ protected:
      * @param source 
      * @return std::string 
      */
-    std::string     prompt(const std::string &name, const eTypeLog &type, const std::map<std::string, customKey> &mapCustomKey, const timeInfos &timeInfos, const SourceInfos &source) const
+    std::string     prompt(const std::string &name, const eTypeLog &type, const std::map<std::string, std::string> &mapCustomValueKey, const timeInfos &timeInfos, const SourceInfos &source) const
     {
         std::string prompt = _format;
         // search first occurrence of '{'
@@ -1442,7 +1465,7 @@ protected:
                 }
                 else
                 {
-                    prompt.replace(indexStart, key.size() + 2, formatCustomKey(mapCustomKey, streamThreadID.str(), key));
+                    prompt.replace(indexStart, key.size() + 2, formatCustomKey(mapCustomValueKey, streamThreadID.str(), key));
                 }
             }
             indexStart = prompt.find('{', indexStart);
@@ -1482,7 +1505,8 @@ protected:
     std::set<Loggator*>                     _logParents;
     std::set<Loggator*>                     _logChilds;
     mutable std::mutex                      _mutex;
-    std::map<std::string, customKey>        _mapCustomKey;
+    std::map<std::string, std::string>      _mapCustomFormatKey;
+    std::map<std::string, std::string>      _mapCustomValueKey;
     bool                                    _mute;
 
 };

@@ -17,14 +17,14 @@
 # include <sstream>     // ostringstream
 # include <mutex>       // mutex, lock_guard
 # include <thread>      // this_thread::get_id
-# include <map>         // map
+# include <unordered_map>         // unordered_map
 # include <set>         // set
 
 # define LFORMAT_BUFFER_SIZE     1024
 # define LFORMAT_KEY_BUFFER_SIZE 64
 # define LDEFAULT_TIME_FORMAT    "%x %X.%N"
 # define LDEFAULT_FORMAT         "{TIME:" LDEFAULT_TIME_FORMAT "} {TYPE:[%-5s]} {PATH:%s:}{LINE:%s:}{FUNC:%s: }{NAME:%s: }"
-// # define LALWAYS_FORMAT_AT_NEWLINE
+# define LALWAYS_FORMAT_AT_NEWLINE
 
 /*****************************************************************************/
 
@@ -53,6 +53,12 @@
 # define LEMERGF(...)           LSENDF(EMERG,       __VA_ARGS__)
 # define LEMERGENCYF(...)       LSENDF(EMERGENCY,   __VA_ARGS__)
 # define LFATALF(...)           LSENDF(FATAL,       __VA_ARGS__)
+
+// Loggator macro
+# define LOGGATOR(...)          LMACRO_CHOOSER(LOGGATOR_, __VA_ARGS__)(__VA_ARGS__)
+# define LOGGATOR_0()           Log::Loggator::getInstance("main")
+# define LOGGATOR_1(_name)      Log::Loggator::getInstance(_name)
+# define LOGGATOR_X(_name, ...) Log::Loggator::getInstance(_name).LSENDF(__VA_ARGS__)
 
 // send macro
 # define LSEND(...)         LMACRO_CHOOSER(LSEND_, __VA_ARGS__)(__VA_ARGS__)
@@ -411,17 +417,6 @@ private:
 
     }; // end class SendFifo
 
-    /**
-     * @brief 
-     * struct tm* tm   : stock pointer of struct tm
-     * long       msec : stock milisecond of time
-     */
-    struct timeInfos
-    {
-        const struct tm* tm;
-        const long       msec;
-    };
-
 public:
 
     /**
@@ -461,10 +456,10 @@ public:
      * @param openMode 
      * @param filter 
      */
-    Loggator(const std::string &name, const std::string &path, std::ios::openmode openMode = std::ios::app, int filter = eFilterLog::ALL) noexcept:
+    Loggator(const std::string &name, const std::string &path, std::ofstream::openmode openMode = std::ofstream::app, int filter = eFilterLog::ALL) noexcept:
     _name(name),
     _filter(filter),
-    _fileStream(path, std::ios::out | openMode),
+    _fileStream(path, std::ofstream::out | openMode),
     _outStream(&std::cerr),
     _mute(false)
     {
@@ -615,7 +610,7 @@ public:
         }
         if (_name.empty() == false)
         {
-            std::map<std::string, Log::Loggator*>::iterator it = sMapLoggators().begin();
+            std::unordered_map<std::string, Log::Loggator*>::iterator it = sMapLoggators().begin();
             while (it != sMapLoggators().end())
             {
                 if (it->second == this)
@@ -633,22 +628,14 @@ public:
 
     /**
      * @brief Get the Instance Loggator object by name
-     * throw runtime_error if instance not found
+     * throw out_of_range if instance not found
      * @param name 
      * @return Loggator& 
      */
     static Loggator &getInstance(const std::string &name)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
-        std::map<std::string, Loggator*>::iterator it = sMapLoggators().find(name);
-        if (it != sMapLoggators().end())
-        {
-            return (*(it->second));
-        }
-        else
-        {
-            throw std::runtime_error("Instance of loggator \"" + name + "\" not found.");
-        }
+        return *sMapLoggators().at(name);
     }
 
     /**
@@ -674,7 +661,7 @@ public:
         std::lock_guard<std::mutex> lockGuard(_mutex);
         if (_name.empty() == false)
         {
-            std::map<std::string, Log::Loggator*>::iterator it = sMapLoggators().begin();
+            std::unordered_map<std::string, Log::Loggator*>::iterator it = sMapLoggators().begin();
             while (it != sMapLoggators().end())
             {
                 if (it->second == this)
@@ -892,7 +879,7 @@ public:
      * @return true  : file is opened
      * @return false : file is not opened
      */
-    bool            open(const std::string &path, std::ios::openmode openMode = std::ios::app)
+    bool            open(const std::string &path, std::ofstream::openmode openMode = std::ofstream::app)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
         if (_fileStream.is_open())
@@ -902,7 +889,7 @@ public:
             // clear the cache of _fileStream
             _fileStream.clear();
         }
-        _fileStream.open(path, std::ios::out | openMode);
+        _fileStream.open(path, std::ofstream::out | openMode);
         if (_fileStream.is_open())
             _outStream = &_fileStream;
         else
@@ -1183,6 +1170,17 @@ public:
 protected:
 
     /**
+     * @brief 
+     * struct tm* tm   : stock pointer of struct tm
+     * long       msec : stock milisecond of time
+     */
+    struct TimeInfo
+    {
+        const struct tm* tm;
+        const long       msec;
+    };
+
+    /**
      * @brief write in _outStream and _outStream_child
      * 
      * @param str 
@@ -1191,11 +1189,11 @@ protected:
      */
     void            sendToStream(const std::string &str, const eTypeLog &type, const SourceInfos &source) const
     {
-        const timeInfos timeInfos = getCurrentTimeInfos();
+        const TimeInfo timeInfo = getCurrentTimeInfos();
         if (_outStream != nullptr && _mute == false && _filter & static_cast<int>(type))
         {
             _mutex.lock();
-            std::string tmpPrompt = prompt(this->_name, type, _mapCustomValueKey, timeInfos, source);
+            std::string tmpPrompt = prompt(this->_name, type, _mapCustomValueKey, timeInfo, source);
             #ifdef LALWAYS_FORMAT_AT_NEWLINE
                 std::size_t indexSub = 0;
                 std::size_t indexNewLine = str.find('\n');
@@ -1214,7 +1212,7 @@ protected:
         if (_logChilds.empty())
             return;
         std::set<const Loggator*> tmpsetLog = {this};
-        sendChild(tmpsetLog, *this, this->_name, type, timeInfos, source, str);
+        sendChild(tmpsetLog, *this, this->_name, type, timeInfo, source, str);
     }
 
     /**
@@ -1224,11 +1222,11 @@ protected:
      * @param loggator 
      * @param name 
      * @param type 
-     * @param timeInfos 
+     * @param timeInfo 
      * @param source 
      * @param str 
      */
-    void            sendChild(std::set<const Loggator*> &setLog, const Loggator &loggator, const std::string &name, const eTypeLog &type, const timeInfos &timeInfos, const SourceInfos &source, const std::string &str) const
+    void            sendChild(std::set<const Loggator*> &setLog, const Loggator &loggator, const std::string &name, const eTypeLog &type, const TimeInfo &timeInfo, const SourceInfos &source, const std::string &str) const
     {
         // create a cpy of LogChild for no dead lock
         loggator._mutex.lock();
@@ -1242,8 +1240,9 @@ protected:
             if (child->_outStream != nullptr && child->_mute == false && child->_filter & static_cast<int>(type))
             {
                 _mutex.lock();
+                std::string tmpPrompt = child->prompt(name, type, _mapCustomValueKey, timeInfo, source);
+                _mutex.unlock();
                 child->_mutex.lock();
-                std::string tmpPrompt = child->prompt(name, type, _mapCustomValueKey, timeInfos, source);
                 #ifdef LALWAYS_FORMAT_AT_NEWLINE
                     std::size_t indexSub = 0;
                     std::size_t indexNewLine = str.find('\n');
@@ -1258,21 +1257,20 @@ protected:
                     child->_outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(str.c_str(), str.size()).flush();
                 #endif
                 child->_mutex.unlock();
-                _mutex.unlock();
             }
             if (child->_logChilds.empty())
                 continue;
-            sendChild(setLog, *child, name, type, timeInfos, source, str);
+            sendChild(setLog, *child, name, type, timeInfo, source, str);
         }
     }
 
     /**
-     * @brief get string format time from timeInfos
+     * @brief get string format time from TimeInfo
      * 
      * @param infos 
      * @return std::string 
      */
-    std::string     formatTime(const timeInfos &infos) const
+    std::string     formatTime(const TimeInfo &infos) const
     {
         char bufferFormatTime[LFORMAT_BUFFER_SIZE];
 
@@ -1290,9 +1288,9 @@ protected:
     /**
      * @brief Get the Current Time Infos object
      * 
-     * @return const timeInfos 
+     * @return const TimeInfo 
      */
-    const timeInfos getCurrentTimeInfos(void) const
+    const TimeInfo getCurrentTimeInfos(void) const
     {
         std::time_t timer;
         struct tm* tm_info;
@@ -1305,7 +1303,7 @@ protected:
         if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
             ts.tv_nsec = 0;
 
-        return timeInfos{tm_info, ts.tv_nsec / 1000};
+        return TimeInfo{tm_info, ts.tv_nsec / 1000};
     }
 
     /**
@@ -1346,13 +1344,13 @@ protected:
      * @param key 
      * @return std::string : format custom key
      */
-    std::string     formatCustomKey(const std::map<std::string, std::string> &mapCustomValueKey, const std::string &threadId, const std::string &key) const
+    std::string     formatCustomKey(const std::unordered_map<std::string, std::string> &mapCustomValueKey, const std::string &threadId, const std::string &key) const
     {
-        std::map<std::string, std::string>::const_iterator itFormatMap;
+        std::unordered_map<std::string, std::string>::const_iterator itFormatMap;
         itFormatMap = _mapCustomFormatKey.find(key);
         if (itFormatMap == _mapCustomFormatKey.end())
             return "";
-        std::map<std::string, std::string>::const_iterator itValueMap;
+        std::unordered_map<std::string, std::string>::const_iterator itValueMap;
         itValueMap = mapCustomValueKey.find(threadId + key);
         if (itValueMap == mapCustomValueKey.end())
             itValueMap = mapCustomValueKey.find(key);
@@ -1375,7 +1373,7 @@ protected:
     {
         if (value.empty())
             return "";
-        std::map<std::string, std::string>::const_iterator itMap = _mapCustomFormatKey.find(key);
+        std::unordered_map<std::string, std::string>::const_iterator itMap = _mapCustomFormatKey.find(key);
         if (itMap == _mapCustomFormatKey.end())
             return value;
         char buffer[LFORMAT_KEY_BUFFER_SIZE];
@@ -1388,11 +1386,11 @@ protected:
      * @param name 
      * @param type 
      * @param mapCustomKey 
-     * @param timeInfos 
+     * @param timeInfo 
      * @param source 
      * @return std::string 
      */
-    std::string     prompt(const std::string &name, const eTypeLog &type, const std::map<std::string, std::string> &mapCustomValueKey, const timeInfos &timeInfos, const SourceInfos &source) const
+    std::string     prompt(const std::string &name, const eTypeLog &type, const std::unordered_map<std::string, std::string> &mapCustomValueKey, const TimeInfo &timeInfo, const SourceInfos &source) const
     {
         std::string prompt = _format;
         // search first occurrence of '{'
@@ -1408,7 +1406,7 @@ protected:
             const std::string &key = prompt.substr(indexStart + 1, indexEnd - indexStart - 1);
             if (key == "TIME")
             {
-                prompt.replace(indexStart, 6, formatTime(timeInfos));
+                prompt.replace(indexStart, 6, formatTime(timeInfo));
             }
             else if (key == "TYPE")
             {
@@ -1489,9 +1487,9 @@ protected:
      * 
      * @return std::map<std::string, Loggator*>& 
      */
-    static std::map<std::string, Loggator* > &sMapLoggators(void)
+    static std::unordered_map<std::string, Loggator* > &sMapLoggators(void)
     {
-        static std::map<std::string, Loggator* > singletonMapLoggators;
+        static std::unordered_map<std::string, Loggator* > singletonMapLoggators;
         return singletonMapLoggators;
     }
 
@@ -1505,8 +1503,8 @@ protected:
     std::set<Loggator*>                     _logParents;
     std::set<Loggator*>                     _logChilds;
     mutable std::mutex                      _mutex;
-    std::map<std::string, std::string>      _mapCustomFormatKey;
-    std::map<std::string, std::string>      _mapCustomValueKey;
+    std::unordered_map<std::string, std::string>      _mapCustomFormatKey;
+    std::unordered_map<std::string, std::string>      _mapCustomValueKey;
     bool                                    _mute;
 
 };

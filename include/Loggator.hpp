@@ -23,7 +23,7 @@
 # define LFORMAT_BUFFER_SIZE     1024
 # define LFORMAT_KEY_BUFFER_SIZE 64
 # define LDEFAULT_TIME_FORMAT    "%x %X.%N"
-# define LDEFAULT_FORMAT         "{TIME:" LDEFAULT_TIME_FORMAT "} {TYPE:[%-5s]} {PATH:%s:}{LINE:%s:}{FUNC:%s: }{NAME:%s: }"
+# define LDEFAULT_FORMAT         "{TIME:" LDEFAULT_TIME_FORMAT "} {TYPE:[%-5s]} {FILE:%s:}{LINE:%s:}{FUNC:%s: }{NAME:%s: }"
 # define LALWAYS_FORMAT_AT_NEWLINE
 
 /*****************************************************************************/
@@ -723,6 +723,8 @@ public:
      */
     Loggator        &addChild(Loggator &loggator)
     {
+        if (&loggator == this)
+            return *this;
         std::lock_guard<std::mutex> lockGuard(_mutex);
         std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
         _logChilds.insert(&loggator);
@@ -739,6 +741,8 @@ public:
      */
     Loggator        &subChild(Loggator &loggator)
     {
+        if (&loggator == this)
+            return *this;
         std::lock_guard<std::mutex> lockGuard(_mutex);
         std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
         _logChilds.erase(&loggator);
@@ -755,6 +759,8 @@ public:
      */
     Loggator        &listen(Loggator &loggator)
     {
+        if (&loggator == this)
+            return *this;
         std::lock_guard<std::mutex> lockGuard(_mutex);
         std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
         loggator._logChilds.insert(this);
@@ -771,6 +777,8 @@ public:
      */
     Loggator        &unlisten(Loggator &loggator)
     {
+        if (&loggator == this)
+            return *this;
         std::lock_guard<std::mutex> lockGuard(_mutex);
         std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
         loggator._logChilds.erase(this);

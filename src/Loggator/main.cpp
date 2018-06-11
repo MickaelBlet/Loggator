@@ -8,15 +8,59 @@
 
 #include "Loggator.hpp"
 #include <chrono>
+#include <cxxabi.h>
+#include <map>
+
+template <typename T>
+std::string
+type_name()
+{
+    using TR = typename std::remove_reference<T>::type;
+    std::unique_ptr<char, void(*)(void*)> own (
+    #ifndef _MSC_VER
+        abi::__cxa_demangle (typeid(TR).name(), nullptr,
+            nullptr, nullptr),
+    #else
+            nullptr,
+    #endif
+            std::free
+    );
+    std::string r = own != nullptr ? own.get() : typeid(TR).name();
+    if (std::is_const<TR>::value)
+        r += " const";
+    if (std::is_volatile<TR>::value)
+        r += " volatile";
+    if (std::is_lvalue_reference<T>::value)
+        r += "&";
+    else if (std::is_rvalue_reference<T>::value)
+        r += "&&";
+    return r;
+}
+
+template <typename T>
+std::string TypeOfVariable(const T &var)
+{
+    std::string retStr;
+    char *demange = abi::__cxa_demangle(typeid(var).name(), nullptr, nullptr, nullptr);
+    retStr = demange;
+    if (demange)
+        std::free(demange);
+    return retStr;
+}
 
 class Test
 {
     public:
-        Test(Log::Loggator &p_log)
+        Test(const Log::Loggator &p_log)
         {
+            std::map<int, int> m;
+            std::cout << TypeOfVariable(m) << std::endl;
+            std::cout << type_name<decltype(m)>() << std::endl;
+            std::cout << type_name<decltype(p_log)>() << std::endl;
             i_log = p_log;
             i_log.setFormat(LDEFAULT_FORMAT);
             i_log.setOutStream(std::cout);
+            i_log.LSEND() << Log::eTypeLog::INFO << __PRETTY_FUNCTION__;
         }
 
         void test(void) const
@@ -29,7 +73,7 @@ class Test
             i_log << "test6";
             i_log[Log::eTypeLog::INFO] << "test7";
             i_log << "test8" << Log::eTypeLog::INFO;
-            i_log.LSEND() << "test9" << Log::eTypeLog::INFO;
+            i_log.LSEND() << "test9" << Log::eTypeLog::INFO << " " << __PRETTY_FUNCTION__;
         }
 
         Log::Loggator i_log;
@@ -81,9 +125,11 @@ int     main(void)
     Loggator logInfo( "info",  "Info.log",  std::ios::trunc, eFilterLog::GREATER_EQUAL_INFO);
     Loggator logError("error", "Error.log", std::ios::trunc, eFilterLog::GREATER_EQUAL_ERROR);
     logDebug.addChild(logInfo).listen(logInfo).addChild(logError).listen(logError);
+    logInfo.addChild(logDebug).listen(logDebug).addChild(logError).listen(logError);
+    logError.addChild(logDebug).listen(logDebug).addChild(logInfo).listen(logInfo);
     // logDebug.setMuted(true);
-    // logInfo.setMuted(true);
-    // logError.setMuted(true);
+    logInfo.setMuted(true);
+    logError.setMuted(true);
 
     std::thread thread[4];
     for (int nbThread = 0; nbThread < 4; ++nbThread)
@@ -120,13 +166,32 @@ int     main(void)
     t.test();
 
     Loggator logg("main", std::cout);
-    logg.setFormat("{TIME} {TYPE:[%5s]}: {testThreadKey} {THREAD_ID} {testMainKeyThread} {LINE:%s: }");
+    logg.setFormat("{TIME} {TYPE:[%5s]}: {NAME} {testThreadKey} {THREAD_ID} {testMainKeyThread} {FUNC}{LINE::%s: }");
     logg.setKey("testMainKeyThread", "+-+");
+    Loggator::getInstance("main") << "no thread key";
+    logg.setName("main2");
+    Loggator::getInstance("main2") << "no thread key";
+    logg.setName("main");
+    Loggator::getInstance("main") << "no thread key";
+    Loggator::getInstance("main") << "no thread key";
+    Loggator::getInstance("main") << "no thread key";
+    Loggator::getInstance("main") << "no thread key";
+    logg << "no thread key";
+    logg << "no thread key";
+    logg << "no thread key";
+    logg << "no thread key";
+    logg << "no thread key";
+    logg << "no thread key";
+    LOGGATOR() << "0";
+    LOGGATOR("main") << "1";
+    LOGGATOR("main", INFO) << "2";
+    LOGGATOR("main", INFO, "test") << "3";
     std::thread tthread[4];
     tthread[0] = std::thread([&]{
         logg.setKey("testThreadKey", "0");
-        logg("%s,%i", "test", 42);
-        logg();
+        logg.setKey("testMainKeyThread", "+++");
+        logg("%s\n%i", "test", 42);
+        logg() << TypeOfVariable(tthread);
         logg();
     });
     tthread[1] = std::thread([&]{
@@ -145,7 +210,7 @@ int     main(void)
         logg.setKey("testThreadKey", "3");
         logg();
         logg();
-        logg();
+        logg.LINFO() << __PRETTY_FUNCTION__;
     });
     for (int nbThread = 0; nbThread < 4; ++nbThread)
     {

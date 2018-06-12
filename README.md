@@ -147,7 +147,6 @@ Loggator(Loggator &loggator);
 ```cpp
 /// filter      : @param rhs.filter
 /// format      : @param rhs.format
-/// filter      : @param rhs.filter
 /// muted       : @param rhs.muted
 Loggator    &operator=(const Loggator &rhs);
 ```

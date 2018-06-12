@@ -333,7 +333,7 @@ private:
          * @param ... 
          * @return SendFifo& : instance of current object
          */
-        SendFifo& operator()(const char * format, ...)
+        SendFifo& operator()(const char * format, ...) __attribute__((format(printf, 2, 3)))
         {
             char    buffer[LFORMAT_BUFFER_SIZE];
             va_list vargs;
@@ -377,7 +377,7 @@ private:
          * @param ... 
          * @return SendFifo : temporary instance of SendFifo
          */
-        SendFifo& operator()(const eTypeLog &type, const char * format, ...)
+        SendFifo& operator()(const eTypeLog &type, const char * format, ...) __attribute__((format(printf, 3, 4)))
         {
             _type = type;
             char    buffer[LFORMAT_BUFFER_SIZE];
@@ -953,7 +953,7 @@ public:
      * @param ... 
      * @return SendFifo : temporary instance of SendFifo
      */
-    SendFifo        send(const eTypeLog &type, const char *format, ...) const
+    SendFifo        send(const eTypeLog &type, const char *format, ...) const __attribute__((format(printf, 3, 4)))
     {
         char        buffer[LFORMAT_BUFFER_SIZE];
         SendFifo    fifo(*this, type);
@@ -986,7 +986,7 @@ public:
      * @param ... 
      * @return SendFifo : temporary instance of SendFifo
      */
-    SendFifo        send(const eTypeLog &type, const SourceInfos &sourceInfos, const char *format, ...) const
+    SendFifo        send(const eTypeLog &type, const SourceInfos &sourceInfos, const char *format, ...) const __attribute__((format(printf, 4, 5)))
     {
         char        buffer[LFORMAT_BUFFER_SIZE];
         SendFifo    fifo(*this, type, sourceInfos);
@@ -997,27 +997,27 @@ public:
         return fifo;
     }
 
-    #define LFUNCTION_TYPE(_type, _name)                                                    \
-    SendFifo        _name(void) const                                                       \
-    {                                                                                       \
-        return SendFifo(*this, eTypeLog::_type);                                            \
-    }                                                                                       \
-    SendFifo        _name(const char *format, ...) const                                    \
-    {                                                                                       \
-        char        buffer[LFORMAT_BUFFER_SIZE];                                            \
-        SendFifo    fifo(*this, eTypeLog::_type);                                           \
-        va_list     vargs;                                                                  \
-        va_start(vargs, format);                                                            \
-        fifo.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs)); \
-        va_end(vargs);                                                                      \
-        return fifo;                                                                        \
-    }                                                                                       \
-    template<typename T>                                                                    \
-    SendFifo        _name(const T& var) const                                               \
-    {                                                                                       \
-        SendFifo fifo(*this, eTypeLog::_type);                                              \
-        fifo << var;                                                                        \
-        return fifo;                                                                        \
+    #define LFUNCTION_TYPE(_type, _name)                                                        \
+    SendFifo        _name(void) const                                                           \
+    {                                                                                           \
+        return SendFifo(*this, eTypeLog::_type);                                                \
+    }                                                                                           \
+    SendFifo        _name(const char *format, ...) const  __attribute__((format(printf, 2, 3))) \
+    {                                                                                           \
+        char        buffer[LFORMAT_BUFFER_SIZE];                                                \
+        SendFifo    fifo(*this, eTypeLog::_type);                                               \
+        va_list     vargs;                                                                      \
+        va_start(vargs, format);                                                                \
+        fifo.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));     \
+        va_end(vargs);                                                                          \
+        return fifo;                                                                            \
+    }                                                                                           \
+    template<typename T>                                                                        \
+    SendFifo        _name(const T& var) const                                                   \
+    {                                                                                           \
+        SendFifo fifo(*this, eTypeLog::_type);                                                  \
+        fifo << var;                                                                            \
+        return fifo;                                                                            \
     }
 
     LFUNCTION_TYPE(DEBUG,   debug);
@@ -1103,7 +1103,7 @@ public:
      * @param ... 
      * @return SendFifo : temporary instance of SendFifo
      */
-    SendFifo        operator()(const char * format, ...) const
+    SendFifo        operator()(const char * format, ...) const __attribute__((format(printf, 2, 3)))
     {
         char        buffer[LFORMAT_BUFFER_SIZE];
         SendFifo    fifo(*this);
@@ -1148,7 +1148,7 @@ public:
      * @param ... 
      * @return SendFifo : temporary instance of SendFifo
      */
-    SendFifo        operator()(const eTypeLog &type, const char * format, ...) const
+    SendFifo        operator()(const eTypeLog &type, const char * format, ...) const __attribute__((format(printf, 3, 4)))
     {
         char        buffer[LFORMAT_BUFFER_SIZE];
         SendFifo    fifo(*this, type);

@@ -166,7 +166,7 @@ int     main(void)
     t.test();
 
     Loggator logg("main", std::cout);
-    logg.setFormat("{TIME} {TYPE:[%5s]}: {NAME} {testThreadKey} {THREAD_ID} {testMainKeyThread} {FUNC}{LINE::%s: }");
+    logg.setFormat("{TIME} {TYPE:[%5s]}: {NAME} {testThreadKey} {testMainKeyThread} {FUNC}{LINE::%s: }");
     logg.setKey("testMainKeyThread", "+-+");
     Loggator::getInstance("main") << "no thread key";
     logg.setName("main2");
@@ -186,11 +186,14 @@ int     main(void)
     LOGGATOR("main") << "1";
     LOGGATOR("main", INFO) << "2";
     LOGGATOR("main", INFO, "test") << "3";
+    std::string str = "6";
+    LOGGATOR("main", INFO, "%s", str.c_str()) << "3";
+
     std::thread tthread[4];
     tthread[0] = std::thread([&]{
         logg.setKey("testThreadKey", "0");
         logg.setKey("testMainKeyThread", "+++");
-        logg("|%s\n|%i", "test", 42);
+        logg("|%s\n|%i", str.c_str(), 42);
         logg() << TypeOfVariable(tthread);
         logg();
     });

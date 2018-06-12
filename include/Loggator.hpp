@@ -115,18 +115,18 @@ namespace Log
 
 enum class eTypeLog: int
 {
-    NONE        = 0,
-    DEBUG       = 1<<0,
-    INFO        = 1<<1,
-    WARN        = 1<<2,
-    WARNING     = 1<<2,
-    ERROR       = 1<<3,
-    CRIT        = 1<<4,
-    CRITICAL    = 1<<4,
-    ALERT       = 1<<5,
-    EMERG       = 1<<6,
-    EMERGENCY   = 1<<6,
-    FATAL       = 1<<7
+    NONE      = 0,
+    DEBUG     = 1<<0,
+    INFO      = 1<<1,
+    WARN      = 1<<2,
+    WARNING   = 1<<2,
+    ERROR     = 1<<3,
+    CRIT      = 1<<4,
+    CRITICAL  = 1<<4,
+    ALERT     = 1<<5,
+    EMERG     = 1<<6,
+    EMERGENCY = 1<<6,
+    FATAL     = 1<<7
 };
 
 namespace eFilterLog
@@ -1179,13 +1179,13 @@ protected:
 
     /**
      * @brief 
-     * struct tm* tm   : stock pointer of struct tm
+     * struct tm  tm   : stock struct tm
      * long       msec : stock milisecond of time
      */
     struct TimeInfo
     {
-        const struct tm* tm;
-        const long       msec;
+        struct tm   tm;
+        long        msec;
     };
 
     /**
@@ -1197,11 +1197,11 @@ protected:
      */
     void            sendToStream(const std::string &str, const eTypeLog &type, const SourceInfos &source) const
     {
-        const TimeInfo timeInfo = getCurrentTimeInfos();
+        const TimeInfo timeInfo = getCurrentTimeInfo();
         if (_outStream != nullptr && _mute == false && _filter & static_cast<int>(type))
         {
             _mutex.lock();
-            std::string tmpPrompt = prompt(this->_name, type, _mapCustomValueKey, timeInfo, source);
+            std::string tmpPrompt = prompt(this->_name, type, timeInfo, source);
             #ifdef LALWAYS_FORMAT_AT_NEWLINE
                 std::size_t indexSub = 0;
                 std::size_t indexNewLine = str.find('\n');
@@ -1248,7 +1248,7 @@ protected:
             if (child->_outStream != nullptr && child->_mute == false && child->_filter & static_cast<int>(type))
             {
                 _mutex.lock();
-                std::string tmpPrompt = child->prompt(name, type, _mapCustomValueKey, timeInfo, source);
+                std::string tmpPrompt = child->prompt(name, type, timeInfo, source);
                 _mutex.unlock();
                 child->_mutex.lock();
                 #ifdef LALWAYS_FORMAT_AT_NEWLINE
@@ -1290,28 +1290,32 @@ protected:
             std::snprintf(bufferFormatTime, 7, "%06ld", infos.msec);
             retStr.replace(findPos, 2, bufferFormatTime, 6);
         }
-        return std::string(bufferFormatTime, 0, std::strftime(bufferFormatTime, LFORMAT_BUFFER_SIZE - 1, retStr.c_str(), infos.tm));
+        return std::string(bufferFormatTime, 0, std::strftime(bufferFormatTime, LFORMAT_BUFFER_SIZE - 1, retStr.c_str(), &infos.tm));
     }
 
     /**
-     * @brief Get the Current Time Infos object
+     * @brief Get the Current TimeInfo object
      * 
      * @return const TimeInfo 
      */
-    const TimeInfo getCurrentTimeInfos(void) const
+    TimeInfo getCurrentTimeInfo(void) const
     {
+        TimeInfo timeInfo;
         std::time_t timer;
-        struct tm* tm_info;
         struct timespec ts;
 
         std::time(&timer);
+        #if (defined(WIN32) || defined(_WIN32) || defined(__WIN32__))
+            localtime_s(&timeInfo.tm, &timer);
+        #else
+            localtime_r(&timer, &timeInfo.tm);
+        #endif
 
-        tm_info = std::localtime(&timer);
-
-        if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
-            ts.tv_nsec = 0;
-
-        return TimeInfo{tm_info, ts.tv_nsec / 1000};
+        if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0)
+            timeInfo.msec = ts.tv_nsec / 1000;
+        else
+            timeInfo.msec = 0;
+        return timeInfo;
     }
 
     /**
@@ -1352,17 +1356,17 @@ protected:
      * @param key 
      * @return std::string : format custom key
      */
-    std::string     formatCustomKey(const std::unordered_map<std::string, std::string> &mapCustomValueKey, const std::string &threadId, const std::string &key) const
+    std::string     formatCustomKey(const std::string &threadId, const std::string &key) const
     {
         std::unordered_map<std::string, std::string>::const_iterator itFormatMap;
         itFormatMap = _mapCustomFormatKey.find(key);
         if (itFormatMap == _mapCustomFormatKey.end())
             return "";
         std::unordered_map<std::string, std::string>::const_iterator itValueMap;
-        itValueMap = mapCustomValueKey.find(threadId + key);
-        if (itValueMap == mapCustomValueKey.end())
-            itValueMap = mapCustomValueKey.find(key);
-        if (itValueMap == mapCustomValueKey.end())
+        itValueMap = _mapCustomValueKey.find(threadId + key);
+        if (itValueMap == _mapCustomValueKey.end())
+            itValueMap = _mapCustomValueKey.find(key);
+        if (itValueMap == _mapCustomValueKey.end())
             return "";
         if (itValueMap->second.empty())
             return "";
@@ -1398,7 +1402,7 @@ protected:
      * @param source 
      * @return std::string 
      */
-    std::string     prompt(const std::string &name, const eTypeLog &type, const std::unordered_map<std::string, std::string> &mapCustomValueKey, const TimeInfo &timeInfo, const SourceInfos &source) const
+    std::string     prompt(const std::string &name, const eTypeLog &type, const TimeInfo &timeInfo, const SourceInfos &source) const
     {
         std::string prompt = _format;
         // search first occurrence of '{'
@@ -1466,13 +1470,9 @@ protected:
                 std::stringstream streamThreadID;
                 streamThreadID << std::hex << std::uppercase << std::this_thread::get_id();
                 if (key == "THREAD_ID")
-                {
                     prompt.replace(indexStart, 11, formatKey(key, streamThreadID.str()));
-                }
                 else
-                {
-                    prompt.replace(indexStart, key.size() + 2, formatCustomKey(mapCustomValueKey, streamThreadID.str(), key));
-                }
+                    prompt.replace(indexStart, key.size() + 2, formatCustomKey(streamThreadID.str(), key));
             }
             indexStart = prompt.find('{', indexStart);
         }
@@ -1503,17 +1503,17 @@ protected:
 
     Loggator(const Loggator &) = delete;
 
-    std::string                             _name;
-    int                                     _filter;
-    std::string                             _format;
-    std::ofstream                           _fileStream;
-    std::ostream                            *_outStream;
-    std::set<Loggator*>                     _logParents;
-    std::set<Loggator*>                     _logChilds;
-    mutable std::mutex                      _mutex;
-    std::unordered_map<std::string, std::string>      _mapCustomFormatKey;
-    std::unordered_map<std::string, std::string>      _mapCustomValueKey;
-    bool                                    _mute;
+    std::string                                     _name;
+    int                                             _filter;
+    std::string                                     _format;
+    std::ofstream                                   _fileStream;
+    std::ostream                                    *_outStream;
+    std::set<Loggator*>                             _logParents;
+    std::set<Loggator*>                             _logChilds;
+    mutable std::mutex                              _mutex;
+    std::unordered_map<std::string, std::string>    _mapCustomFormatKey;
+    std::unordered_map<std::string, std::string>    _mapCustomValueKey;
+    bool                                            _mute;
 
 };
 

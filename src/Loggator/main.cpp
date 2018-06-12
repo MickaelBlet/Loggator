@@ -128,8 +128,8 @@ int     main(void)
     logInfo.addChild(logDebug).listen(logDebug).addChild(logError).listen(logError);
     logError.addChild(logDebug).listen(logDebug).addChild(logInfo).listen(logInfo);
     // logDebug.setMuted(true);
-    logInfo.setMuted(true);
-    logError.setMuted(true);
+    // logInfo.setMuted(true);
+    // logError.setMuted(true);
 
     std::thread thread[4];
     for (int nbThread = 0; nbThread < 4; ++nbThread)
@@ -190,7 +190,7 @@ int     main(void)
     tthread[0] = std::thread([&]{
         logg.setKey("testThreadKey", "0");
         logg.setKey("testMainKeyThread", "+++");
-        logg("%s\n%i", "test", 42);
+        logg("|%s\n|%i", "test", 42);
         logg() << TypeOfVariable(tthread);
         logg();
     });

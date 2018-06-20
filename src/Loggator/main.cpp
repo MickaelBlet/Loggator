@@ -184,10 +184,12 @@ int     main(void)
     logg << "no thread key";
     LOGGATOR() << "0";
     LOGGATOR("main") << "1";
+    LOGGATOR("main").setKey("testMainKeyThread", "+-+++", true);
     LOGGATOR("main", INFO) << "2";
-    LOGGATOR("main", INFO, "test") << "3";
+    LOGGATOR("main", WARNING, "test") << "3";
     std::string str = "6";
     LOGGATOR("main", INFO, "%s", str.c_str()) << "3";
+        logg(eTypeLog::ALERT)(42)(' ')(4.5);
 
     std::thread tthread[4];
     tthread[0] = std::thread([&]{
@@ -195,7 +197,7 @@ int     main(void)
         logg.setKey("testMainKeyThread", "+++");
         logg("|%s\n|%i", str.c_str(), 42);
         logg() << TypeOfVariable(tthread);
-        logg();
+        logg(eTypeLog::ALERT, str);
     });
     tthread[1] = std::thread([&]{
         logg.setKey("testThreadKey", "1");

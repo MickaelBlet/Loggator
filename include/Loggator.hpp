@@ -28,6 +28,12 @@
 
 /*****************************************************************************/
 
+# ifndef _GNUC
+#  ifndef __attribute__
+#   define __attribute__(X) /* do nothing */
+#  endif
+# endif
+
 # define LSOURCEINFOS Log::SourceInfos{__FILE__, __LINE__, __func__}
 
 # define LPRIMITIVE_CAT(x, y) x ## y
@@ -119,13 +125,13 @@ enum class eTypeLog: int
     DEBUG     = 1<<0,
     INFO      = 1<<1,
     WARN      = 1<<2,
-    WARNING   = 1<<2,
+    WARNING   = WARN,
     ERROR     = 1<<3,
     CRIT      = 1<<4,
-    CRITICAL  = 1<<4,
+    CRITICAL  = CRIT,
     ALERT     = 1<<5,
     EMERG     = 1<<6,
-    EMERGENCY = 1<<6,
+    EMERGENCY = EMERG,
     FATAL     = 1<<7
 };
 
@@ -136,13 +142,13 @@ enum : int
     EQUAL_DEBUG             = static_cast<int>(eTypeLog::DEBUG),
     EQUAL_INFO              = static_cast<int>(eTypeLog::INFO),
     EQUAL_WARN              = static_cast<int>(eTypeLog::WARN),
-    EQUAL_WARNING           = static_cast<int>(eTypeLog::WARNING),
+    EQUAL_WARNING           = EQUAL_WARN,
     EQUAL_ERROR             = static_cast<int>(eTypeLog::ERROR),
     EQUAL_CRIT              = static_cast<int>(eTypeLog::CRIT),
-    EQUAL_CRITICAL          = static_cast<int>(eTypeLog::CRITICAL),
+    EQUAL_CRITICAL          = EQUAL_CRIT,
     EQUAL_ALERT             = static_cast<int>(eTypeLog::ALERT),
     EQUAL_EMERG             = static_cast<int>(eTypeLog::EMERG),
-    EQUAL_EMERGENCY         = static_cast<int>(eTypeLog::EMERGENCY),
+    EQUAL_EMERGENCY         = EQUAL_EMERG,
     EQUAL_FATAL             = static_cast<int>(eTypeLog::FATAL),
     ALL                     = EQUAL_DEBUG | EQUAL_INFO | EQUAL_WARN | EQUAL_ERROR | EQUAL_CRIT | EQUAL_ALERT | EQUAL_EMERG | EQUAL_FATAL,
     GREATER_FATAL           = 0,
@@ -997,12 +1003,12 @@ public:
         return fifo;
     }
 
-    #define LFUNCTION_TYPE(_type, _name)                                                        \
-    SendFifo        _name(void) const                                                           \
+    #define LFUNCTION_TYPE(_type, _func)                                                        \
+    SendFifo        _func(void) const                                                           \
     {                                                                                           \
         return SendFifo(*this, eTypeLog::_type);                                                \
     }                                                                                           \
-    SendFifo        _name(const char *format, ...) const  __attribute__((format(printf, 2, 3))) \
+    SendFifo        _func(const char *format, ...) const __attribute__((format(printf, 2, 3)))  \
     {                                                                                           \
         char        buffer[LFORMAT_BUFFER_SIZE];                                                \
         SendFifo    fifo(*this, eTypeLog::_type);                                               \
@@ -1013,7 +1019,7 @@ public:
         return fifo;                                                                            \
     }                                                                                           \
     template<typename T>                                                                        \
-    SendFifo        _name(const T& var) const                                                   \
+    SendFifo        _func(const T& var) const                                                   \
     {                                                                                           \
         SendFifo fifo(*this, eTypeLog::_type);                                                  \
         fifo << var;                                                                            \

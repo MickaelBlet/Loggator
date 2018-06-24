@@ -9,16 +9,16 @@
 #ifndef _LOG_LOGGATOR_HPP_
 # define _LOG_LOGGATOR_HPP_
 
-# include <cstdarg>     // va_list, va_start, va_end
-# include <cstring>     // strrchr
+# include <cstdarg>         // va_list, va_start, va_end
+# include <cstring>         // strrchr
 
-# include <iostream>    // string, cerr
-# include <fstream>     // ostream, ofstream
-# include <sstream>     // ostringstream
-# include <mutex>       // mutex, lock_guard
-# include <thread>      // this_thread::get_id
-# include <unordered_map>         // unordered_map
-# include <set>         // set
+# include <iostream>        // string, cerr
+# include <fstream>         // ostream, ofstream
+# include <sstream>         // ostringstream
+# include <mutex>           // mutex, lock_guard
+# include <thread>          // this_thread::get_id
+# include <unordered_map>   // unordered_map
+# include <set>             // set
 
 # define LFORMAT_BUFFER_SIZE     1024
 # define LFORMAT_KEY_BUFFER_SIZE 64
@@ -28,7 +28,7 @@
 
 /*****************************************************************************/
 
-# ifndef _GNUC
+# ifndef __GNUC__
 #  ifndef __attribute__
 #   define __attribute__(X) /* do nothing */
 #  endif
@@ -151,7 +151,7 @@ enum : int
     EQUAL_EMERGENCY         = EQUAL_EMERG,
     EQUAL_FATAL             = static_cast<int>(eTypeLog::FATAL),
     ALL                     = EQUAL_DEBUG | EQUAL_INFO | EQUAL_WARN | EQUAL_ERROR | EQUAL_CRIT | EQUAL_ALERT | EQUAL_EMERG | EQUAL_FATAL,
-    GREATER_FATAL           = 0,
+    GREATER_FATAL           = static_cast<int>(eTypeLog::NONE),
     GREATER_EMERG           = EQUAL_FATAL,
     GREATER_EMERGENCY       = GREATER_EMERG,
     GREATER_ALERT           = EQUAL_EMERG | GREATER_EMERG,
@@ -173,7 +173,7 @@ enum : int
     GREATER_EQUAL_WARNING   = GREATER_EQUAL_WARN,
     GREATER_EQUAL_INFO      = EQUAL_INFO | GREATER_INFO,
     GREATER_EQUAL_DEBUG     = EQUAL_DEBUG | GREATER_DEBUG,
-    LESS_DEBUG              = 0,
+    LESS_DEBUG              = static_cast<int>(eTypeLog::NONE),
     LESS_INFO               = EQUAL_DEBUG,
     LESS_WARN               = EQUAL_INFO | LESS_INFO,
     LESS_WARNING            = LESS_WARN,
@@ -641,7 +641,7 @@ public:
     static Loggator &getInstance(const std::string &name)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
-        return *sMapLoggators().at(name);
+        return *(sMapLoggators().at(name));
     }
 
     /**
@@ -1311,10 +1311,10 @@ protected:
         struct timespec ts;
 
         std::time(&timer);
-        #if (defined(WIN32) || defined(_WIN32) || defined(__WIN32__))
-            localtime_s(&timeInfo.tm, &timer);
-        #else
+        #ifdef __GNUC__
             localtime_r(&timer, &timeInfo.tm);
+        #else
+            localtime_s(&timeInfo.tm, &timer);
         #endif
 
         if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0)

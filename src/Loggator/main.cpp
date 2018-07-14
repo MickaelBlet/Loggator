@@ -38,7 +38,7 @@ type_name()
 }
 
 template <typename T>
-std::string TypeOfVariable(const T &var)
+std::string TypeOfVariable(T &var)
 {
     std::string retStr;
     char *demange = abi::__cxa_demangle(typeid(var).name(), nullptr, nullptr, nullptr);
@@ -57,6 +57,7 @@ class Test
             std::cout << TypeOfVariable(m) << std::endl;
             std::cout << type_name<decltype(m)>() << std::endl;
             std::cout << type_name<decltype(p_log)>() << std::endl;
+            std::cout << TypeOfVariable(p_log) << std::endl;
             i_log = p_log;
             i_log.setFormat(LDEFAULT_FORMAT);
             i_log.setOutStream(std::cout);
@@ -138,9 +139,14 @@ int     main(void)
             Loggator logThread("Thread" + std::to_string(nbThread), Loggator::getInstance("debug"));
         for (int i = 0; i < 1000; ++i)
         {
-            logThread.LDEBUG("%i: ", __LINE__) << "DEBUG test !!!";
-            logThread.LINFO() << "INFO test !!!";
-            logThread.LERROR() << "ERROR test !!!";
+            logThread.LSEND(DEBUG) << "DEBUG test !!!";
+            logThread.LSEND(INFO)  << "INFO  test !!!";
+            logThread.LSEND(WARN)  << "WARN  test !!!";
+            logThread.LSEND(ERROR) << "ERROR test !!!";
+            logThread.LSEND(CRIT)  << "CRIT  test !!!";
+            logThread.LSEND(ALERT) << "ALERT test !!!";
+            logThread.LSEND(EMERG) << "EMERG test !!!";
+            logThread.LSEND(FATAL) << "FATAL test !!!";
         }
         });
     }
@@ -166,7 +172,7 @@ int     main(void)
     t.test();
 
     Loggator logg("main", std::cout);
-    logg.setFormat("{TIME} {TYPE:[%5s]}: {NAME} {testThreadKey} {testMainKeyThread} {FUNC}{LINE::%s: }");
+    logg.setFormat("{TIME} {TYPE:[%5s]}: {NAME:%6s} {testThreadKey:<%.3s>} {testMainKeyThread:<%.3s>} {FUNC}{LINE::%s: }");
     logg.setKey("testMainKeyThread", "+-+");
     Loggator::getInstance("main") << "no thread key";
     logg.setName("main2");
@@ -191,6 +197,8 @@ int     main(void)
     LOGGATOR("main", INFO, "%s", str.c_str()) << "3";
         logg(eTypeLog::ALERT)(42)(' ')(4.5);
 
+    Loggator logg2("main2", logg);
+
     std::thread tthread[4];
     tthread[0] = std::thread([&]{
         logg.setKey("testThreadKey", "0");
@@ -206,10 +214,10 @@ int     main(void)
         logg();
     });
     tthread[2] = std::thread([&]{
-        logg.setKey("testThreadKey", "2");
-        logg();
-        logg();
-        logg();
+        logg2.setKey("testThreadKey", "2");
+        logg2();
+        logg2();
+        logg2();
     });
     tthread[3] = std::thread([&]{
         logg.setKey("testThreadKey", "3");

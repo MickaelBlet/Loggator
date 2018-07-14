@@ -339,7 +339,7 @@ private:
          * @param ... 
          * @return SendFifo& : instance of current object
          */
-        SendFifo& operator()(const char * format, ...) __attribute__((format(printf, 2, 3)))
+        SendFifo& operator()(const char * format, ...) __attribute__((__format__(__printf__, 2, 3)))
         {
             char    buffer[LFORMAT_BUFFER_SIZE];
             va_list vargs;
@@ -383,7 +383,7 @@ private:
          * @param ... 
          * @return SendFifo : temporary instance of SendFifo
          */
-        SendFifo& operator()(const eTypeLog &type, const char * format, ...) __attribute__((format(printf, 3, 4)))
+        SendFifo& operator()(const eTypeLog &type, const char * format, ...) __attribute__((__format__(__printf__, 3, 4)))
         {
             _type = type;
             char    buffer[LFORMAT_BUFFER_SIZE];
@@ -604,11 +604,13 @@ public:
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
         std::lock_guard<std::mutex> lockGuard(_mutex);
+        // erase all link of object in childs
         for (Loggator *child : _logChilds)
         {
             std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
             child->_logParents.erase(this);
         }
+        // erase all link of object in parents
         for (Loggator *parent : _logParents)
         {
             std::lock_guard<std::mutex> lockGuardParent(parent->_mutex);
@@ -619,6 +621,7 @@ public:
             std::unordered_map<std::string, Log::Loggator*>::iterator it = sMapLoggators().begin();
             while (it != sMapLoggators().end())
             {
+                // erase link of object in static map
                 if (it->second == this)
                 {
                     sMapLoggators().erase(it);
@@ -959,7 +962,7 @@ public:
      * @param ... 
      * @return SendFifo : temporary instance of SendFifo
      */
-    SendFifo        send(const eTypeLog &type, const char *format, ...) const __attribute__((format(printf, 3, 4)))
+    SendFifo        send(const eTypeLog &type, const char *format, ...) const __attribute__((__format__(__printf__, 3, 4)))
     {
         char        buffer[LFORMAT_BUFFER_SIZE];
         SendFifo    fifo(*this, type);
@@ -992,7 +995,7 @@ public:
      * @param ... 
      * @return SendFifo : temporary instance of SendFifo
      */
-    SendFifo        send(const eTypeLog &type, const SourceInfos &sourceInfos, const char *format, ...) const __attribute__((format(printf, 4, 5)))
+    SendFifo        send(const eTypeLog &type, const SourceInfos &sourceInfos, const char *format, ...) const __attribute__((__format__(__printf__, 4, 5)))
     {
         char        buffer[LFORMAT_BUFFER_SIZE];
         SendFifo    fifo(*this, type, sourceInfos);
@@ -1003,27 +1006,27 @@ public:
         return fifo;
     }
 
-    #define LFUNCTION_TYPE(_type, _func)                                                        \
-    SendFifo        _func(void) const                                                           \
-    {                                                                                           \
-        return SendFifo(*this, eTypeLog::_type);                                                \
-    }                                                                                           \
-    SendFifo        _func(const char *format, ...) const __attribute__((format(printf, 2, 3)))  \
-    {                                                                                           \
-        char        buffer[LFORMAT_BUFFER_SIZE];                                                \
-        SendFifo    fifo(*this, eTypeLog::_type);                                               \
-        va_list     vargs;                                                                      \
-        va_start(vargs, format);                                                                \
-        fifo.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));     \
-        va_end(vargs);                                                                          \
-        return fifo;                                                                            \
-    }                                                                                           \
-    template<typename T>                                                                        \
-    SendFifo        _func(const T& var) const                                                   \
-    {                                                                                           \
-        SendFifo fifo(*this, eTypeLog::_type);                                                  \
-        fifo << var;                                                                            \
-        return fifo;                                                                            \
+    #define LFUNCTION_TYPE(_type, _func)                                                                \
+    SendFifo        _func(void) const                                                                   \
+    {                                                                                                   \
+        return SendFifo(*this, eTypeLog::_type);                                                        \
+    }                                                                                                   \
+    SendFifo        _func(const char *format, ...) const __attribute__((__format__(__printf__, 2, 3)))  \
+    {                                                                                                   \
+        char        buffer[LFORMAT_BUFFER_SIZE];                                                        \
+        SendFifo    fifo(*this, eTypeLog::_type);                                                       \
+        va_list     vargs;                                                                              \
+        va_start(vargs, format);                                                                        \
+        fifo.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));             \
+        va_end(vargs);                                                                                  \
+        return fifo;                                                                                    \
+    }                                                                                                   \
+    template<typename T>                                                                                \
+    SendFifo        _func(const T& var) const                                                           \
+    {                                                                                                   \
+        SendFifo fifo(*this, eTypeLog::_type);                                                          \
+        fifo << var;                                                                                    \
+        return fifo;                                                                                    \
     }
 
     LFUNCTION_TYPE(DEBUG,   debug);
@@ -1109,7 +1112,7 @@ public:
      * @param ... 
      * @return SendFifo : temporary instance of SendFifo
      */
-    SendFifo        operator()(const char * format, ...) const __attribute__((format(printf, 2, 3)))
+    SendFifo        operator()(const char * format, ...) const __attribute__((__format__(__printf__, 2, 3)))
     {
         char        buffer[LFORMAT_BUFFER_SIZE];
         SendFifo    fifo(*this);
@@ -1154,7 +1157,7 @@ public:
      * @param ... 
      * @return SendFifo : temporary instance of SendFifo
      */
-    SendFifo        operator()(const eTypeLog &type, const char * format, ...) const __attribute__((format(printf, 3, 4)))
+    SendFifo        operator()(const eTypeLog &type, const char * format, ...) const __attribute__((__format__(__printf__, 3, 4)))
     {
         char        buffer[LFORMAT_BUFFER_SIZE];
         SendFifo    fifo(*this, type);
@@ -1207,7 +1210,7 @@ protected:
         if (_outStream != nullptr && _mute == false && _filter & static_cast<int>(type))
         {
             _mutex.lock();
-            std::string tmpPrompt = prompt(this->_name, type, timeInfo, source);
+            std::string tmpPrompt = prompt(this->_name, type, timeInfo, source, _mapCustomValueKey);
             #ifdef LALWAYS_FORMAT_AT_NEWLINE
                 std::size_t indexSub = 0;
                 std::size_t indexNewLine = str.find('\n');
@@ -1254,7 +1257,7 @@ protected:
             if (child->_outStream != nullptr && child->_mute == false && child->_filter & static_cast<int>(type))
             {
                 _mutex.lock();
-                std::string tmpPrompt = child->prompt(name, type, timeInfo, source);
+                std::string tmpPrompt = child->prompt(name, type, timeInfo, source, _mapCustomValueKey);
                 _mutex.unlock();
                 child->_mutex.lock();
                 #ifdef LALWAYS_FORMAT_AT_NEWLINE
@@ -1362,14 +1365,18 @@ protected:
      * @param key 
      * @return std::string : format custom key
      */
-    std::string     formatCustomKey(const std::string &threadId, const std::string &key) const
+    std::string     formatCustomKey(const std::unordered_map<std::string, std::string> &mapCustomValueKey, const std::string &threadId, const std::string &key) const
     {
         std::unordered_map<std::string, std::string>::const_iterator itFormatMap;
         itFormatMap = _mapCustomFormatKey.find(key);
         if (itFormatMap == _mapCustomFormatKey.end())
             return "";
         std::unordered_map<std::string, std::string>::const_iterator itValueMap;
-        itValueMap = _mapCustomValueKey.find(threadId + key);
+        itValueMap = mapCustomValueKey.find(threadId + key);
+        if (itValueMap == mapCustomValueKey.end())
+            itValueMap = mapCustomValueKey.find(key);
+        if (itValueMap == mapCustomValueKey.end())
+            itValueMap = _mapCustomValueKey.find(threadId + key);
         if (itValueMap == _mapCustomValueKey.end())
             itValueMap = _mapCustomValueKey.find(key);
         if (itValueMap == _mapCustomValueKey.end())
@@ -1408,12 +1415,13 @@ protected:
      * @param source 
      * @return std::string 
      */
-    std::string     prompt(const std::string &name, const eTypeLog &type, const TimeInfo &timeInfo, const SourceInfos &source) const
+    std::string     prompt(const std::string &name, const eTypeLog &type, const TimeInfo &timeInfo, const SourceInfos &source, const std::unordered_map<std::string, std::string> &mapCustomValueKey) const
     {
         std::string prompt = _format;
         // search first occurrence of '{'
         std::size_t indexStart = prompt.find('{');
         std::size_t indexEnd;
+        std::string stringThreadID;
         while (indexStart != std::string::npos)
         {
             // search first occurrence of '}' after indexStart
@@ -1472,13 +1480,17 @@ protected:
             }
             else
             {
-                // get thread id
-                std::stringstream streamThreadID;
-                streamThreadID << std::hex << std::uppercase << std::this_thread::get_id();
+                if (stringThreadID.empty())
+                {
+                    // get thread id
+                    std::stringstream streamThreadID;
+                    streamThreadID << std::hex << std::uppercase << std::this_thread::get_id();
+                    stringThreadID = std::move(streamThreadID.str());
+                }
                 if (key == "THREAD_ID")
-                    prompt.replace(indexStart, 11, formatKey(key, streamThreadID.str()));
+                    prompt.replace(indexStart, 11, formatKey(key, stringThreadID));
                 else
-                    prompt.replace(indexStart, key.size() + 2, formatCustomKey(streamThreadID.str(), key));
+                    prompt.replace(indexStart, key.size() + 2, formatCustomKey(mapCustomValueKey, stringThreadID, key));
             }
             indexStart = prompt.find('{', indexStart);
         }

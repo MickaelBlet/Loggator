@@ -129,14 +129,14 @@ Loggator(const std::string &name, std::ostream &oStream = std::cerr, int filter 
 Loggator(std::ostream &oStream, int filter = eFilterLog::ALL);
 
 /// name        : @param name (if not empty add in static map for getInstance method)
-/// filter      : ALL
+/// filter      : @param loggator.filter
 /// outStream   : nullptr
 /// muted       : false
 /// child       : @param loggator
 Loggator(const std::string &name, Loggator &loggator);
 
 /// name        : ""
-/// filter      : ALL
+/// filter      : @param loggator.filter
 /// outStream   : nullptr
 /// muted       : false
 /// child       : @param loggator

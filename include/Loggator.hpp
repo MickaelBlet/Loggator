@@ -67,54 +67,54 @@
 # define LOGGATOR_X(_name, ...) Log::Loggator::getInstance(_name).LSENDF(__VA_ARGS__)
 
 // send macro
-# define LSEND(...)         LMACRO_CHOOSER(LSEND_, __VA_ARGS__)(__VA_ARGS__)
-# define LSEND_0()          send(Log::eTypeLog::DEBUG, LSOURCEINFOS)
-# define LSEND_1(_typeLog)  send(Log::eTypeLog::_typeLog, LSOURCEINFOS)
-# define LSEND_X(...)       LSENDF(__VA_ARGS__)
+# define LSEND(...)             LMACRO_CHOOSER(LSEND_, __VA_ARGS__)(__VA_ARGS__)
+# define LSEND_0()              send(Log::eTypeLog::DEBUG, LSOURCEINFOS)
+# define LSEND_1(_typeLog)      send(Log::eTypeLog::_typeLog, LSOURCEINFOS)
+# define LSEND_X(...)           LSENDF(__VA_ARGS__)
 
 // type macro
-# define LDEBUG(...)        LMACRO_CHOOSER(LDEBUG_, __VA_ARGS__)(__VA_ARGS__)
-# define LDEBUG_0()         LSENDF(DEBUG)
-# define LDEBUG_1(...)      LDEBUGF(__VA_ARGS__)
-# define LDEBUG_X(...)      LDEBUGF(__VA_ARGS__)
+# define LDEBUG(...)            LMACRO_CHOOSER(LDEBUG_, __VA_ARGS__)(__VA_ARGS__)
+# define LDEBUG_0()             LSENDF(DEBUG)
+# define LDEBUG_1(...)          LDEBUGF(__VA_ARGS__)
+# define LDEBUG_X(...)          LDEBUGF(__VA_ARGS__)
 
-# define LINFO(...)         LMACRO_CHOOSER(LINFO_, __VA_ARGS__)(__VA_ARGS__)
-# define LINFO_0()          LSENDF(INFO)
-# define LINFO_1(...)       LINFOF(__VA_ARGS__)
-# define LINFO_X(...)       LINFOF(__VA_ARGS__)
+# define LINFO(...)             LMACRO_CHOOSER(LINFO_, __VA_ARGS__)(__VA_ARGS__)
+# define LINFO_0()              LSENDF(INFO)
+# define LINFO_1(...)           LINFOF(__VA_ARGS__)
+# define LINFO_X(...)           LINFOF(__VA_ARGS__)
 
-# define LWARN(...)         LMACRO_CHOOSER(LWARN_, __VA_ARGS__)(__VA_ARGS__)
-# define LWARNING(...)      LMACRO_CHOOSER(LWARN_, __VA_ARGS__)(__VA_ARGS__)
-# define LWARN_0()          LSENDF(WARN)
-# define LWARN_1(...)       LWARNF(__VA_ARGS__)
-# define LWARN_X(...)       LWARNF(__VA_ARGS__)
+# define LWARN(...)             LMACRO_CHOOSER(LWARN_, __VA_ARGS__)(__VA_ARGS__)
+# define LWARNING(...)          LMACRO_CHOOSER(LWARN_, __VA_ARGS__)(__VA_ARGS__)
+# define LWARN_0()              LSENDF(WARN)
+# define LWARN_1(...)           LWARNF(__VA_ARGS__)
+# define LWARN_X(...)           LWARNF(__VA_ARGS__)
 
-# define LERROR(...)        LMACRO_CHOOSER(LERROR_, __VA_ARGS__)(__VA_ARGS__)
-# define LERROR_0()         LSENDF(ERROR)
-# define LERROR_1(...)      LERRORF(__VA_ARGS__)
-# define LERROR_X(...)      LERRORF(__VA_ARGS__)
+# define LERROR(...)            LMACRO_CHOOSER(LERROR_, __VA_ARGS__)(__VA_ARGS__)
+# define LERROR_0()             LSENDF(ERROR)
+# define LERROR_1(...)          LERRORF(__VA_ARGS__)
+# define LERROR_X(...)          LERRORF(__VA_ARGS__)
 
-# define LCRIT(...)         LMACRO_CHOOSER(LCRIT_, __VA_ARGS__)(__VA_ARGS__)
-# define LCRITICAL(...)     LMACRO_CHOOSER(LCRIT_, __VA_ARGS__)(__VA_ARGS__)
-# define LCRIT_0()          LSENDF(CRIT)
-# define LCRIT_1(...)       LCRITF(__VA_ARGS__)
-# define LCRIT_X(...)       LCRITF(__VA_ARGS__)
+# define LCRIT(...)             LMACRO_CHOOSER(LCRIT_, __VA_ARGS__)(__VA_ARGS__)
+# define LCRITICAL(...)         LMACRO_CHOOSER(LCRIT_, __VA_ARGS__)(__VA_ARGS__)
+# define LCRIT_0()              LSENDF(CRIT)
+# define LCRIT_1(...)           LCRITF(__VA_ARGS__)
+# define LCRIT_X(...)           LCRITF(__VA_ARGS__)
 
-# define LALERT(...)        LMACRO_CHOOSER(LALERT_, __VA_ARGS__)(__VA_ARGS__)
-# define LALERT_0()         LSENDF(ALERT)
-# define LALERT_1(...)      LALERTF(__VA_ARGS__)
-# define LALERT_X(...)      LALERTF(__VA_ARGS__)
+# define LALERT(...)            LMACRO_CHOOSER(LALERT_, __VA_ARGS__)(__VA_ARGS__)
+# define LALERT_0()             LSENDF(ALERT)
+# define LALERT_1(...)          LALERTF(__VA_ARGS__)
+# define LALERT_X(...)          LALERTF(__VA_ARGS__)
 
-# define LEMERG(...)        LMACRO_CHOOSER(LEMERG_, __VA_ARGS__)(__VA_ARGS__)
-# define LEMERGENCY(...)    LMACRO_CHOOSER(LEMERG_, __VA_ARGS__)(__VA_ARGS__)
-# define LEMERG_0()         LSENDF(EMERG)
-# define LEMERG_1(...)      LEMERGF(__VA_ARGS__)
-# define LEMERG_X(...)      LEMERGF(__VA_ARGS__)
+# define LEMERG(...)            LMACRO_CHOOSER(LEMERG_, __VA_ARGS__)(__VA_ARGS__)
+# define LEMERGENCY(...)        LMACRO_CHOOSER(LEMERG_, __VA_ARGS__)(__VA_ARGS__)
+# define LEMERG_0()             LSENDF(EMERG)
+# define LEMERG_1(...)          LEMERGF(__VA_ARGS__)
+# define LEMERG_X(...)          LEMERGF(__VA_ARGS__)
 
-# define LFATAL(...)        LMACRO_CHOOSER(LFATAL_, __VA_ARGS__)(__VA_ARGS__)
-# define LFATAL_0()         LSENDF(FATAL)
-# define LFATAL_1(...)      LFATALF(__VA_ARGS__)
-# define LFATAL_X(...)      LFATALF(__VA_ARGS__)
+# define LFATAL(...)            LMACRO_CHOOSER(LFATAL_, __VA_ARGS__)(__VA_ARGS__)
+# define LFATAL_0()             LSENDF(FATAL)
+# define LFATAL_1(...)          LFATALF(__VA_ARGS__)
+# define LFATAL_X(...)          LFATALF(__VA_ARGS__)
 
 namespace Log
 {
@@ -249,7 +249,7 @@ private:
         {
             if (_type != eTypeLog::NONE)
             {
-                std::string cacheStr = std::move(_cacheStream.str());
+                std::string cacheStr = _cacheStream.str();
                 if (cacheStr.back() != '\n')
                     cacheStr += '\n';
                 _log.sendToStream(cacheStr, _type, _sourceInfos);
@@ -275,7 +275,7 @@ private:
         /**
          * @brief override operator [] to object
          * 
-         * @param type       : new type of instance
+         * @param type : new type of instance
          * @return SendFifo& : instance of current object
          */
         SendFifo& operator[](const eTypeLog &type)
@@ -285,14 +285,38 @@ private:
         }
 
         /**
+         * @brief override operator [] to object
+         * 
+         * @param sourceInfos : new sourceInfos of instance
+         * @return SendFifo& : instance of current object
+         */
+        SendFifo& operator[](const SourceInfos &sourceInfos)
+        {
+            _sourceInfos = sourceInfos;
+            return *this;
+        }
+
+        /**
          * @brief override operator << to object
          * 
-         * @param type       : new type of instance
+         * @param type : new type of instance
          * @return SendFifo& : instance of current object
          */
         SendFifo& operator<<(const eTypeLog &type)
         {
             _type = type;
+            return *this;
+        }
+
+        /**
+         * @brief override operator << to object
+         * 
+         * @param sourceInfos : new sourceInfos of instance
+         * @return SendFifo& : instance of current object
+         */
+        SendFifo& operator<<(const SourceInfos &sourceInfos)
+        {
+            _sourceInfos = sourceInfos;
             return *this;
         }
 
@@ -313,7 +337,7 @@ private:
         /**
          * @brief overide operator << to object
          * 
-         * @param manip function pointer (std::endl, std::flush, ...)
+         * @param manip : function pointer (std::endl, std::flush, ...)
          * @return SendFifo& : instance of current object
          */
         SendFifo& operator<<(std::ostream&(*manip)(std::ostream&))
@@ -419,7 +443,7 @@ private:
         std::ostringstream  _cacheStream;
         const Loggator      &_log;
         eTypeLog            _type;
-        const SourceInfos   _sourceInfos;
+        SourceInfos         _sourceInfos;
 
     }; // end class SendFifo
 
@@ -1265,9 +1289,9 @@ protected:
                     std::size_t indexNewLine = str.find('\n');
                     while (indexNewLine != std::string::npos)
                     {
-                        const std::string &sub = str.substr(indexSub, indexNewLine + 1 - indexSub);
+                        const std::string &sub = str.substr(indexSub, ++indexNewLine - indexSub);
                         child->_outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(sub.c_str(), sub.size()).flush();
-                        indexSub = indexNewLine + 1;
+                        indexSub = indexNewLine;
                         indexNewLine = str.find('\n', indexSub);
                     }
                 #else
@@ -1297,7 +1321,7 @@ protected:
         if (findPos != std::string::npos)
         {
             std::snprintf(bufferFormatTime, 7, "%06ld", infos.msec);
-            retStr.replace(findPos, 2, bufferFormatTime, 6);
+            retStr.replace(findPos, sizeof("%N") - 1, bufferFormatTime, 6);
         }
         return std::string(bufferFormatTime, 0, std::strftime(bufferFormatTime, LFORMAT_BUFFER_SIZE - 1, retStr.c_str(), &infos.tm));
     }
@@ -1307,7 +1331,7 @@ protected:
      * 
      * @return const TimeInfo 
      */
-    TimeInfo getCurrentTimeInfo(void) const
+    TimeInfo        getCurrentTimeInfo(void) const
     {
         TimeInfo timeInfo;
         std::time_t timer;
@@ -1432,29 +1456,29 @@ protected:
             const std::string &key = prompt.substr(indexStart + 1, indexEnd - indexStart - 1);
             if (key == "TIME")
             {
-                prompt.replace(indexStart, 6, formatTime(timeInfo));
+                prompt.replace(indexStart, sizeof("TIME") + 1, formatTime(timeInfo));
             }
             else if (key == "TYPE")
             {
-                prompt.replace(indexStart, 6, formatKey(key, typeToStr(type)));
+                prompt.replace(indexStart, sizeof("TYPE") + 1, formatKey(key, typeToStr(type)));
             }
             else if (key == "NAME")
             {
-                prompt.replace(indexStart, 6, formatKey(key, name));
+                prompt.replace(indexStart, sizeof("NAME") + 1, formatKey(key, name));
             }
             else if (key == "FUNC")
             {
                 if (source.func != nullptr)
-                    prompt.replace(indexStart, 6, formatKey(key, source.func));
+                    prompt.replace(indexStart, sizeof("FUNC") + 1, formatKey(key, source.func));
                 else
-                    prompt.erase(indexStart, 6);
+                    prompt.erase(indexStart, sizeof("FUNC") + 1);
             }
             else if (key == "PATH")
             {
                 if (source.filename != nullptr)
-                    prompt.replace(indexStart, 6, formatKey(key, source.filename));
+                    prompt.replace(indexStart, sizeof("PATH") + 1, formatKey(key, source.filename));
                 else
-                    prompt.erase(indexStart, 6);
+                    prompt.erase(indexStart, sizeof("PATH") + 1);
             }
             else if (key == "FILE")
             {
@@ -1462,21 +1486,21 @@ protected:
                 {
                     const char *rchr = strrchr(source.filename, '/');
                     if (rchr != nullptr)
-                        prompt.replace(indexStart, 6, formatKey(key, source.filename + (rchr - source.filename) + 1));
+                        prompt.replace(indexStart, sizeof("FILE") + 1, formatKey(key, source.filename + (rchr - source.filename) + 1));
                     else
-                        prompt.replace(indexStart, 6, formatKey(key, source.filename));
+                        prompt.replace(indexStart, sizeof("FILE") + 1, formatKey(key, source.filename));
                 }
                 else
                 {
-                    prompt.erase(indexStart, 6);
+                    prompt.erase(indexStart, sizeof("FILE") + 1);
                 }
             }
             else if (key == "LINE")
             {
                 if (source.line > 0)
-                    prompt.replace(indexStart, 6, formatKey(key, std::to_string(source.line)));
+                    prompt.replace(indexStart, sizeof("LINE") + 1, formatKey(key, std::to_string(source.line)));
                 else
-                    prompt.erase(indexStart, 6);
+                    prompt.erase(indexStart, sizeof("LINE") + 1);
             }
             else
             {
@@ -1485,10 +1509,10 @@ protected:
                     // get thread id
                     std::stringstream streamThreadID;
                     streamThreadID << std::hex << std::uppercase << std::this_thread::get_id();
-                    stringThreadID = std::move(streamThreadID.str());
+                    stringThreadID = streamThreadID.str();
                 }
                 if (key == "THREAD_ID")
-                    prompt.replace(indexStart, 11, formatKey(key, stringThreadID));
+                    prompt.replace(indexStart, sizeof("THREAD_ID") + 1, formatKey(key, stringThreadID));
                 else
                     prompt.replace(indexStart, key.size() + 2, formatCustomKey(mapCustomValueKey, stringThreadID, key));
             }
@@ -1533,8 +1557,8 @@ protected:
     std::unordered_map<std::string, std::string>    _mapCustomValueKey;
     bool                                            _mute;
 
-};
+}; // end class Loggator
 
-} // end namespace
+} // end namespace Log
 
 #endif // _LOG_LOGGATOR_HPP_

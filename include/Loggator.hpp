@@ -1240,9 +1240,9 @@ protected:
                 std::size_t indexNewLine = str.find('\n');
                 while (indexNewLine != std::string::npos)
                 {
-                    const std::string &sub = str.substr(indexSub, indexNewLine + 1 - indexSub);
+                    const std::string &sub = str.substr(indexSub, ++indexNewLine - indexSub);
                     _outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(sub.c_str(), sub.size()).flush();
-                    indexSub = indexNewLine + 1;
+                    indexSub = indexNewLine;
                     indexNewLine = str.find('\n', indexSub);
                 }
             #else

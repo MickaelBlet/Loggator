@@ -11,6 +11,13 @@
 #include <cxxabi.h>
 #include <map>
 
+#define StructTest(name, a, b, c, d, e, f) struct name { a b; c d; e f;}
+
+StructTest(foo,
+std::string, name,
+std::string, type,
+std::string, test);
+
 template <typename T>
 std::string
 type_name()
@@ -37,15 +44,30 @@ type_name()
     return r;
 }
 
+#ifndef _MSC_VER
 template <typename T>
-std::string TypeOfVariable(T &var)
+std::string TypeToString(T * var, int del = 0)
 {
-    std::string retStr;
     char *demange = abi::__cxa_demangle(typeid(var).name(), nullptr, nullptr, nullptr);
-    retStr = demange;
+    std::string retStr = demange;
     if (demange)
         std::free(demange);
-    return retStr;
+    return retStr.substr(0, retStr.size() - del);
+}
+#else
+template <typename T>
+std::string TypeToString(T _x var, int del = 0)
+{
+    char *demange = typeid(var).name()
+    std::string retStr = demange;
+    return retStr.substr(0, retStr.size() - del);
+}
+#endif
+
+template <typename T>
+std::string TypeToString(T &var)
+{
+    return TypeToString(&var, 1);
 }
 
 class Test
@@ -53,11 +75,12 @@ class Test
     public:
         Test(const Log::Loggator &p_log)
         {
-            std::map<int, int> m;
-            std::cout << TypeOfVariable(m) << std::endl;
-            std::cout << type_name<decltype(m)>() << std::endl;
-            std::cout << type_name<decltype(p_log)>() << std::endl;
-            std::cout << TypeOfVariable(p_log) << std::endl;
+            // std::map<int, int> **m = nullptr;
+            std::cout << TypeToString(p_log) << std::endl;
+            // std::cout << type_name<decltype(&std::endl)>() << std::endl;
+            // std::cout << type_name<decltype()>() << std::endl;
+            // std::cout << type_name<decltype(p_log)>() << std::endl;
+            // std::cout << TypeOfVariable(p_log) << std::endl;
             i_log = p_log;
             i_log.setFormat(LDEFAULT_FORMAT);
             i_log.setOutStream(std::cout);
@@ -74,7 +97,7 @@ class Test
             i_log << "test6";
             i_log[Log::eTypeLog::INFO] << "test7";
             i_log << "test8" << Log::eTypeLog::INFO;
-            i_log.LSEND() << "test9" << Log::eTypeLog::INFO << " " << __PRETTY_FUNCTION__;
+            i_log << "test9" << LSOURCEINFOS << Log::eTypeLog::INFO << " " << __PRETTY_FUNCTION__;
         }
 
         Log::Loggator i_log;
@@ -156,33 +179,35 @@ int     main(void)
     }
 
     Loggator logExample("example", std::cout);
-    Test t(logExample);
+    // Test t(logExample);
     logExample.setFormat("{TIME:%S.%N} {TYPE:[%5s]}: {LINE:%s: }");
-    logExample("%s\n", "test1");
-    logExample(eTypeLog::INFO) << "test2\n";
-    logExample(eTypeLog::WARN, "test3\n");
-    logExample(eTypeLog::ERROR, "%s\n", "test4");
-    logExample(eTypeLog::INFO, "%s%i", "test", 5) << " extra.\n";
+    logExample("%s", "test1");
+    logExample(eTypeLog::INFO, LSOURCEINFOS) << "test2";
+    logExample(eTypeLog::WARN, "test3");
+    logExample(eTypeLog::ERROR, "%s", "test4");
+    logExample(eTypeLog::INFO, LSOURCEINFOS, "%s%i", "test", 5) << " extra.";
     logExample();
-    logExample << "test6\n";
-    logExample[eTypeLog::INFO] << "test7\n";
-    logExample << "test8\n" << eTypeLog::INFO;
-    logExample.LSEND() << "test9\n" << eTypeLog::INFO;
+    logExample << "test6";
+    logExample[eTypeLog::INFO] << "test7";
+    logExample << "test8" << eTypeLog::INFO;
+    logExample << "test9" << eTypeLog::INFO << LSOURCEINFOS;
 
-    t.test();
+    // t.test();
 
     Loggator logg("main", std::cout);
     logg.setFormat("{TIME} {TYPE:[%5s]}: {NAME:%6s} {testThreadKey:<%.3s>} {testMainKeyThread:<%.3s>} {FUNC}{LINE::%s: }");
     logg.setKey("testMainKeyThread", "+-+");
+    Loggator::getInstance("main") << "with instance";
     Loggator::getInstance("main") << "no thread key";
-    logg.setName("main2");
+    Loggator::getInstance("main").setName("main2");
     Loggator::getInstance("main2") << "no thread key";
-    logg.setName("main");
+    Loggator::getInstance("main2").setName("main");
     Loggator::getInstance("main") << "no thread key";
     Loggator::getInstance("main") << "no thread key";
     Loggator::getInstance("main") << "no thread key";
     Loggator::getInstance("main") << "no thread key";
-    logg << "no thread key";
+    Loggator::getInstance("main") << "without instance";
+    logg[eTypeLog::INFO][eTypeLog::DEBUG] << "no thread key";
     logg << "no thread key";
     logg << "no thread key";
     logg << "no thread key";
@@ -204,7 +229,7 @@ int     main(void)
         logg.setKey("testThreadKey", "0");
         logg.setKey("testMainKeyThread", "+++");
         logg("|%s\n|%i", str.c_str(), 42);
-        logg() << TypeOfVariable(tthread);
+        logg() << TypeToString(tthread);
         logg(eTypeLog::ALERT, str);
     });
     tthread[1] = std::thread([&]{
@@ -229,6 +254,26 @@ int     main(void)
     {
         tthread[nbThread].join();
     }
-
+    LOGGATOR("main", INFO) << "brac";
+    LOGGATOR("main", INFO) << "brac";
+    LOGGATOR("main", INFO) << "brac";
+    LOGGATOR("main", INFO) << "brac";
+    LOGGATOR("main", INFO) << "brac";
+    LOGGATOR("main").LINFO() << "test";
+    LOGGATOR("main").LINFO() << "test";
+    LOGGATOR("main").LINFO() << "test";
+    LOGGATOR("main").LINFO() << "test";
+    LOGGATOR("main").LINFO() << "test";
+    LOGGATOR("main").LINFO("-est");
+    LOGGATOR("main").LINFO("-est");
+    LOGGATOR("main").LINFO("-est");
+    LOGGATOR("main").LINFO("-est");
+    Loggator::Fifo test = LOGGATOR("main").LINFO("-est");
+    test.write(" test", 5);
+    test << LSOURCEINFOS;
+    test.send();
+    LOGGATOR("main").LINFO("-est");
+    // for (int i=0;i<1000000;i++)
+        // logg();
     return 0;
 }

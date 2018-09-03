@@ -84,14 +84,14 @@
 Use bit composition (example):
 ```cpp
 Loggator logExample(eFilterLog::EQUAL_DEBUG | eFilterLog::EQUAL_WARN | eFilterLog::EQUAL_FATAL);
-logExample[eTypeLog::DEBUG] << "example Debug"; // OK
-logExample[eTypeLog::INFO]  << "example Info";  //    KO
-logExample[eTypeLog::WARN]  << "example Warn";  // OK
-logExample[eTypeLog::ERROR] << "example Error"; //    KO
-logExample[eTypeLog::CRIT]  << "example Crit";  //    KO
-logExample[eTypeLog::ALERT] << "example Alert"; //    KO
-logExample[eTypeLog::EMERG] << "example Emerg"; //    KO
-logExample[eTypeLog::FATAL] << "example Fatal"; // OK
+logExample(eTypeLog::DEBUG) << "example Debug"; // OK
+logExample(eTypeLog::INFO)  << "example Info";  //    KO
+logExample(eTypeLog::WARN)  << "example Warn";  // OK
+logExample(eTypeLog::ERROR) << "example Error"; //    KO
+logExample(eTypeLog::CRIT)  << "example Crit";  //    KO
+logExample(eTypeLog::ALERT) << "example Alert"; //    KO
+logExample(eTypeLog::EMERG) << "example Emerg"; //    KO
+logExample(eTypeLog::FATAL) << "example Fatal"; // OK
 ```
 
 ## Constructor
@@ -155,7 +155,7 @@ Loggator    &operator=(const Loggator &rhs);
 ```cpp
 Loggator logExample("example", std::cout);
 Loggator &refLogExample = Loggator::getInstance("example"); // OK
-Loggator &badRefLogExample = Loggator::getInstance("test"); // throw runtime error
+Loggator &badRefLogExample = Loggator::getInstance("test"); // throw out of range
 ```
 
 ## setOutStream
@@ -351,17 +351,17 @@ logExample.LINFOF("%s%i", "test", 9) << " extra."; // unlimited args
 // INFO : 45: test9 extra.
 ```
 
-## Operator [] () <<
+## Operator () <<
 ```cpp
 Loggator logExample("example", std::cout);
-logExample.setFormat("{TYPE}: {LINE:%s: }");
+logExample.setFormat("{TYPE:%5s}: {LINE:%s: }");
 logExample("%s", "test1");
 logExample(eTypeLog::INFO) << "test2";
 logExample(eTypeLog::INFO, "test3");
 logExample(eTypeLog::INFO, "%s", "test4");
 logExample(eTypeLog::INFO, "%s%i", "test", 5) << " extra.";
 logExample << "test6";
-logExample[eTypeLog::INFO] << "test7";
+logExample << eTypeLog::WARN << "test7" << LSOURCEINFOS;
 logExample << "test8" << eTypeLog::INFO;
 logExample.LSEND() << "test9" << eTypeLog::INFO;
 // output:
@@ -371,7 +371,7 @@ logExample.LSEND() << "test9" << eTypeLog::INFO;
 // INFO : test4
 // INFO : test5 extra.
 // DEBUG: test6
-// INFO : test7
+// WARN : 42: test7
 // INFO : test8
-// INFO : 42: test9
+// INFO : 44: test9
 ```

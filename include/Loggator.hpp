@@ -34,7 +34,7 @@
 #  endif
 # endif
 
-# define LSOURCEINFOS Log::SourceInfos{__FILE__, __LINE__, __func__}
+# define LSOURCEINFOS Log::Loggator::SourceInfos{__FILE__, __LINE__, __func__}
 
 # define LPRIMITIVE_CAT(x, y) x ## y
 # define LCAT(x, y) LPRIMITIVE_CAT(x, y)
@@ -198,36 +198,38 @@ enum : int
 };
 }
 
-struct SourceInfos
-{
-    const char *filename;
-    int         line;
-    const char *func;
-};
-
 class Loggator
 {
 
 public:
 
+    struct SourceInfos
+    {
+        const char *filename;
+        int         line;
+        const char *func;
+    };
+
+private:
+
     /**
-     * @brief class Fifo
+     * @brief class Stream
      * create a temporary object same ostringstream
      * at destruct send to loggator method (sendToStream)
      */
-    class Fifo
+    class Stream
     {
 
     public:
 
         /**
-         * @brief Construct a new Send Fifo object
+         * @brief Construct a new Send Stream object
          * 
          * @param loggator 
          * @param type 
          * @param sourceInfos 
          */
-        Fifo(const Loggator &loggator, const eTypeLog &type = eTypeLog::DEBUG, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) noexcept:
+        Stream(const Loggator &loggator, const eTypeLog &type = eTypeLog::DEBUG, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) noexcept:
         _log(loggator),
         _type(type),
         _sourceInfos(sourceInfos)
@@ -236,23 +238,23 @@ public:
         }
 
         /**
-         * @brief Construct a new Send Fifo object
+         * @brief Construct a new Send Stream object
          * 
          */
-        Fifo(Fifo &&) = default;
+        Stream(Stream &&) = default;
 
         /**
-         * @brief Destroy the Send Fifo object
+         * @brief Destroy the Send Stream object
          * 
          */
-        ~Fifo(void) noexcept
+        ~Stream(void) noexcept
         {
             if (_type != eTypeLog::NONE)
             {
                 std::string cacheStr = _cacheStream.str();
                 if (cacheStr.back() != '\n')
                     cacheStr += '\n';
-                _log.sendToStream(cacheStr, _type, _sourceInfos);
+                _log.sendToOutStream(cacheStr, _type, _sourceInfos);
             }
             return ;
         }
@@ -260,70 +262,25 @@ public:
         /*********************************************************************/
 
         /**
-         * @brief 
-         * 
-         */
-        void send(void)
-        {
-            if (_type != eTypeLog::NONE)
-            {
-                std::string cacheStr = _cacheStream.str();
-                if (cacheStr.back() != '\n')
-                    cacheStr += '\n';
-                _log.sendToStream(cacheStr, _type, _sourceInfos);
-                // reset cache
-                _cacheStream.str("");
-                _cacheStream.clear();
-                // disable destruct log
-                _type = eTypeLog::NONE;
-            }
-            return ;
-        }
-
-        /**
          * @brief use write function of stringStream
          * 
          * @param cstr 
          * @param size 
-         * @return Fifo& : instance of current object
+         * @return Stream& : instance of current object
          */
-        Fifo& write(const char *cstr, std::streamsize size)
+        Stream &write(const char *cstr, std::streamsize size)
         {
             _cacheStream.write(cstr, size);
             return *this;
         }
 
         /**
-         * @brief override operator [] to object
-         * 
-         * @param type : new type of instance
-         * @return Fifo& : instance of current object
-         */
-        Fifo& operator[](const eTypeLog &type)
-        {
-            _type = type;
-            return *this;
-        }
-
-        /**
-         * @brief override operator [] to object
-         * 
-         * @param sourceInfos : new sourceInfos of instance
-         * @return Fifo& : instance of current object
-         */
-        Fifo& operator[](const SourceInfos &sourceInfos)
-        {
-            _sourceInfos = sourceInfos;
-            return *this;
-        }
-
-        /**
          * @brief override operator << to object
          * 
          * @param type : new type of instance
-         * @return Fifo& : instance of current object
+         * @return Stream& : instance of current object
          */
-        Fifo& operator<<(const eTypeLog &type)
+        Stream &operator<<(const eTypeLog &type)
         {
             _type = type;
             return *this;
@@ -333,9 +290,9 @@ public:
          * @brief override operator << to object
          * 
          * @param sourceInfos : new sourceInfos of instance
-         * @return Fifo& : instance of current object
+         * @return Stream& : instance of current object
          */
-        Fifo& operator<<(const SourceInfos &sourceInfos)
+        Stream &operator<<(const SourceInfos &sourceInfos)
         {
             _sourceInfos = sourceInfos;
             return *this;
@@ -346,10 +303,10 @@ public:
          * 
          * @tparam T 
          * @param var 
-         * @return Fifo& : instance of current object
+         * @return Stream& : instance of current object
          */
         template<typename T>
-        Fifo& operator<<(const T& var)
+        Stream &operator<<(const T &var)
         {
             _cacheStream << var;
             return *this;
@@ -359,126 +316,25 @@ public:
          * @brief overide operator << to object
          * 
          * @param manip : function pointer (std::endl, std::flush, ...)
-         * @return Fifo& : instance of current object
+         * @return Stream& : instance of current object
          */
-        Fifo& operator<<(std::ostream&(*manip)(std::ostream&))
+        Stream &operator<<(std::ostream&(*manip)(std::ostream&))
         {
             manip(_cacheStream);
             return *this;
         }
 
-        /**
-         * @brief override operator () to object
-         * 
-         * @return Fifo& : instance of current object
-         */
-        Fifo& operator()(void)
-        {
-            return *this;
-        }
-
-        /**
-         * @brief override operator () to object
-         * 
-         * @param format 
-         * @param ... 
-         * @return Fifo& : instance of current object
-         */
-        Fifo& operator()(const char * format, ...) __attribute__((__format__(__printf__, 2, 3)))
-        {
-            char    buffer[LFORMAT_BUFFER_SIZE];
-            va_list vargs;
-            va_start(vargs, format);
-            _cacheStream.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
-            va_end(vargs);
-            return *this;
-        }
-
-        /**
-         * @brief override operator () to object
-         * 
-         * @tparam T 
-         * @param var 
-         * @return Fifo& : instance of current object
-         */
-        template<typename T>
-        Fifo& operator()(const T& var)
-        {
-            _cacheStream << var;
-            return *this;
-        }
-
-        /**
-         * @brief override operator () to object
-         * 
-         * @param type 
-         * @return Fifo& 
-         */
-        Fifo& operator()(const eTypeLog &type)
-        {
-            _type = type;
-            return *this;
-        }
-
-        /**
-         * @brief override operator << to object
-         * 
-         * @param sourceInfos : new sourceInfos of instance
-         * @return Fifo& : instance of current object
-         */
-        Fifo& operator()(const SourceInfos &sourceInfos)
-        {
-            _sourceInfos = sourceInfos;
-            return *this;
-        }
-
-        /**
-         * @brief override operator () to object
-         * 
-         * @param type 
-         * @param format 
-         * @param ... 
-         * @return Fifo : temporary instance of Fifo
-         */
-        Fifo& operator()(const eTypeLog &type, const char * format, ...) __attribute__((__format__(__printf__, 3, 4)))
-        {
-            _type = type;
-            char    buffer[LFORMAT_BUFFER_SIZE];
-            va_list vargs;
-            va_start(vargs, format);
-            _cacheStream.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
-            va_end(vargs);
-            _cacheStream << buffer;
-            return *this;
-        }
-
-        /**
-         * @brief override operator () to object
-         * 
-         * @tparam T 
-         * @param type 
-         * @param var 
-         * @return Fifo : temporary instance of Fifo
-         */
-        template<typename T>
-        Fifo& operator()(const eTypeLog &type, const T& var)
-        {
-            _type = type;
-            _cacheStream << var;
-            return *this;
-        }
-
     private:
-        Fifo(void) = delete;
-        Fifo(const Fifo &) = delete;
-        Fifo &operator=(const Fifo &) = delete;
+        Stream(void) = delete;
+        Stream(const Stream &) = delete;
+        Stream &operator=(const Stream &) = delete;
 
         std::ostringstream  _cacheStream;
         const Loggator      &_log;
         eTypeLog            _type;
         SourceInfos         _sourceInfos;
 
-    }; // end class Fifo
+    }; // end class Stream
 
 public:
 
@@ -546,11 +402,11 @@ public:
         setFormat(LDEFAULT_FORMAT);
         if (_fileStream.is_open())
             _outStream = &_fileStream;
-        // if name is not empty and not in static list of loggators
+        // if name is not empty and not find in static list of loggators
         if (_name.empty() == false && sMapLoggators().find(_name) == sMapLoggators().end())
         {
             // add new loggator in static list
-            sMapLoggators().emplace(_name, this);
+            sMapLoggators()[_name] = this;
         }
         return ;
     }
@@ -574,7 +430,7 @@ public:
         if (_name.empty() == false && sMapLoggators().find(_name) == sMapLoggators().end())
         {
             // add new loggator in static list
-            sMapLoggators().emplace(_name, this);
+            sMapLoggators()[_name] = this;
         }
         return ;
     }
@@ -603,7 +459,7 @@ public:
         if (_name.empty() == false && sMapLoggators().find(_name) == sMapLoggators().end())
         {
             // add new loggator in static list
-            sMapLoggators().emplace(_name, this);
+            sMapLoggators()[_name] = this;
         }
         return ;
     }
@@ -743,7 +599,7 @@ public:
         if (_name.empty() == false && sMapLoggators().find(_name) == sMapLoggators().end())
         {
             // add new loggator in static list
-            sMapLoggators().emplace(_name, this);
+            sMapLoggators()[_name] = this;
         }
     }
 
@@ -894,19 +750,42 @@ public:
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
         _format = format;
+        // escape character and replace code character
+        for (std::size_t i = 0; i < _format.size(); i++)
+        {
+            if (i > 0 && _format[i - 1] == '\\')
+            {
+                if (_format[i] == '\\')
+                    _format.erase(i - 1, 1);
+                else
+                    _format.erase(--i, 1);
+            }
+            else if (_format[i] == '{')
+            {
+                _format[i] = -41;
+            }
+            else if (_format[i] == '}')
+            {
+                _format[i] = -42;
+            }
+            else if (_format[i] == ':')
+            {
+                _format[i] = -43;
+            }
+        }
         // search first occurrence of '{'
-        std::size_t indexStart = _format.find('{');
+        std::size_t indexStart = _format.find(-41);
         std::size_t indexEnd;
         std::size_t indexFormat;
         while (indexStart != std::string::npos)
         {
             // search first occurrence of '}' after indexStart
-            indexEnd = _format.find('}', indexStart);
+            indexEnd = _format.find(-42, indexStart);
             if (indexEnd == std::string::npos)
                 break;
             // search first occurrence of ':' after indexStart
-            indexFormat = _format.find(':', indexStart);
-            // if occurrence ':' not found or ':' is not in between '{' and '}'
+            indexFormat = _format.find(-43, indexStart);
+            // if ':' not found or ':' is not between '{' and '}'
             if (indexFormat == std::string::npos || indexFormat > indexEnd)
             {
                 // get name of key
@@ -917,19 +796,47 @@ public:
                 else
                     _mapCustomFormatKey[key] = "%s";
                 // jump to next occurrence '{' after indexStart + 1
-                indexStart = _format.find('{', indexStart + 1);
+                indexStart = _format.find(-41, indexStart + 1);
                 continue;
             }
             // get name of key {[...]:...}
             const std::string &key = _format.substr(indexStart + 1, indexFormat - indexStart - 1);
             // get format of key {...:[...]}
             std::string formatKey = _format.substr(indexFormat + 1, indexEnd - indexFormat - 1);
+            // replace no print character by real
+            for (char &c : formatKey)
+            {
+                if      (c == -41)
+                    c = '{';
+                else if (c == -42)
+                    c = '}';
+                else if (c == -43)
+                    c = ':';
+            }
             // add new format key in custom key map
             _mapCustomFormatKey[key] = std::move(formatKey);
             // erase the format key in string object _format {...[:...]}
             _format.erase(indexFormat, indexEnd - indexFormat);
             // jump to next occurrence '{' after indexStart + 1
-            indexStart = _format.find('{', indexStart + 1);
+            indexStart = _format.find(-41, indexStart + 1);
+        }
+        // replace no print character by real
+        bool inBracette = false;
+        for (char &c : _format)
+        {
+            if (inBracette == false)
+            {
+                if      (c == -41)
+                    inBracette = true;
+                else if (c == -42)
+                    c = '}';
+                else if (c == -43)
+                    c = ':';
+            }
+            else if (c == -42)
+            {
+                inBracette = false;
+            }
         }
     }
 
@@ -1004,11 +911,11 @@ public:
     /**
      * @brief Function send without argument
      * 
-     * @return Fifo : temporary instance of Fifo
+     * @return Stream : temporary instance of Stream
      */
-    Fifo        send(void) const
+    Stream          send(void) const
     {
-        return Fifo(*this);
+        return Stream(*this);
     }
 
     /**
@@ -1017,75 +924,90 @@ public:
      * @param type 
      * @param format 
      * @param ... 
-     * @return Fifo : temporary instance of Fifo
+     * @return Stream : temporary instance of Stream
      */
-    Fifo        send(const eTypeLog &type, const char *format, ...) const __attribute__((__format__(__printf__, 3, 4)))
+    Stream          send(const eTypeLog &type, const char *format, ...) const __attribute__((__format__(__printf__, 3, 4)))
     {
         char        buffer[LFORMAT_BUFFER_SIZE];
-        Fifo        fifo(*this, type);
+        Stream      stream(*this, type);
         va_list     vargs;
 
         va_start(vargs, format);
-        fifo.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
+        stream.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
         va_end(vargs);
 
-        return fifo;
+        return stream;
     }
 
     /**
-     * @brief Function send with type and optionnal SourceInfos for macro functions
+     * @brief Function send with type, SourceInfos and format style printf for macro functions
      * 
      * @param type 
      * @param sourceInfos 
-     * @return Fifo : temporary instance of Fifo
+     * @return Stream : temporary instance of Stream
      */
-    Fifo        send(const eTypeLog &type, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
+    Stream          send(const eTypeLog &type, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
     {
-        return Fifo(*this, type, sourceInfos);
+        return Stream(*this, type, sourceInfos);
     }
 
     /**
-     * @brief Function send with type and optionnal SourceInfos for macro functions
+     * @brief Function send with type, SourceInfos and format style printf for macro functions
+     * 
+     * @param type 
+     * @param sourceInfos 
+     * @return Stream : temporary instance of Stream
+     */
+    template<typename T>
+    Stream          send(const eTypeLog &type, const SourceInfos &sourceInfos, const T &var) const
+    {
+        Stream stream(*this, type, sourceInfos);
+        stream << var;
+        return stream;
+    }
+
+    /**
+     * @brief Function send with type and SourceInfos for macro functions
      * and format style printf
      * 
      * @param type 
      * @param sourceInfos 
      * @param format 
      * @param ... 
-     * @return Fifo : temporary instance of Fifo
+     * @return Stream : temporary instance of Stream
      */
-    Fifo        send(const eTypeLog &type, const SourceInfos &sourceInfos, const char *format, ...) const __attribute__((__format__(__printf__, 4, 5)))
+    Stream          send(const eTypeLog &type, const SourceInfos &sourceInfos, const char *format, ...) const __attribute__((__format__(__printf__, 4, 5)))
     {
         char        buffer[LFORMAT_BUFFER_SIZE];
-        Fifo        fifo(*this, type, sourceInfos);
+        Stream      stream(*this, type, sourceInfos);
         va_list     vargs;
         va_start(vargs, format);
-        fifo.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
+        stream.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
         va_end(vargs);
-        return fifo;
+        return stream;
     }
 
     #define LFUNCTION_TYPE(_type, _func)                                                                \
-    Fifo        _func(void) const                                                                   \
+    Stream          _func(void) const                                                                   \
     {                                                                                                   \
-        return Fifo(*this, eTypeLog::_type);                                                        \
+        return Stream(*this, eTypeLog::_type);                                                          \
     }                                                                                                   \
-    Fifo        _func(const char *format, ...) const __attribute__((__format__(__printf__, 2, 3)))  \
+    Stream          _func(const char *format, ...) const __attribute__((__format__(__printf__, 2, 3)))  \
     {                                                                                                   \
         char        buffer[LFORMAT_BUFFER_SIZE];                                                        \
-        Fifo    fifo(*this, eTypeLog::_type);                                                       \
+        Stream      stream(*this, eTypeLog::_type);                                                     \
         va_list     vargs;                                                                              \
         va_start(vargs, format);                                                                        \
-        fifo.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));             \
+        stream.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));           \
         va_end(vargs);                                                                                  \
-        return fifo;                                                                                    \
+        return stream;                                                                                  \
     }                                                                                                   \
     template<typename T>                                                                                \
-    Fifo        _func(const T& var) const                                                           \
+    Stream          _func(const T& var) const                                                           \
     {                                                                                                   \
-        Fifo fifo(*this, eTypeLog::_type);                                                          \
-        fifo << var;                                                                                    \
-        return fifo;                                                                                    \
+        Stream stream(*this, eTypeLog::_type);                                                          \
+        stream << var;                                                                                  \
+        return stream;                                                                                  \
     }
 
     LFUNCTION_TYPE(DEBUG,   debug);
@@ -1105,60 +1027,38 @@ public:
     /*************************************************************************/
 
     /**
-     * @brief override operator [] to object
-     * 
-     * @param type 
-     * @return Fifo : temporary instance of Fifo
-     */
-    Fifo        operator[](const eTypeLog &type) const
-    {
-        return Fifo(*this, type);
-    }
-
-    /**
-     * @brief override operator [] to object
-     * 
-     * @param sourceInfos 
-     * @return Fifo : temporary instance of Fifo
-     */
-    Fifo        operator[](const SourceInfos &sourceInfos) const
-    {
-        return Fifo(*this, eTypeLog::DEBUG, sourceInfos);
-    }
-
-    /**
      * @brief override operator << to object
      * 
      * @param type 
-     * @return Fifo : temporary instance of Fifo
+     * @return Stream : temporary instance of Stream
      */
-    Fifo        operator<<(const eTypeLog &type) const
+    Stream          operator<<(const eTypeLog &type) const
     {
-        return Fifo(*this, type);
+        return Stream(*this, type);
     }
 
     /**
      * @brief override operator << to object
      * 
      * @param sourceInfos 
-     * @return Fifo : temporary instance of Fifo
+     * @return Stream : temporary instance of Stream
      */
-    Fifo        operator<<(const SourceInfos &sourceInfos) const
+    Stream          operator<<(const SourceInfos &sourceInfos) const
     {
-        return Fifo(*this, eTypeLog::DEBUG, sourceInfos);
+        return Stream(*this, eTypeLog::DEBUG, sourceInfos);
     }
 
     /**
      * @brief overide operator << to object
      * 
      * @param manip function pointer (std::endl, std::flush, ...)
-     * @return Fifo : temporary instance of Fifo
+     * @return Stream : temporary instance of Stream
      */
-    Fifo        operator<<(std::ostream&(*manip)(std::ostream&)) const
+    Stream          operator<<(std::ostream&(*manip)(std::ostream&)) const
     {
-        Fifo fifo(*this);
-        fifo << manip;
-        return fifo;
+        Stream stream(*this);
+        stream << manip;
+        return stream;
     }
 
     /**
@@ -1166,24 +1066,24 @@ public:
      * 
      * @tparam T 
      * @param var 
-     * @return Fifo : temporary instance of Fifo
+     * @return Stream : temporary instance of Stream
      */
     template<typename T>
-    Fifo        operator<<(const T &var) const
+    Stream          operator<<(const T &var) const
     {
-        Fifo fifo(*this);
-        fifo << var;
-        return fifo;
+        Stream stream(*this);
+        stream << var;
+        return stream;
     }
 
     /**
      * @brief override operator () to object
      * 
-     * @return Fifo : temporary instance of Fifo
+     * @return Stream : temporary instance of Stream
      */
-    Fifo        operator()(void) const
+    Stream          operator()(void) const
     {
-        return Fifo(*this);
+        return Stream(*this);
     }
 
     /**
@@ -1191,17 +1091,17 @@ public:
      * 
      * @param format 
      * @param ... 
-     * @return Fifo : temporary instance of Fifo
+     * @return Stream : temporary instance of Stream
      */
-    Fifo        operator()(const char * format, ...) const __attribute__((__format__(__printf__, 2, 3)))
+    Stream          operator()(const char * format, ...) const __attribute__((__format__(__printf__, 2, 3)))
     {
         char        buffer[LFORMAT_BUFFER_SIZE];
-        Fifo    fifo(*this);
+        Stream      stream(*this);
         va_list     vargs;
         va_start(vargs, format);
-        fifo.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
+        stream.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
         va_end(vargs);
-        return fifo;
+        return stream;
     }
 
     /**
@@ -1209,14 +1109,14 @@ public:
      * 
      * @tparam T 
      * @param var 
-     * @return Fifo : temporary instance of Fifo
+     * @return Stream : temporary instance of Stream
      */
     template<typename T>
-    Fifo        operator()(const T& var) const
+    Stream          operator()(const T& var) const
     {
-        Fifo fifo(*this);
-        fifo << var;
-        return fifo;
+        Stream stream(*this);
+        stream << var;
+        return stream;
     }
 
     /**
@@ -1224,22 +1124,22 @@ public:
      * 
      * @param type 
      * @param sourceInfos 
-     * @return Fifo : temporary instance of Fifo
+     * @return Stream : temporary instance of Stream
      */
-    Fifo        operator()(const eTypeLog &type, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
+    Stream          operator()(const eTypeLog &type, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) const
     {
-        return Fifo(*this, type, sourceInfos);
+        return Stream(*this, type, sourceInfos);
     }
 
     /**
      * @brief override operator () to object
      * 
      * @param sourceInfos 
-     * @return Fifo : temporary instance of Fifo
+     * @return Stream : temporary instance of Stream
      */
-    Fifo        operator()(const SourceInfos &sourceInfos) const
+    Stream          operator()(const SourceInfos &sourceInfos) const
     {
-        return Fifo(*this, eTypeLog::DEBUG, sourceInfos);
+        return Stream(*this, eTypeLog::DEBUG, sourceInfos);
     }
 
     /**
@@ -1248,17 +1148,17 @@ public:
      * @param type 
      * @param format 
      * @param ... 
-     * @return Fifo : temporary instance of Fifo
+     * @return Stream : temporary instance of Stream
      */
-    Fifo        operator()(const eTypeLog &type, const char * format, ...) const __attribute__((__format__(__printf__, 3, 4)))
+    Stream          operator()(const eTypeLog &type, const char * format, ...) const __attribute__((__format__(__printf__, 3, 4)))
     {
         char        buffer[LFORMAT_BUFFER_SIZE];
-        Fifo    fifo(*this, type);
+        Stream      stream(*this, type);
         va_list     vargs;
         va_start(vargs, format);
-        fifo.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
+        stream.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
         va_end(vargs);
-        return fifo;
+        return stream;
     }
 
     /**
@@ -1268,17 +1168,17 @@ public:
      * @param sourceInfos 
      * @param format 
      * @param ... 
-     * @return Fifo : temporary instance of Fifo
+     * @return Stream : temporary instance of Stream
      */
-    Fifo        operator()(const eTypeLog &type, const SourceInfos &sourceInfos, const char * format, ...) const __attribute__((__format__(__printf__, 4, 5)))
+    Stream          operator()(const eTypeLog &type, const SourceInfos &sourceInfos, const char * format, ...) const __attribute__((__format__(__printf__, 4, 5)))
     {
         char        buffer[LFORMAT_BUFFER_SIZE];
-        Fifo    fifo(*this, type, sourceInfos);
+        Stream      stream(*this, type, sourceInfos);
         va_list     vargs;
         va_start(vargs, format);
-        fifo.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
+        stream.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
         va_end(vargs);
-        return fifo;
+        return stream;
     }
 
     /**
@@ -1287,14 +1187,30 @@ public:
      * @tparam T 
      * @param type 
      * @param var 
-     * @return Fifo : temporary instance of Fifo
+     * @return Stream : temporary instance of Stream
      */
     template<typename T>
-    Fifo        operator()(const eTypeLog &type, const T& var) const
+    Stream          operator()(const eTypeLog &type, const T& var) const
     {
-        Fifo fifo(*this, type);
-        fifo << var;
-        return fifo;
+        Stream stream(*this, type);
+        stream << var;
+        return stream;
+    }
+
+    /**
+     * @brief override operator () to object
+     * 
+     * @tparam T 
+     * @param type 
+     * @param var 
+     * @return Stream : temporary instance of Stream
+     */
+    template<typename T>
+    Stream          operator()(const eTypeLog &type, const SourceInfos &sourceInfos, const T& var) const
+    {
+        Stream stream(*this, type, sourceInfos);
+        stream << var;
+        return stream;
     }
 
 protected:
@@ -1317,7 +1233,7 @@ protected:
      * @param type 
      * @param source 
      */
-    void            sendToStream(const std::string &str, const eTypeLog &type, const SourceInfos &source) const
+    void            sendToOutStream(const std::string &str, const eTypeLog &type, const SourceInfos &source) const
     {
         const TimeInfo timeInfo = getCurrentTimeInfo();
         if (_outStream != nullptr && _mute == false && _filter & static_cast<int>(type))
@@ -1330,10 +1246,11 @@ protected:
                 while (indexNewLine != std::string::npos)
                 {
                     const std::string &sub = str.substr(indexSub, ++indexNewLine - indexSub);
-                    _outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(sub.c_str(), sub.size()).flush();
+                    _outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(sub.c_str(), sub.size());
                     indexSub = indexNewLine;
                     indexNewLine = str.find('\n', indexSub);
                 }
+                _outStream->flush();
             #else
                 _outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(str.c_str(), str.size()).flush();
             #endif
@@ -1379,10 +1296,11 @@ protected:
                     while (indexNewLine != std::string::npos)
                     {
                         const std::string &sub = str.substr(indexSub, ++indexNewLine - indexSub);
-                        child->_outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(sub.c_str(), sub.size()).flush();
+                        child->_outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(sub.c_str(), sub.size());
                         indexSub = indexNewLine;
                         indexNewLine = str.find('\n', indexSub);
                     }
+                    child->_outStream->flush();
                 #else
                     child->_outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(str.c_str(), str.size()).flush();
                 #endif
@@ -1412,7 +1330,8 @@ protected:
             std::snprintf(bufferFormatTime, 7, "%06ld", infos.msec);
             retStr.replace(findPos, sizeof("%N") - 1, bufferFormatTime, 6);
         }
-        return std::string(bufferFormatTime, 0, std::strftime(bufferFormatTime, LFORMAT_BUFFER_SIZE - 1, retStr.c_str(), &infos.tm));
+        std::strftime(bufferFormatTime, LFORMAT_BUFFER_SIZE - 1, retStr.c_str(), &infos.tm);
+        return std::string(bufferFormatTime);
     }
 
     /**
@@ -1532,13 +1451,13 @@ protected:
     {
         std::string prompt = _format;
         // search first occurrence of '{'
-        std::size_t indexStart = prompt.find('{');
+        std::size_t indexStart = prompt.find(-41);
         std::size_t indexEnd;
         std::string stringThreadID;
         while (indexStart != std::string::npos)
         {
             // search first occurrence of '}' after indexStart
-            indexEnd = prompt.find('}', indexStart);
+            indexEnd = prompt.find(-42, indexStart);
             if (indexEnd == std::string::npos)
                 break;
             // get name of key
@@ -1605,7 +1524,7 @@ protected:
                 else
                     prompt.replace(indexStart, key.size() + 2, formatCustomKey(mapCustomValueKey, stringThreadID, key));
             }
-            indexStart = prompt.find('{', indexStart);
+            indexStart = prompt.find(-41, indexStart);
         }
         return prompt;
     }

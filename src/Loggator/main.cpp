@@ -95,7 +95,7 @@ class Test
             i_log(Log::eTypeLog::INFO, "%s", "test4");
             i_log(Log::eTypeLog::INFO, "%s%i", "test", 5) << " extra.";
             i_log << "test6";
-            i_log[Log::eTypeLog::INFO] << "test7";
+            i_log(Log::eTypeLog::INFO) << "test7";
             i_log << "test8" << Log::eTypeLog::INFO;
             i_log << "test9" << LSOURCEINFOS << Log::eTypeLog::INFO << " " << __PRETTY_FUNCTION__;
         }
@@ -109,14 +109,14 @@ int     main(void)
 
     {
         Loggator logExample(eFilterLog::EQUAL_DEBUG | eFilterLog::EQUAL_WARN | eFilterLog::EQUAL_FATAL);
-        logExample[eTypeLog::DEBUG] << "example Debug"; // OK
-        logExample[eTypeLog::INFO]  << "example Info";  //    KO
-        logExample[eTypeLog::WARN]  << "example Warn";  // OK
-        logExample[eTypeLog::ERROR] << "example Error"; //    KO
-        logExample[eTypeLog::CRIT]  << "example Crit";  //    KO
-        logExample[eTypeLog::ALERT] << "example Alert"; //    KO
-        logExample[eTypeLog::EMERG] << "example Emerg"; //    KO
-        logExample[eTypeLog::FATAL] << "example Fatal"; // OK
+        logExample(eTypeLog::DEBUG) << "example Debug"; // OK
+        logExample(eTypeLog::INFO)  << "example Info";  //    KO
+        logExample(eTypeLog::WARN)  << "example Warn";  // OK
+        logExample(eTypeLog::ERROR) << "example Error"; //    KO
+        logExample(eTypeLog::CRIT)  << "example Crit";  //    KO
+        logExample(eTypeLog::ALERT) << "example Alert"; //    KO
+        logExample(eTypeLog::EMERG) << "example Emerg"; //    KO
+        logExample(eTypeLog::FATAL) << "example Fatal"; // OK
     }
     // Loggator logDebug("debug", "Debug.log", std::ios::trunc, eFilterLog::GREATER_EQUAL_DEBUG);
     // Loggator logInfo( "info",  "Info.log",  std::ios::trunc, eFilterLog::GREATER_EQUAL_INFO);
@@ -180,7 +180,7 @@ int     main(void)
 
     Loggator logExample("example", std::cout);
     // Test t(logExample);
-    logExample.setFormat("{TIME:%S.%N} {TYPE:[%5s]}: {LINE:%s: }");
+    logExample.setFormat("{TIME:%N} ");
     logExample("%s", "test1");
     logExample(eTypeLog::INFO, LSOURCEINFOS) << "test2";
     logExample(eTypeLog::WARN, "test3");
@@ -188,14 +188,15 @@ int     main(void)
     logExample(eTypeLog::INFO, LSOURCEINFOS, "%s%i", "test", 5) << " extra.";
     logExample();
     logExample << "test6";
-    logExample[eTypeLog::INFO] << "test7";
+    logExample(eTypeLog::INFO) << "test7" << LSOURCEINFOS;
     logExample << "test8" << eTypeLog::INFO;
     logExample << "test9" << eTypeLog::INFO << LSOURCEINFOS;
+    logExample.LCRIT(std::string("test10"));
 
     // t.test();
 
     Loggator logg("main", std::cout);
-    logg.setFormat("{TIME} {TYPE:[%5s]}: {NAME:%6s} {testThreadKey:<%.3s>} {testMainKeyThread:<%.3s>} {FUNC}{LINE::%s: }");
+    logg.setFormat("{TIME} {TYPE:[%-5s]}: {NAME:{%6s}} {testThreadKey:<%.3s>} {testMainKeyThread:<%.3s>} {FUNC:%s:}{LINE:%s: }");
     logg.setKey("testMainKeyThread", "+-+");
     Loggator::getInstance("main") << "with instance";
     Loggator::getInstance("main") << "no thread key";
@@ -207,7 +208,7 @@ int     main(void)
     Loggator::getInstance("main") << "no thread key";
     Loggator::getInstance("main") << "no thread key";
     Loggator::getInstance("main") << "without instance";
-    logg[eTypeLog::INFO][eTypeLog::DEBUG] << "no thread key";
+    // logg[eTypeLog::INFO][eTypeLog::DEBUG] << "no thread key";
     logg << "no thread key";
     logg << "no thread key";
     logg << "no thread key";
@@ -220,10 +221,11 @@ int     main(void)
     LOGGATOR("main", WARNING, "test") << "3";
     std::string str = "6";
     LOGGATOR("main", INFO, "%s", str.c_str()) << "3";
-        logg(eTypeLog::ALERT)(42)(' ')(4.5);
+        // logg(eTypeLog::ALERT)(42)(' ')(4.5);
 
     Loggator logg2("main2", logg);
 
+    logg.setKey("testThreadKey", "");
     std::thread tthread[4];
     tthread[0] = std::thread([&]{
         logg.setKey("testThreadKey", "0");
@@ -268,10 +270,15 @@ int     main(void)
     LOGGATOR("main").LINFO("-est");
     LOGGATOR("main").LINFO("-est");
     LOGGATOR("main").LINFO("-est");
-    Loggator::Fifo test = LOGGATOR("main").LINFO("-est");
-    test.write(" test", 5);
-    test << LSOURCEINFOS;
-    test.send();
+    Loggator &ttt = LOGGATOR("main");
+    ttt.LINFO() << "2 test";
+    ttt.LINFO() << "2 test";
+    ttt.LINFO() << "2 test";
+    ttt.LINFO() << "2 test";
+    ttt.LINFO() << "2 test";
+    ttt.LINFO() << "2 test";
+    ttt.LINFO() << "2 test";
+    ttt.LINFO() << "2 test";
     LOGGATOR("main").LINFO("-est");
     // for (int i=0;i<1000000;i++)
         // logg();

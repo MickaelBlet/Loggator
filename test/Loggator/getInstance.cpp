@@ -7,7 +7,7 @@
 # define CLEAR_STRINGSTREAM(ss) ss.clear(); ss.str("")
 #endif
 
-// TEST(Loggator, DISABLED_setFormat)
+// TEST(Loggator, DISABLED_getInstance)
 TEST(Loggator, getInstance)
 {
     using namespace Log;

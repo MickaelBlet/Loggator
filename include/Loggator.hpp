@@ -18,6 +18,7 @@
 # include <mutex>           // mutex, lock_guard
 # include <thread>          // this_thread::get_id
 # include <unordered_map>   // unordered_map
+# include <vector>          // vector
 # include <set>             // set
 
 # define LFORMAT_BUFFER_SIZE     1024
@@ -234,6 +235,10 @@ private:
         _type(type),
         _sourceInfos(sourceInfos)
         {
+            // get thread id
+            std::stringstream streamThreadID;
+            streamThreadID << std::hex << std::uppercase << std::this_thread::get_id();
+            _stringThreadID = streamThreadID.str();
             return ;
         }
 
@@ -254,7 +259,7 @@ private:
                 std::string cacheStr = _cacheStream.str();
                 if (cacheStr.back() != '\n')
                     cacheStr += '\n';
-                _log.sendToOutStream(cacheStr, _type, _sourceInfos);
+                _log.sendToOutStream(cacheStr, _type, _sourceInfos, _stringThreadID);
             }
             return ;
         }
@@ -333,6 +338,7 @@ private:
         const Loggator      &_log;
         eTypeLog            _type;
         SourceInfos         _sourceInfos;
+        std::string         _stringThreadID;
 
     }; // end class Stream
 
@@ -346,6 +352,7 @@ public:
     _name(std::string()),
     _filter(eFilterLog::ALL),
     _outStream(&std::cerr),
+    _indexTimeNano(std::string::npos),
     _mute(false)
     {
         setFormat(LDEFAULT_FORMAT);
@@ -361,6 +368,7 @@ public:
     _name(std::string()),
     _filter(filter),
     _outStream(&std::cerr),
+    _indexTimeNano(std::string::npos),
     _mute(false)
     {
         setFormat(LDEFAULT_FORMAT);
@@ -377,6 +385,7 @@ public:
     _name(std::string()),
     _filter(filter),
     _outStream(&oStream),
+    _indexTimeNano(std::string::npos),
     _mute(false)
     {
         setFormat(LDEFAULT_FORMAT);
@@ -396,6 +405,7 @@ public:
     _filter(filter),
     _fileStream(path, std::ofstream::out | openMode),
     _outStream(&std::cerr),
+    _indexTimeNano(std::string::npos),
     _mute(false)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
@@ -422,6 +432,7 @@ public:
     _name(name),
     _filter(filter),
     _outStream(&oStream),
+    _indexTimeNano(std::string::npos),
     _mute(false)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
@@ -446,6 +457,7 @@ public:
     _filter(loggator._filter),
     _format(loggator._format),
     _outStream(nullptr),
+    _indexTimeNano(loggator._indexTimeNano),
     _mute(loggator._mute)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
@@ -474,6 +486,7 @@ public:
     _filter(loggator._filter),
     _format(loggator._format),
     _outStream(nullptr),
+    _indexTimeNano(loggator._indexTimeNano),
     _mute(loggator._mute)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
@@ -497,6 +510,7 @@ public:
         std::lock_guard<std::mutex> lockGuardParent(rhs._mutex);
         this->_filter = rhs._filter;
         this->_format = rhs._format;
+        this->_indexTimeNano = rhs._indexTimeNano;
         this->_mute = rhs._mute;
         for (Loggator *child : rhs._logChilds)
         {
@@ -749,6 +763,7 @@ public:
     void            setFormat(const std::string &format)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
+        _mapIndexFormatKey.clear();
         _format = format;
         // escape character and replace code character
         for (std::size_t i = 0; i < _format.size(); i++)
@@ -792,11 +807,21 @@ public:
                 const std::string &key = _format.substr(indexStart + 1, indexEnd - indexStart - 1);
                 // if key is specific "TIME" set default format
                 if (key == "TIME")
+                {
                     _mapCustomFormatKey[key] = LDEFAULT_TIME_FORMAT;
+                    _indexTimeNano = _mapCustomFormatKey.at(key).find("%N");
+                    if (_indexTimeNano != std::string::npos)
+                        _mapCustomFormatKey.at(key).erase(_indexTimeNano, 2);
+                }
                 else
+                {
                     _mapCustomFormatKey[key] = "%s";
+                }
+                _mapIndexFormatKey.push_back(std::move(std::pair<std::string, std::size_t>(key, indexStart)));
+                // erase the full key in string object _format [{...}]
+                _format.erase(indexStart, indexEnd - indexStart + 1);
                 // jump to next occurrence '{' after indexStart + 1
-                indexStart = _format.find(-41, indexStart + 1);
+                indexStart = _format.find(-41, indexStart);
                 continue;
             }
             // get name of key {[...]:...}
@@ -815,10 +840,18 @@ public:
             }
             // add new format key in custom key map
             _mapCustomFormatKey[key] = std::move(formatKey);
-            // erase the format key in string object _format {...[:...]}
-            _format.erase(indexFormat, indexEnd - indexFormat);
+            // if key is specific "TIME" get index of time nano
+            if (key == "TIME")
+            {
+                _indexTimeNano = _mapCustomFormatKey.at(key).find("%N");
+                if (_indexTimeNano != std::string::npos)
+                    _mapCustomFormatKey.at(key).erase(_indexTimeNano, 2);
+            }
+            _mapIndexFormatKey.push_back(std::move(std::pair<std::string, std::size_t>(key, indexStart)));
+            // erase the full key in string object _format [{...:...}]
+            _format.erase(indexStart, indexEnd - indexStart + 1);
             // jump to next occurrence '{' after indexStart + 1
-            indexStart = _format.find(-41, indexStart + 1);
+            indexStart = _format.find(-41, indexStart);
         }
         // replace no print character by real
         bool inBracette = false;
@@ -1233,33 +1266,32 @@ protected:
      * @param type 
      * @param source 
      */
-    void            sendToOutStream(const std::string &str, const eTypeLog &type, const SourceInfos &source) const
+    void            sendToOutStream(const std::string &str, const eTypeLog &type, const SourceInfos &source, const std::string &stringThreadID) const
     {
         const TimeInfo timeInfo = getCurrentTimeInfo();
         if (_outStream != nullptr && _mute == false && _filter & static_cast<int>(type))
         {
             _mutex.lock();
-            std::string tmpPrompt = prompt(this->_name, type, timeInfo, source, _mapCustomValueKey);
+            std::string tmpPrompt = prompt(this->_name, type, timeInfo, source, stringThreadID, _mapCustomValueKey);
             #ifdef LALWAYS_FORMAT_AT_NEWLINE
                 std::size_t indexSub = 0;
                 std::size_t indexNewLine = str.find('\n');
                 while (indexNewLine != std::string::npos)
                 {
-                    const std::string &sub = str.substr(indexSub, ++indexNewLine - indexSub);
-                    _outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(sub.c_str(), sub.size());
+                    (*_outStream) << tmpPrompt << str.substr(indexSub, ++indexNewLine - indexSub);
                     indexSub = indexNewLine;
                     indexNewLine = str.find('\n', indexSub);
                 }
-                _outStream->flush();
+                (*_outStream) << std::flush;
             #else
-                _outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(str.c_str(), str.size()).flush();
+                (*_outStream) << tmpPrompt << str << std::flush;
             #endif
             _mutex.unlock();
         }
         if (_logChilds.empty())
             return;
         std::set<const Loggator*> tmpsetLog = {this};
-        sendChild(tmpsetLog, *this, this->_name, type, timeInfo, source, str);
+        sendChild(tmpsetLog, *this, this->_name, type, timeInfo, source, stringThreadID, str);
     }
 
     /**
@@ -1273,7 +1305,7 @@ protected:
      * @param source 
      * @param str 
      */
-    void            sendChild(std::set<const Loggator*> &setLog, const Loggator &loggator, const std::string &name, const eTypeLog &type, const TimeInfo &timeInfo, const SourceInfos &source, const std::string &str) const
+    void            sendChild(std::set<const Loggator*> &setLog, const Loggator &loggator, const std::string &name, const eTypeLog &type, const TimeInfo &timeInfo, const SourceInfos &source, const std::string &stringThreadID, const std::string &str) const
     {
         // create a cpy of LogChild for no dead lock
         loggator._mutex.lock();
@@ -1288,27 +1320,26 @@ protected:
             {
                 child->_mutex.lock();
                 _mutex.lock();
-                std::string tmpPrompt = child->prompt(name, type, timeInfo, source, _mapCustomValueKey);
+                std::string tmpPrompt = child->prompt(name, type, timeInfo, source, stringThreadID, _mapCustomValueKey);
                 _mutex.unlock();
                 #ifdef LALWAYS_FORMAT_AT_NEWLINE
                     std::size_t indexSub = 0;
                     std::size_t indexNewLine = str.find('\n');
                     while (indexNewLine != std::string::npos)
                     {
-                        const std::string &sub = str.substr(indexSub, ++indexNewLine - indexSub);
-                        child->_outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(sub.c_str(), sub.size());
+                        (*child->_outStream) << tmpPrompt << str.substr(indexSub, ++indexNewLine - indexSub);
                         indexSub = indexNewLine;
                         indexNewLine = str.find('\n', indexSub);
                     }
-                    child->_outStream->flush();
+                    (*child->_outStream) << std::flush;
                 #else
-                    child->_outStream->write(tmpPrompt.c_str(), tmpPrompt.size()).write(str.c_str(), str.size()).flush();
+                    (*child->_outStream) << tmpPrompt << str << std::flush;
                 #endif
                 child->_mutex.unlock();
             }
             if (child->_logChilds.empty())
                 continue;
-            sendChild(setLog, *child, name, type, timeInfo, source, str);
+            sendChild(setLog, *child, name, type, timeInfo, source, stringThreadID, str);
         }
     }
 
@@ -1324,14 +1355,12 @@ protected:
 
         std::string retStr = _mapCustomFormatKey.at("TIME");
 
-        std::size_t findPos = retStr.find("%N");
-        if (findPos != std::string::npos)
+        if (_indexTimeNano != std::string::npos)
         {
             std::snprintf(bufferFormatTime, 7, "%06ld", infos.msec);
-            retStr.replace(findPos, sizeof("%N") - 1, bufferFormatTime, 6);
+            retStr.insert(_indexTimeNano, bufferFormatTime, 6);
         }
-        std::strftime(bufferFormatTime, LFORMAT_BUFFER_SIZE - 1, retStr.c_str(), &infos.tm);
-        return std::string(bufferFormatTime);
+        return std::string(bufferFormatTime, 0, std::strftime(bufferFormatTime, LFORMAT_BUFFER_SIZE - 1, retStr.c_str(), &infos.tm));
     }
 
     /**
@@ -1406,13 +1435,19 @@ protected:
         std::unordered_map<std::string, std::string>::const_iterator itValueMap;
         itValueMap = mapCustomValueKey.find(threadId + key);
         if (itValueMap == mapCustomValueKey.end())
+        {
             itValueMap = mapCustomValueKey.find(key);
-        if (itValueMap == mapCustomValueKey.end())
-            itValueMap = _mapCustomValueKey.find(threadId + key);
-        if (itValueMap == _mapCustomValueKey.end())
-            itValueMap = _mapCustomValueKey.find(key);
-        if (itValueMap == _mapCustomValueKey.end())
-            return "";
+            if (itValueMap == mapCustomValueKey.end())
+            {
+                itValueMap = _mapCustomValueKey.find(threadId + key);
+                if (itValueMap == _mapCustomValueKey.end())
+                {
+                    itValueMap = _mapCustomValueKey.find(key);
+                    if (itValueMap == _mapCustomValueKey.end())
+                        return "";
+                }
+            }
+        }
         if (itValueMap->second.empty())
             return "";
         char buffer[LFORMAT_KEY_BUFFER_SIZE];
@@ -1430,11 +1465,8 @@ protected:
     {
         if (value.empty())
             return "";
-        std::unordered_map<std::string, std::string>::const_iterator itMap = _mapCustomFormatKey.find(key);
-        if (itMap == _mapCustomFormatKey.end())
-            return value;
         char buffer[LFORMAT_KEY_BUFFER_SIZE];
-        return std::string(buffer, 0, std::snprintf(buffer, LFORMAT_KEY_BUFFER_SIZE - 1, itMap->second.c_str(), value.c_str()));
+        return std::string(buffer, 0, std::snprintf(buffer, LFORMAT_KEY_BUFFER_SIZE - 1, _mapCustomFormatKey.at(key).c_str(), value.c_str()));
     }
 
     /**
@@ -1447,84 +1479,81 @@ protected:
      * @param source 
      * @return std::string 
      */
-    std::string     prompt(const std::string &name, const eTypeLog &type, const TimeInfo &timeInfo, const SourceInfos &source, const std::unordered_map<std::string, std::string> &mapCustomValueKey) const
+    std::string     prompt(const std::string &name, const eTypeLog &type, const TimeInfo &timeInfo, const SourceInfos &source, const std::string &stringThreadID, const std::unordered_map<std::string, std::string> &mapCustomValueKey) const
     {
         std::string prompt = _format;
-        // search first occurrence of '{'
-        std::size_t indexStart = prompt.find(-41);
-        std::size_t indexEnd;
-        std::string stringThreadID;
-        while (indexStart != std::string::npos)
+        std::size_t index = 0;
+        for (const std::pair<std::string, std::size_t> &itemFormatKey : _mapIndexFormatKey)
         {
-            // search first occurrence of '}' after indexStart
-            indexEnd = prompt.find(-42, indexStart);
-            if (indexEnd == std::string::npos)
-                break;
-            // get name of key
-            const std::string &key = prompt.substr(indexStart + 1, indexEnd - indexStart - 1);
-            if (key == "TIME")
+            if (itemFormatKey.first == "TIME")
             {
-                prompt.replace(indexStart, sizeof("TIME") + 1, formatTime(timeInfo));
+                std::string tmpStr = formatTime(timeInfo);
+                prompt.insert(itemFormatKey.second + index, tmpStr);
+                index += tmpStr.size();
             }
-            else if (key == "TYPE")
+            else if (itemFormatKey.first == "TYPE")
             {
-                prompt.replace(indexStart, sizeof("TYPE") + 1, formatKey(key, typeToStr(type)));
+                std::string tmpStr = formatKey(itemFormatKey.first, typeToStr(type));
+                prompt.insert(itemFormatKey.second + index, tmpStr);
+                index += tmpStr.size();
             }
-            else if (key == "NAME")
+            else if (itemFormatKey.first == "NAME")
             {
-                prompt.replace(indexStart, sizeof("NAME") + 1, formatKey(key, name));
+                if (name.empty())
+                    continue;
+                std::string tmpStr = formatKey(itemFormatKey.first, name);
+                prompt.insert(itemFormatKey.second + index, tmpStr);
+                index += tmpStr.size();
             }
-            else if (key == "FUNC")
+            else if (itemFormatKey.first == "FUNC")
             {
-                if (source.func != nullptr)
-                    prompt.replace(indexStart, sizeof("FUNC") + 1, formatKey(key, source.func));
+                if (source.func == nullptr)
+                    continue;
+                std::string tmpStr = formatKey(itemFormatKey.first, source.func);
+                prompt.insert(itemFormatKey.second + index, tmpStr);
+                index += tmpStr.size();
+            }
+            else if (itemFormatKey.first == "PATH")
+            {
+                if (source.filename == nullptr)
+                    continue;
+                std::string tmpStr = formatKey(itemFormatKey.first, source.filename);
+                prompt.insert(itemFormatKey.second + index, tmpStr);
+                index += tmpStr.size();
+            }
+            else if (itemFormatKey.first == "FILE")
+            {
+                if (source.filename == nullptr)
+                    continue;
+                const char *rchr = strrchr(source.filename, '/');
+                if (rchr == nullptr)
+                    rchr = source.filename;
                 else
-                    prompt.erase(indexStart, sizeof("FUNC") + 1);
+                    ++rchr;
+                std::string tmpStr = formatKey(itemFormatKey.first, rchr);
+                prompt.insert(itemFormatKey.second + index, tmpStr);
+                index += tmpStr.size();
             }
-            else if (key == "PATH")
+            else if (itemFormatKey.first == "LINE")
             {
-                if (source.filename != nullptr)
-                    prompt.replace(indexStart, sizeof("PATH") + 1, formatKey(key, source.filename));
-                else
-                    prompt.erase(indexStart, sizeof("PATH") + 1);
+                if (source.line == 0)
+                    continue;
+                std::string tmpStr = formatKey(itemFormatKey.first, std::to_string(source.line));
+                prompt.insert(itemFormatKey.second + index, tmpStr);
+                index += tmpStr.size();
             }
-            else if (key == "FILE")
+            else if (itemFormatKey.first == "THREAD_ID")
             {
-                if (source.filename != nullptr)
-                {
-                    const char *rchr = strrchr(source.filename, '/');
-                    if (rchr != nullptr)
-                        prompt.replace(indexStart, sizeof("FILE") + 1, formatKey(key, source.filename + (rchr - source.filename) + 1));
-                    else
-                        prompt.replace(indexStart, sizeof("FILE") + 1, formatKey(key, source.filename));
-                }
-                else
-                {
-                    prompt.erase(indexStart, sizeof("FILE") + 1);
-                }
-            }
-            else if (key == "LINE")
-            {
-                if (source.line > 0)
-                    prompt.replace(indexStart, sizeof("LINE") + 1, formatKey(key, std::to_string(source.line)));
-                else
-                    prompt.erase(indexStart, sizeof("LINE") + 1);
+                std::string tmpStr = formatKey(itemFormatKey.first, stringThreadID);
+                prompt.insert(itemFormatKey.second + index, tmpStr);
+                index += tmpStr.size();
             }
             else
             {
-                if (stringThreadID.empty())
-                {
-                    // get thread id
-                    std::stringstream streamThreadID;
-                    streamThreadID << std::hex << std::uppercase << std::this_thread::get_id();
-                    stringThreadID = streamThreadID.str();
-                }
-                if (key == "THREAD_ID")
-                    prompt.replace(indexStart, sizeof("THREAD_ID") + 1, formatKey(key, stringThreadID));
-                else
-                    prompt.replace(indexStart, key.size() + 2, formatCustomKey(mapCustomValueKey, stringThreadID, key));
+                std::string tmpStr = formatCustomKey(mapCustomValueKey, stringThreadID, itemFormatKey.first);
+                prompt.insert(itemFormatKey.second + index, tmpStr);
+                index += tmpStr.size();
             }
-            indexStart = prompt.find(-41, indexStart);
         }
         return prompt;
     }
@@ -1561,6 +1590,8 @@ protected:
     std::set<Loggator*>                             _logParents;
     std::set<Loggator*>                             _logChilds;
     mutable std::mutex                              _mutex;
+    std::size_t                                     _indexTimeNano;
+    std::vector<std::pair<std::string, std::size_t>>_mapIndexFormatKey;
     std::unordered_map<std::string, std::string>    _mapCustomFormatKey;
     std::unordered_map<std::string, std::string>    _mapCustomValueKey;
     bool                                            _mute;

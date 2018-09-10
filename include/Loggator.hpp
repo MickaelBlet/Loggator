@@ -235,10 +235,6 @@ private:
         _type(type),
         _sourceInfos(sourceInfos)
         {
-            // get thread id
-            std::stringstream streamThreadID;
-            streamThreadID << std::hex << std::uppercase << std::this_thread::get_id();
-            _stringThreadID = streamThreadID.str();
             return ;
         }
 
@@ -259,7 +255,7 @@ private:
                 std::string cacheStr = _cacheStream.str();
                 if (cacheStr.back() != '\n')
                     cacheStr += '\n';
-                _log.sendToOutStream(cacheStr, _type, _sourceInfos, _stringThreadID);
+                _log.sendToOutStream(cacheStr, _type, _sourceInfos);
             }
             return ;
         }
@@ -338,7 +334,6 @@ private:
         const Loggator      &_log;
         eTypeLog            _type;
         SourceInfos         _sourceInfos;
-        std::string         _stringThreadID;
 
     }; // end class Stream
 
@@ -745,11 +740,11 @@ public:
     }
 
     /**
-     * @brief Set the Muted object
+     * @brief Set the Mute object
      * 
      * @param mute 
      */
-    void            setMuted(bool mute)
+    void            setMute(bool mute)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
         _mute = mute;
@@ -874,14 +869,14 @@ public:
     }
 
     /**
-     * @brief Check if object is muted
+     * @brief Check if object is mute
      * 
-     * @return true  : is muted
-     * @return false : is not muted
+     * @return true  : is mute
+     * @return false : is not mute
      */
-    bool            isMuted(void) const
+    bool            isMute(void) const
     {
-        return (_mute == true);
+        return _mute;
     }
 
     /**
@@ -1266,9 +1261,14 @@ protected:
      * @param type 
      * @param source 
      */
-    void            sendToOutStream(const std::string &str, const eTypeLog &type, const SourceInfos &source, const std::string &stringThreadID) const
+    void            sendToOutStream(const std::string &str, const eTypeLog &type, const SourceInfos &source) const
     {
         const TimeInfo timeInfo = getCurrentTimeInfo();
+        // get thread id
+        std::stringstream streamThreadID;
+        streamThreadID << std::hex << std::uppercase << std::this_thread::get_id();
+        const std::string &stringThreadID = streamThreadID.str();
+        // std::string stringThreadID;
         if (_outStream != nullptr && _mute == false && _filter & static_cast<int>(type))
         {
             _mutex.lock();

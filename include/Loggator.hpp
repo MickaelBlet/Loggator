@@ -21,11 +21,14 @@
 # include <vector>          // vector
 # include <set>             // set
 
+// options
+# define LALWAYS_FORMAT_AT_NEWLINE
+# define LALWAYS_FLUSH
+
 # define LFORMAT_BUFFER_SIZE     1024
 # define LFORMAT_KEY_BUFFER_SIZE 64
 # define LDEFAULT_TIME_FORMAT    "%x %X.%N"
 # define LDEFAULT_FORMAT         "{TIME:" LDEFAULT_TIME_FORMAT "} {TYPE:[%-5s]} {FILE:%s:}{LINE:%s:}{FUNC:%s: }{NAME:%s: }"
-# define LALWAYS_FORMAT_AT_NEWLINE
 
 /*****************************************************************************/
 
@@ -230,10 +233,11 @@ private:
          * @param type 
          * @param sourceInfos 
          */
-        Stream(const Loggator &loggator, const eTypeLog &type = eTypeLog::DEBUG, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}) noexcept:
+        Stream(const Loggator &loggator, const eTypeLog &type = eTypeLog::DEBUG, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}, bool flush = false):
         _log(loggator),
         _type(type),
-        _sourceInfos(sourceInfos)
+        _sourceInfos(sourceInfos),
+        _flush(flush)
         {
             return ;
         }
@@ -248,14 +252,14 @@ private:
          * @brief Destroy the Send Stream object
          * 
          */
-        ~Stream(void) noexcept
+        ~Stream(void)
         {
             if (_type != eTypeLog::NONE)
             {
                 std::string cacheStr = _cacheStream.str();
                 if (cacheStr.back() != '\n')
                     cacheStr += '\n';
-                _log.sendToOutStream(cacheStr, _type, _sourceInfos);
+                _log.sendToOutStream(cacheStr, _type, _sourceInfos, _flush);
             }
             return ;
         }
@@ -321,6 +325,13 @@ private:
          */
         Stream &operator<<(std::ostream&(*manip)(std::ostream&))
         {
+            #ifndef LALWAYS_FLUSH
+                if (manip == &(std::flush<char, std::char_traits<char>>)
+                ||  manip == &(std::endl<char, std::char_traits<char>>))
+                {
+                    _flush = true;
+                }
+            #endif
             manip(_cacheStream);
             return *this;
         }
@@ -334,7 +345,7 @@ private:
         const Loggator      &_log;
         eTypeLog            _type;
         SourceInfos         _sourceInfos;
-
+        bool                _flush;
     }; // end class Stream
 
 public:
@@ -343,7 +354,7 @@ public:
      * @brief Construct a new Loggator object
      * 
      */
-    Loggator(void) noexcept:
+    Loggator(void):
     _name(std::string()),
     _filter(eFilterLog::ALL),
     _outStream(&std::cerr),
@@ -359,7 +370,7 @@ public:
      * 
      * @param filter
      */
-    Loggator(int filter) noexcept:
+    Loggator(int filter):
     _name(std::string()),
     _filter(filter),
     _outStream(&std::cerr),
@@ -376,7 +387,7 @@ public:
      * @param oStream 
      * @param filter 
      */
-    Loggator(std::ostream &oStream, int filter = eFilterLog::ALL) noexcept:
+    Loggator(std::ostream &oStream, int filter = eFilterLog::ALL):
     _name(std::string()),
     _filter(filter),
     _outStream(&oStream),
@@ -395,7 +406,7 @@ public:
      * @param openMode 
      * @param filter 
      */
-    Loggator(const std::string &name, const std::string &path, std::ofstream::openmode openMode = std::ofstream::app, int filter = eFilterLog::ALL) noexcept:
+    Loggator(const std::string &name, const std::string &path, std::ofstream::openmode openMode = std::ofstream::app, int filter = eFilterLog::ALL):
     _name(name),
     _filter(filter),
     _fileStream(path, std::ofstream::out | openMode),
@@ -423,7 +434,7 @@ public:
      * @param oStream 
      * @param filter 
      */
-    Loggator(const std::string &name, std::ostream &oStream = std::cerr, int filter = eFilterLog::ALL) noexcept:
+    Loggator(const std::string &name, std::ostream &oStream = std::cerr, int filter = eFilterLog::ALL):
     _name(name),
     _filter(filter),
     _outStream(&oStream),
@@ -447,19 +458,20 @@ public:
      * @param name 
      * @param loggator 
      */
-    Loggator(const std::string &name, Loggator &loggator) noexcept:
+    Loggator(const std::string &name, Loggator &loggator):
     _name(name),
-    _filter(loggator._filter),
-    _format(loggator._format),
-    _outStream(nullptr),
-    _indexTimeNano(loggator._indexTimeNano),
-    _mute(loggator._mute)
+    _outStream(nullptr)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
         std::lock_guard<std::mutex> lockGuard(_mutex);
         std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
+        _filter = loggator._filter;
+        _format = loggator._format;
+        _indexTimeNano = loggator._indexTimeNano;
+        _mute = loggator._mute;
         loggator._logParents.insert(this);
         _logChilds.insert(&loggator);
+        _mapIndexFormatKey = loggator._mapIndexFormatKey;
         _mapCustomFormatKey = loggator._mapCustomFormatKey;
         _mapCustomValueKey = loggator._mapCustomValueKey;
         // if name is not empty and not in static list of loggators
@@ -476,18 +488,81 @@ public:
      * 
      * @param loggator 
      */
-    Loggator(Loggator &loggator) noexcept:
+    Loggator(Loggator &loggator):
     _name(std::string()),
-    _filter(loggator._filter),
-    _format(loggator._format),
-    _outStream(nullptr),
-    _indexTimeNano(loggator._indexTimeNano),
-    _mute(loggator._mute)
+    _outStream(nullptr)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
         std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
+        _filter = loggator._filter;
+        _format = loggator._format;
+        _indexTimeNano = loggator._indexTimeNano;
+        _mute = loggator._mute;
         loggator._logParents.insert(this);
         _logChilds.insert(&loggator);
+        _mapIndexFormatKey = loggator._mapIndexFormatKey;
+        _mapCustomFormatKey = loggator._mapCustomFormatKey;
+        _mapCustomValueKey = loggator._mapCustomValueKey;
+        return ;
+    }
+
+    /**
+     * @brief Construct a new Loggator object
+     * 
+     * @param name 
+     * @param loggator 
+     */
+    Loggator(const std::string &name, const Loggator &loggator):
+    _name(name),
+    _outStream(&std::cerr)
+    {
+        std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
+        std::lock_guard<std::mutex> lockGuard(_mutex);
+        std::lock_guard<std::mutex> lockGuardParent(loggator._mutex);
+        _filter = loggator._filter;
+        _format = loggator._format;
+        _indexTimeNano = loggator._indexTimeNano;
+        _mute = loggator._mute;
+        for (Loggator *child : loggator._logChilds)
+        {
+            std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
+            child->_logParents.insert(this);
+        }
+        _logChilds = loggator._logChilds;
+        _mapIndexFormatKey = loggator._mapIndexFormatKey;
+        _mapCustomFormatKey = loggator._mapCustomFormatKey;
+        _mapCustomValueKey = loggator._mapCustomValueKey;
+        // if name is not empty and not in static list of loggators
+        if (_name.empty() == false && sMapLoggators().find(_name) == sMapLoggators().end())
+        {
+            // add new loggator in static list
+            sMapLoggators()[_name] = this;
+        }
+        return ;
+    }
+
+    /**
+     * @brief Construct a new Loggator object
+     * 
+     * @param loggator 
+     */
+    Loggator(const Loggator &loggator):
+    _name(std::string()),
+    _outStream(&std::cerr)
+    {
+        std::lock_guard<std::mutex> lockGuard(_mutex);
+        std::lock_guard<std::mutex> lockGuardParent(loggator._mutex);
+        _filter = loggator._filter;
+        _format = loggator._format;
+        _indexTimeNano = loggator._indexTimeNano;
+        _mute = loggator._mute;
+        for (Loggator *child : loggator._logChilds)
+        {
+            std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
+            child->_logParents.insert(this);
+        }
+        _logChilds = loggator._logChilds;
+        _mapIndexFormatKey = loggator._mapIndexFormatKey;
         _mapCustomFormatKey = loggator._mapCustomFormatKey;
         _mapCustomValueKey = loggator._mapCustomValueKey;
         return ;
@@ -513,6 +588,7 @@ public:
             child->_logParents.insert(this);
         }
         this->_logChilds = rhs._logChilds;
+        this->_mapIndexFormatKey = rhs._mapIndexFormatKey;
         this->_mapCustomFormatKey = rhs._mapCustomFormatKey;
         this->_mapCustomValueKey = rhs._mapCustomValueKey;
         return *this;
@@ -522,7 +598,7 @@ public:
      * @brief Destroy the Loggator object
      * 
      */
-    ~Loggator(void) noexcept
+    ~Loggator(void)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
         std::lock_guard<std::mutex> lockGuard(_mutex);
@@ -876,6 +952,7 @@ public:
      */
     bool            isMute(void) const
     {
+        std::lock_guard<std::mutex> lockGuard(_mutex);
         return _mute;
     }
 
@@ -931,7 +1008,29 @@ public:
      */
     bool            isOpen(void) const
     {
+        std::lock_guard<std::mutex> lockGuard(_mutex);
         return _fileStream.is_open();
+    }
+
+    void            flush(void) const
+    {
+        #ifdef LALWAYS_FLUSH
+            return;
+        #else
+            _mutex.lock();
+            if (_outStream != nullptr && _mute == false)
+            {
+                _outStream->flush();
+            }
+            if (_logChilds.empty())
+            {
+                _mutex.unlock();
+                return;
+            }
+            _mutex.unlock();
+            std::set<const Loggator*> setLog = {this};
+            flushChild(setLog, *this);
+        #endif
     }
 
     /*************************************************************************/
@@ -980,10 +1079,12 @@ public:
     }
 
     /**
-     * @brief Function send with type, SourceInfos and format style printf for macro functions
+     * @brief Function send with type, SourceInfos and var
      * 
+     * @tparam T 
      * @param type 
      * @param sourceInfos 
+     * @param var 
      * @return Stream : temporary instance of Stream
      */
     template<typename T>
@@ -1230,6 +1331,7 @@ public:
      * 
      * @tparam T 
      * @param type 
+     * @param sourceInfos 
      * @param var 
      * @return Stream : temporary instance of Stream
      */
@@ -1261,37 +1363,45 @@ protected:
      * @param type 
      * @param source 
      */
-    void            sendToOutStream(const std::string &str, const eTypeLog &type, const SourceInfos &source) const
+    void            sendToOutStream(const std::string &str, const eTypeLog &type, const SourceInfos &source, bool flush) const
     {
         const TimeInfo timeInfo = getCurrentTimeInfo();
         // get thread id
         std::stringstream streamThreadID;
         streamThreadID << std::hex << std::uppercase << std::this_thread::get_id();
         const std::string &stringThreadID = streamThreadID.str();
-        // std::string stringThreadID;
+
+        _mutex.lock();
         if (_outStream != nullptr && _mute == false && _filter & static_cast<int>(type))
         {
-            _mutex.lock();
             std::string tmpPrompt = prompt(this->_name, type, timeInfo, source, stringThreadID, _mapCustomValueKey);
             #ifdef LALWAYS_FORMAT_AT_NEWLINE
                 std::size_t indexSub = 0;
                 std::size_t indexNewLine = str.find('\n');
                 while (indexNewLine != std::string::npos)
                 {
-                    (*_outStream) << tmpPrompt << str.substr(indexSub, ++indexNewLine - indexSub);
+                    (*_outStream) << tmpPrompt + str.substr(indexSub, ++indexNewLine - indexSub);
                     indexSub = indexNewLine;
                     indexNewLine = str.find('\n', indexSub);
                 }
-                (*_outStream) << std::flush;
             #else
-                (*_outStream) << tmpPrompt << str << std::flush;
+                (*_outStream) << tmpPrompt + str;
             #endif
-            _mutex.unlock();
+            #ifdef LALWAYS_FLUSH
+                (*_outStream).flush();
+            #else
+                if (flush)
+                    (*_outStream).flush();
+            #endif
         }
         if (_logChilds.empty())
+        {
+            _mutex.unlock();
             return;
+        }
+        _mutex.unlock();
         std::set<const Loggator*> tmpsetLog = {this};
-        sendChild(tmpsetLog, *this, this->_name, type, timeInfo, source, stringThreadID, str);
+        sendChild(tmpsetLog, *this, this->_name, type, timeInfo, source, stringThreadID, str, flush);
     }
 
     /**
@@ -1305,7 +1415,7 @@ protected:
      * @param source 
      * @param str 
      */
-    void            sendChild(std::set<const Loggator*> &setLog, const Loggator &loggator, const std::string &name, const eTypeLog &type, const TimeInfo &timeInfo, const SourceInfos &source, const std::string &stringThreadID, const std::string &str) const
+    void            sendChild(std::set<const Loggator*> &setLog, const Loggator &loggator, const std::string &name, const eTypeLog &type, const TimeInfo &timeInfo, const SourceInfos &source, const std::string &stringThreadID, const std::string &str, bool flush) const
     {
         // create a cpy of LogChild for no dead lock
         loggator._mutex.lock();
@@ -1316,9 +1426,9 @@ protected:
             if (setLog.find(child) != setLog.end())
                 continue;
             setLog.insert(child);
+            child->_mutex.lock();
             if (child->_outStream != nullptr && child->_mute == false && child->_filter & static_cast<int>(type))
             {
-                child->_mutex.lock();
                 _mutex.lock();
                 std::string tmpPrompt = child->prompt(name, type, timeInfo, source, stringThreadID, _mapCustomValueKey);
                 _mutex.unlock();
@@ -1327,19 +1437,53 @@ protected:
                     std::size_t indexNewLine = str.find('\n');
                     while (indexNewLine != std::string::npos)
                     {
-                        (*child->_outStream) << tmpPrompt << str.substr(indexSub, ++indexNewLine - indexSub);
+                        (*child->_outStream) << tmpPrompt + str.substr(indexSub, ++indexNewLine - indexSub);
                         indexSub = indexNewLine;
                         indexNewLine = str.find('\n', indexSub);
                     }
-                    (*child->_outStream) << std::flush;
                 #else
-                    (*child->_outStream) << tmpPrompt << str << std::flush;
+                    (*child->_outStream) << tmpPrompt + str;
                 #endif
-                child->_mutex.unlock();
+                #ifdef LALWAYS_FLUSH
+                    (*child->_outStream).flush();
+                #else
+                    if (flush)
+                        (*child->_outStream).flush();
+                #endif
             }
             if (child->_logChilds.empty())
+            {
+                child->_mutex.unlock();
                 continue;
-            sendChild(setLog, *child, name, type, timeInfo, source, stringThreadID, str);
+            }
+            child->_mutex.unlock();
+            sendChild(setLog, *child, name, type, timeInfo, source, stringThreadID, str, flush);
+        }
+    }
+
+    void            flushChild(std::set<const Loggator*> &setLog, const Loggator &loggator) const
+    {
+        // create a cpy of LogChild for no dead lock
+        loggator._mutex.lock();
+        std::set<Loggator*> cpyLogChilds = loggator._logChilds;
+        loggator._mutex.unlock();
+        for (const Loggator *child : cpyLogChilds)
+        {
+            if (setLog.find(child) != setLog.end())
+                continue;
+            setLog.insert(child);
+            child->_mutex.lock();
+            if (child->_outStream != nullptr && child->_mute == false)
+            {
+                (*child->_outStream).flush();
+            }
+            if (child->_logChilds.empty())
+            {
+                child->_mutex.unlock();
+                continue;
+            }
+            child->_mutex.unlock();
+            flushChild(setLog, *child);
         }
     }
 
@@ -1366,7 +1510,7 @@ protected:
     /**
      * @brief Get the Current TimeInfo object
      * 
-     * @return const TimeInfo 
+     * @return TimeInfo 
      */
     TimeInfo        getCurrentTimeInfo(void) const
     {
@@ -1382,7 +1526,7 @@ protected:
         #endif
 
         if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0)
-            timeInfo.msec = ts.tv_nsec / 1000;
+            timeInfo.msec = ts.tv_nsec;
         else
             timeInfo.msec = 0;
         return timeInfo;
@@ -1422,7 +1566,8 @@ protected:
     /**
      * @brief get custom key with format
      * 
-     * @param mapCustomKey 
+     * @param mapCustomValueKey 
+     * @param threadId 
      * @param key 
      * @return std::string : format custom key
      */
@@ -1474,52 +1619,46 @@ protected:
      * 
      * @param name 
      * @param type 
-     * @param mapCustomKey 
      * @param timeInfo 
      * @param source 
+     * @param stringThreadID 
+     * @param mapCustomValueKey 
      * @return std::string 
      */
     std::string     prompt(const std::string &name, const eTypeLog &type, const TimeInfo &timeInfo, const SourceInfos &source, const std::string &stringThreadID, const std::unordered_map<std::string, std::string> &mapCustomValueKey) const
     {
-        std::string prompt = _format;
-        std::size_t index = 0;
+        std::string prompt;
+        prompt.reserve(1 << 7);
+        std::size_t lastIndex = 0;
         for (const std::pair<std::string, std::size_t> &itemFormatKey : _mapIndexFormatKey)
         {
+            for (;lastIndex < itemFormatKey.second; ++lastIndex)
+                prompt.push_back(_format[lastIndex]);
             if (itemFormatKey.first == "TIME")
             {
-                std::string tmpStr = formatTime(timeInfo);
-                prompt.insert(itemFormatKey.second + index, tmpStr);
-                index += tmpStr.size();
+                prompt.append(formatTime(timeInfo));
             }
             else if (itemFormatKey.first == "TYPE")
             {
-                std::string tmpStr = formatKey(itemFormatKey.first, typeToStr(type));
-                prompt.insert(itemFormatKey.second + index, tmpStr);
-                index += tmpStr.size();
+                prompt.append(formatKey(itemFormatKey.first, typeToStr(type)));
             }
             else if (itemFormatKey.first == "NAME")
             {
                 if (name.empty())
                     continue;
-                std::string tmpStr = formatKey(itemFormatKey.first, name);
-                prompt.insert(itemFormatKey.second + index, tmpStr);
-                index += tmpStr.size();
+                prompt.append(formatKey(itemFormatKey.first, name));
             }
             else if (itemFormatKey.first == "FUNC")
             {
                 if (source.func == nullptr)
                     continue;
-                std::string tmpStr = formatKey(itemFormatKey.first, source.func);
-                prompt.insert(itemFormatKey.second + index, tmpStr);
-                index += tmpStr.size();
+                prompt.append(formatKey(itemFormatKey.first, source.func));
             }
             else if (itemFormatKey.first == "PATH")
             {
                 if (source.filename == nullptr)
                     continue;
-                std::string tmpStr = formatKey(itemFormatKey.first, source.filename);
-                prompt.insert(itemFormatKey.second + index, tmpStr);
-                index += tmpStr.size();
+                prompt.append(formatKey(itemFormatKey.first, source.filename));
             }
             else if (itemFormatKey.first == "FILE")
             {
@@ -1530,31 +1669,25 @@ protected:
                     rchr = source.filename;
                 else
                     ++rchr;
-                std::string tmpStr = formatKey(itemFormatKey.first, rchr);
-                prompt.insert(itemFormatKey.second + index, tmpStr);
-                index += tmpStr.size();
+                prompt.append(formatKey(itemFormatKey.first, rchr));
             }
             else if (itemFormatKey.first == "LINE")
             {
                 if (source.line == 0)
                     continue;
-                std::string tmpStr = formatKey(itemFormatKey.first, std::to_string(source.line));
-                prompt.insert(itemFormatKey.second + index, tmpStr);
-                index += tmpStr.size();
+                prompt.append(formatKey(itemFormatKey.first, std::to_string(source.line)));
             }
             else if (itemFormatKey.first == "THREAD_ID")
             {
-                std::string tmpStr = formatKey(itemFormatKey.first, stringThreadID);
-                prompt.insert(itemFormatKey.second + index, tmpStr);
-                index += tmpStr.size();
+                prompt.append(formatKey(itemFormatKey.first, stringThreadID));
             }
             else
             {
-                std::string tmpStr = formatCustomKey(mapCustomValueKey, stringThreadID, itemFormatKey.first);
-                prompt.insert(itemFormatKey.second + index, tmpStr);
-                index += tmpStr.size();
+                prompt.append(formatCustomKey(mapCustomValueKey, stringThreadID, itemFormatKey.first));
             }
         }
+        for (;lastIndex < _format.size(); ++lastIndex)
+                prompt.push_back(_format[lastIndex]);
         return prompt;
     }
 
@@ -1580,8 +1713,6 @@ protected:
         return singletonMapLoggators;
     }
 
-    Loggator(const Loggator &) = delete;
-
     std::string                                     _name;
     int                                             _filter;
     std::string                                     _format;
@@ -1599,5 +1730,8 @@ protected:
 }; // end class Loggator
 
 } // end namespace Log
+
+# undef LALWAYS_FORMAT_AT_NEWLINE
+# undef LALWAYS_FLUSH
 
 #endif // _LOG_LOGGATOR_HPP_

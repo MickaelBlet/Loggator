@@ -170,6 +170,8 @@ int     main(void)
             logThread.LSEND(ALERT) << "ALERT test !!!";
             logThread.LSEND(EMERG) << "EMERG test !!!";
             logThread.LSEND(FATAL) << "FATAL test !!!";
+            logThread.flush();
+            // std::this_thread::sleep_for(std::chrono::seconds(1));
         }
         });
     }
@@ -179,25 +181,33 @@ int     main(void)
     }
 
     Loggator logExample("example", std::cout);
-    // Test t(logExample);
+    Test t(logExample);
     logExample.setFormat("{TIME:%N} ");
-    logExample("%s", "test1");
-    logExample(eTypeLog::INFO, LSOURCEINFOS) << "test2";
-    logExample(eTypeLog::WARN, "test3");
-    logExample(eTypeLog::ERROR, "%s", "test4");
-    logExample(eTypeLog::INFO, LSOURCEINFOS, "%s%i", "test", 5) << " extra.";
-    logExample();
-    logExample << "test6";
-    logExample(eTypeLog::INFO) << "test7" << LSOURCEINFOS;
-    logExample << "test8" << eTypeLog::INFO;
-    logExample << "test9" << eTypeLog::INFO << LSOURCEINFOS;
-    logExample.LCRIT(std::string("test10"));
+    logExample("%s", "test1") << std::endl;
+    logExample(eTypeLog::INFO, LSOURCEINFOS) << "test2" << std::endl;
+    logExample(eTypeLog::WARN, "test3") << std::endl;
+    logExample(eTypeLog::ERROR, "%s", "test4") << std::endl;
+    logExample(eTypeLog::INFO, LSOURCEINFOS, "%s%i", "test", 5) << " extra." << std::endl;
+    logExample() << std::endl;
+    logExample << "test6" << std::endl;
+    logExample(eTypeLog::INFO) << "test7" << LSOURCEINFOS << std::endl;
+    logExample << "test8" << eTypeLog::INFO << std::endl;
+    logExample << "test9" << eTypeLog::INFO << LSOURCEINFOS << std::endl;
+    logExample.LCRIT(std::string("test10")) << std::endl;
 
-    // t.test();
+    t.test();
 
     Loggator logg("main", std::cout);
-    logg.setFormat("{TIME} {TYPE:[%-5s]}: {NAME:{%6s}} {testThreadKey:<%.3s>} {testMainKeyThread:<%.3s>} {FUNC:%s:}{LINE:%s: }");
-    logg.setKey("testMainKeyThread", "+-+");
+    Loggator logg4((const Loggator&)(logg));
+    Loggator logg5((const Loggator&)(logg4));
+    logg << "YOOOOOOO";
+    // logg4.setName("kk");
+    // logg4.setOutStream(std::cout);
+    logg4.LSEND() << "YOOOOOOO";
+    // logg5.setOutStream(std::cout);
+    logg5.LSEND() << "YOOOOOOO";
+    logg.setFormat("{TIME:%Y/%m/%d %X.%N} {TYPE:[%-5s]}: {NAME:\\{%6s\\}} {testThreadKey:<%.3s>} {testMainKeyThread:<%.3s>} {FILE:%s:}{FUNC:%s:}{LINE:%s: }");
+    logg.setKey("testMainKeyThread", "+++");
     Loggator::getInstance("main") << "with instance";
     Loggator::getInstance("main") << "no thread key";
     Loggator::getInstance("main").setName("main2");
@@ -223,14 +233,14 @@ int     main(void)
     LOGGATOR("main", INFO, "%s", str.c_str()) << "3";
         // logg(eTypeLog::ALERT)(42)(' ')(4.5);
 
+        logg("|%s\n|%i", str.c_str(), 42) << "\n" << "|Youhou";
     Loggator logg2("main2", logg);
 
-    logg.setKey("testThreadKey", "");
+    logg.setKey("testThreadKey", "o");
     std::thread tthread[4];
     tthread[0] = std::thread([&]{
         logg.setKey("testThreadKey", "0");
         logg.setKey("testMainKeyThread", "+++");
-        logg("|%s\n|%i", str.c_str(), 42);
         logg() << TypeToString(tthread);
         logg(eTypeLog::ALERT, str);
     });
@@ -280,7 +290,8 @@ int     main(void)
     ttt.LINFO() << "2 test";
     ttt.LINFO() << "2 test";
     LOGGATOR("main").LINFO("-est");
-    // for (int i=0;i<1000000;i++)
+    // *(int*)0 = 0;
+    // for (int i=0;i<100000;i++)
         // logg();
     return 0;
 }

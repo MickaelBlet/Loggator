@@ -59,4 +59,4 @@ logExample(eTypeLog::FATAL) << "example Fatal"; // OK
 
 ## Wiki
 
-[Loggator Wiki](/MickaelBlet/Loggator/wiki)
+[Loggator Wiki](https://github.com/MickaelBlet/Loggator/wiki)

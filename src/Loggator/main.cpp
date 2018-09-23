@@ -103,9 +103,22 @@ class Test
         Log::Loggator i_log;
 };
 
+void bench(int nb_test = 1000000);
+void bench_multi_thread(int nb_thread = 2, int nb_test = 1000000);
+
 int     main(void)
 {
     using namespace Log;
+    // Loggator::getInstance("r");
+    bench();
+    // bench_multi_thread();
+    return 0;
+
+    // Loggator logExample(std::cout);
+    // // logExample.setFormat("");
+    // for (int i=0;i<1000;i++)
+    //     logExample();
+    // return 0;
 
     {
         Loggator logExample(eFilterLog::EQUAL_DEBUG | eFilterLog::EQUAL_WARN | eFilterLog::EQUAL_FATAL);
@@ -144,6 +157,7 @@ int     main(void)
     //     thread[nbThread].join();
     // }
 
+    {
     Loggator logDebug("debug", "Debug.log", std::ios::trunc, eFilterLog::GREATER_EQUAL_DEBUG);
     // logDebug.setFormat("{TIME:%S.%N}: ");
     Loggator logInfo( "info",  "Info.log",  std::ios::trunc, eFilterLog::GREATER_EQUAL_INFO);
@@ -170,7 +184,7 @@ int     main(void)
             logThread.LSEND(ALERT) << "ALERT test !!!";
             logThread.LSEND(EMERG) << "EMERG test !!!";
             logThread.LSEND(FATAL) << "FATAL test !!!";
-            logThread.flush();
+            // logThread.flush();
             // std::this_thread::sleep_for(std::chrono::seconds(1));
         }
         });
@@ -179,7 +193,9 @@ int     main(void)
     {
         thread[nbThread].join();
     }
+    }
 
+    {
     Loggator logExample("example", std::cout);
     Test t(logExample);
     logExample.setFormat("{TIME:%N} ");
@@ -197,15 +213,7 @@ int     main(void)
 
     t.test();
 
-    Loggator logg("main", std::cout);
-    Loggator logg4((const Loggator&)(logg));
-    Loggator logg5((const Loggator&)(logg4));
-    logg << "YOOOOOOO";
-    // logg4.setName("kk");
-    // logg4.setOutStream(std::cout);
-    logg4.LSEND() << "YOOOOOOO";
-    // logg5.setOutStream(std::cout);
-    logg5.LSEND() << "YOOOOOOO";
+    Loggator logg("main", "test.log", std::ios::trunc);
     logg.setFormat("{TIME:%Y/%m/%d %X.%N} {TYPE:[%-5s]}: {NAME:\\{%6s\\}} {testThreadKey:<%.3s>} {testMainKeyThread:<%.3s>} {FILE:%s:}{FUNC:%s:}{LINE:%s: }");
     logg.setKey("testMainKeyThread", "+++");
     Loggator::getInstance("main") << "with instance";
@@ -228,9 +236,9 @@ int     main(void)
     LOGGATOR("main") << "1";
     LOGGATOR("main").setKey("testMainKeyThread", "+-+++", true);
     LOGGATOR("main", INFO) << "2";
-    LOGGATOR("main", WARNING, "test") << "3";
+    // LOGGATOR("main", WARNING, "test") << "3";
     std::string str = "6";
-    LOGGATOR("main", INFO, "%s", str.c_str()) << "3";
+    // LOGGATOR("main", INFO, "%s", str.c_str()) << "3";
         // logg(eTypeLog::ALERT)(42)(' ')(4.5);
 
         logg("|%s\n|%i", str.c_str(), 42) << "\n" << "|Youhou";
@@ -289,9 +297,75 @@ int     main(void)
     ttt.LINFO() << "2 test";
     ttt.LINFO() << "2 test";
     ttt.LINFO() << "2 test";
-    LOGGATOR("main").LINFO("-est");
-    // *(int*)0 = 0;
-    // for (int i=0;i<100000;i++)
-        // logg();
+    LOGGATOR("main").LINFO("-est") << std::endl;
+    *(int*)0 = 0;
+    // for (int i=0;i<1000000;i++)
+    //     logg();
+    }
     return 0;
+}
+
+void bench(int nb_test)
+{
+    // std::ofstream t("test2.log");
+    Log::Loggator log("example", std::cout);//"test1.log", std::ios::trunc);
+    // Log::Loggator log("example", "test1.log", std::ios::trunc);
+    // Log::Loggator logg("example2", "test2.log", std::ios::trunc);
+    // log.addChild(logg);
+    // log.setFormat("{NAME}: ");
+    // logg.setFormat("{NAME}-copy: ");
+    using std::chrono::high_resolution_clock;
+    std::cerr << "...\t\t" << std::flush;
+    auto start = high_resolution_clock::now();
+    for (auto i = 0; i < nb_test; ++i)
+    {
+        // t << "Hello logger: msg number " << i << "\n";
+        // log.LSEND(ERROR) << "Hello logger: msg number " << i;
+        log.LSEND(DEBUG) << "Hello logger: msg number " << i;
+        // log.LSEND(INFO, "Hello logger: msg number %i", i);
+    }
+
+    auto delta = high_resolution_clock::now() - start;
+    auto delta_d = std::chrono::duration_cast<std::chrono::duration<double>>(delta).count();
+
+    std::cerr << "Elapsed: " << delta_d << "\t" << int(nb_test / delta_d) << "/sec" << std::endl;
+}
+
+void thread_fun(Log::Loggator *log, int howmany)
+{
+    for (int i = 0; i < howmany; i++)
+    {
+        log->send(Log::eTypeLog::INFO) << "Hello logger: msg number " << i;
+    }
+}
+
+void bench_multi_thread(int nb_thread, int nb_test)
+{
+    // std::ofstream t("test2.log");
+    Log::Loggator logg("example", "test.log", std::ios::trunc);
+    // logg.setFormat("{TIME} {THREAD_ID}: ");
+    logg.setFormat("");
+    using std::chrono::high_resolution_clock;
+    std::cerr << "...\t\t" << std::flush;
+    std::thread thread[nb_thread];
+    auto start = high_resolution_clock::now();
+    int msgs_per_thread = nb_test / nb_thread;
+    int msgs_per_thread_mod = nb_test % nb_thread;
+    for (int t = 0; t < nb_thread; ++t)
+    {
+        if (t == 0 && msgs_per_thread_mod)
+            thread[t] = std::thread(thread_fun, &logg, msgs_per_thread + msgs_per_thread_mod);
+        else
+            thread[t] = std::thread(thread_fun, &logg, msgs_per_thread);
+    }
+
+    for (int t = 0; t < nb_thread; ++t)
+    {
+        thread[t].join();
+    };
+
+    auto delta = high_resolution_clock::now() - start;
+    auto delta_d = std::chrono::duration_cast<std::chrono::duration<double>>(delta).count();
+
+    std::cerr << "Elapsed: " << delta_d << "\t" << int(nb_test / delta_d) << "/sec" << std::endl;
 }

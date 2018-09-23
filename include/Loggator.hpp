@@ -23,7 +23,7 @@
 
 // options
 # define LALWAYS_FORMAT_AT_NEWLINE
-# define LALWAYS_FLUSH
+// # define LALWAYS_FLUSH
 
 # define LFORMAT_BUFFER_SIZE     1024
 # define LFORMAT_KEY_BUFFER_SIZE 64
@@ -256,9 +256,13 @@ private:
         {
             if (_type != eTypeLog::NONE)
             {
+                _cacheStream.put('\n');
                 std::string cacheStr = _cacheStream.str();
-                if (cacheStr.back() != '\n')
-                    cacheStr += '\n';
+                if (cacheStr.size() > 1 && cacheStr[cacheStr.size() - 2] == '\n')
+                    cacheStr.pop_back();
+                #ifndef LALWAYS_FLUSH
+                    _flush = _flush || (static_cast<int>(_type) & ~(eFilterLog::EQUAL_INFO | eFilterLog::EQUAL_WARN));
+                #endif
                 _log.sendToOutStream(cacheStr, _type, _sourceInfos, _flush);
             }
             return ;
@@ -642,7 +646,14 @@ public:
     static Loggator &getInstance(const std::string &name)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
-        return *(sMapLoggators().at(name));
+        try
+        {
+            return *(sMapLoggators().at(name));
+        }
+        catch (std::out_of_range &e)
+        {
+            throw std::out_of_range("Loggator instance \"" + name + "\" not found (" + e.what() + ").");
+        }
     }
 
     /**
@@ -666,6 +677,8 @@ public:
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
         std::lock_guard<std::mutex> lockGuard(_mutex);
+        if (_name == name)
+            return ;
         if (_name.empty() == false)
         {
             std::unordered_map<std::string, Log::Loggator*>::iterator it = sMapLoggators().begin();
@@ -1353,7 +1366,7 @@ protected:
     struct TimeInfo
     {
         struct tm   tm;
-        long        msec;
+        char        msec[7];
     };
 
     /**
@@ -1365,11 +1378,9 @@ protected:
      */
     void            sendToOutStream(const std::string &str, const eTypeLog &type, const SourceInfos &source, bool flush) const
     {
-        const TimeInfo timeInfo = getCurrentTimeInfo();
-        // get thread id
-        std::stringstream streamThreadID;
-        streamThreadID << std::hex << std::uppercase << std::this_thread::get_id();
-        const std::string &stringThreadID = streamThreadID.str();
+        TimeInfo timeInfo;
+        timeInfo.msec[0] = '\0';
+        std::string stringThreadID;
 
         _mutex.lock();
         if (_outStream != nullptr && _mute == false && _filter & static_cast<int>(type))
@@ -1380,18 +1391,18 @@ protected:
                 std::size_t indexNewLine = str.find('\n');
                 while (indexNewLine != std::string::npos)
                 {
-                    (*_outStream) << tmpPrompt + str.substr(indexSub, ++indexNewLine - indexSub);
+                    _outStream->write(tmpPrompt.c_str(), tmpPrompt.size()) << str.substr(indexSub, ++indexNewLine - indexSub);
                     indexSub = indexNewLine;
                     indexNewLine = str.find('\n', indexSub);
                 }
             #else
-                (*_outStream) << tmpPrompt + str;
+                _outStream->write(tmpPrompt.c_str(), tmpPrompt.size()) << str;
             #endif
             #ifdef LALWAYS_FLUSH
-                (*_outStream).flush();
+                _outStream->flush();
             #else
                 if (flush)
-                    (*_outStream).flush();
+                    _outStream->flush();
             #endif
         }
         if (_logChilds.empty())
@@ -1415,7 +1426,7 @@ protected:
      * @param source 
      * @param str 
      */
-    void            sendChild(std::set<const Loggator*> &setLog, const Loggator &loggator, const std::string &name, const eTypeLog &type, const TimeInfo &timeInfo, const SourceInfos &source, const std::string &stringThreadID, const std::string &str, bool flush) const
+    void            sendChild(std::set<const Loggator*> &setLog, const Loggator &loggator, const std::string &name, const eTypeLog &type, TimeInfo &timeInfo, const SourceInfos &source, std::string &stringThreadID, const std::string &str, bool flush) const
     {
         // create a cpy of LogChild for no dead lock
         loggator._mutex.lock();
@@ -1423,9 +1434,8 @@ protected:
         loggator._mutex.unlock();
         for (const Loggator *child : cpyLogChilds)
         {
-            if (setLog.find(child) != setLog.end())
+            if (setLog.insert(child).second == false)
                 continue;
-            setLog.insert(child);
             child->_mutex.lock();
             if (child->_outStream != nullptr && child->_mute == false && child->_filter & static_cast<int>(type))
             {
@@ -1437,18 +1447,18 @@ protected:
                     std::size_t indexNewLine = str.find('\n');
                     while (indexNewLine != std::string::npos)
                     {
-                        (*child->_outStream) << tmpPrompt + str.substr(indexSub, ++indexNewLine - indexSub);
+                        child->_outStream->write(tmpPrompt.c_str(), tmpPrompt.size()) << str.substr(indexSub, ++indexNewLine - indexSub);
                         indexSub = indexNewLine;
                         indexNewLine = str.find('\n', indexSub);
                     }
                 #else
-                    (*child->_outStream) << tmpPrompt + str;
+                    child->_outStream->write(tmpPrompt.c_str(), tmpPrompt.size()) << str;
                 #endif
                 #ifdef LALWAYS_FLUSH
-                    (*child->_outStream).flush();
+                    child->_outStream->flush();
                 #else
                     if (flush)
-                        (*child->_outStream).flush();
+                        child->_outStream->flush();
                 #endif
             }
             if (child->_logChilds.empty())
@@ -1493,17 +1503,15 @@ protected:
      * @param infos 
      * @return std::string 
      */
-    std::string     formatTime(const TimeInfo &infos) const
+    std::string     formatTime(TimeInfo &infos) const
     {
         char bufferFormatTime[LFORMAT_BUFFER_SIZE];
 
         std::string retStr = _mapCustomFormatKey.at("TIME");
 
         if (_indexTimeNano != std::string::npos)
-        {
-            std::snprintf(bufferFormatTime, 7, "%06ld", infos.msec);
-            retStr.insert(_indexTimeNano, bufferFormatTime, 6);
-        }
+            retStr.insert(_indexTimeNano, infos.msec, 6);
+
         return std::string(bufferFormatTime, 0, std::strftime(bufferFormatTime, LFORMAT_BUFFER_SIZE - 1, retStr.c_str(), &infos.tm));
     }
 
@@ -1512,24 +1520,31 @@ protected:
      * 
      * @return TimeInfo 
      */
-    TimeInfo        getCurrentTimeInfo(void) const
+    void            getCurrentTimeInfo(TimeInfo &timeInfo) const
     {
-        TimeInfo timeInfo;
-        std::time_t timer;
-        struct timespec ts;
+        if (timeInfo.msec[0] != '\0')
+            return ;
+        std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+        auto duration = now.time_since_epoch();
+        std::time_t timer = std::chrono::system_clock::to_time_t(now);
 
-        std::time(&timer);
         #ifdef __GNUC__
             localtime_r(&timer, &timeInfo.tm);
         #else
             localtime_s(&timeInfo.tm, &timer);
         #endif
 
-        if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0)
-            timeInfo.msec = ts.tv_nsec;
-        else
-            timeInfo.msec = 0;
-        return timeInfo;
+        snprintf(timeInfo.msec, 7, "%06lu", std::chrono::duration_cast<std::chrono::microseconds>(duration).count() % 1000000);
+        timeInfo.msec[6] = '\0';
+    }
+
+    void            getThreadId(std::string &threadId) const
+    {
+        if (threadId.empty() == false)
+            return ;
+        std::stringstream streamThreadID;
+        streamThreadID << std::hex << std::uppercase << std::this_thread::get_id();
+        threadId = streamThreadID.str();
     }
 
     /**
@@ -1625,10 +1640,9 @@ protected:
      * @param mapCustomValueKey 
      * @return std::string 
      */
-    std::string     prompt(const std::string &name, const eTypeLog &type, const TimeInfo &timeInfo, const SourceInfos &source, const std::string &stringThreadID, const std::unordered_map<std::string, std::string> &mapCustomValueKey) const
+    std::string     prompt(const std::string &name, const eTypeLog &type, TimeInfo &timeInfo, const SourceInfos &source, std::string &stringThreadID, const std::unordered_map<std::string, std::string> &mapCustomValueKey) const
     {
         std::string prompt;
-        prompt.reserve(1 << 7);
         std::size_t lastIndex = 0;
         for (const std::pair<std::string, std::size_t> &itemFormatKey : _mapIndexFormatKey)
         {
@@ -1636,6 +1650,7 @@ protected:
                 prompt.push_back(_format[lastIndex]);
             if (itemFormatKey.first == "TIME")
             {
+                getCurrentTimeInfo(timeInfo);
                 prompt.append(formatTime(timeInfo));
             }
             else if (itemFormatKey.first == "TYPE")
@@ -1679,10 +1694,12 @@ protected:
             }
             else if (itemFormatKey.first == "THREAD_ID")
             {
+                getThreadId(stringThreadID);
                 prompt.append(formatKey(itemFormatKey.first, stringThreadID));
             }
             else
             {
+                getThreadId(stringThreadID);
                 prompt.append(formatCustomKey(mapCustomValueKey, stringThreadID, itemFormatKey.first));
             }
         }

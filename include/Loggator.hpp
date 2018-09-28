@@ -1,9 +1,8 @@
 /**
- * @brief 
- * 
  * @file Loggator.hpp
  * @author Blet Mickael
  * @date 2018-05-01
+ * @version v0.3-alpha
  */
 
 #ifndef _LOG_LOGGATOR_HPP_
@@ -11,6 +10,7 @@
 
 # include <cstdarg>         // va_list, va_start, va_end
 # include <cstring>         // strrchr
+# include <ctime>           // localtime_r / localtime_s
 
 # include <iostream>        // string, cerr
 # include <fstream>         // ostream, ofstream
@@ -23,12 +23,18 @@
 
 // options
 # define LALWAYS_FORMAT_AT_NEWLINE
-// # define LALWAYS_FLUSH
+# define LALWAYS_FLUSH
 
+// stack buffer size
 # define LFORMAT_BUFFER_SIZE     1024
 # define LFORMAT_KEY_BUFFER_SIZE 64
+
+// default prompt format
 # define LDEFAULT_TIME_FORMAT    "%x %X.%N"
 # define LDEFAULT_FORMAT         "{TIME:" LDEFAULT_TIME_FORMAT "} {TYPE:[%-5s]} {FILE:%s:}{LINE:%s:}{FUNC:%s: }{NAME:%s: }"
+
+// default loggator name (at use LOGGATOR() macro)
+# define LDEFAULT_LOGGATOR_NAME  "main"
 
 /*****************************************************************************/
 
@@ -66,7 +72,7 @@
 
 // Loggator macro
 # define LOGGATOR(...)          LMACRO_CHOOSER(LOGGATOR_, __VA_ARGS__)(__VA_ARGS__)
-# define LOGGATOR_0()           Log::Loggator::getInstance("main")
+# define LOGGATOR_0()           Log::Loggator::getInstance(LDEFAULT_LOGGATOR_NAME)
 # define LOGGATOR_1(_name)      Log::Loggator::getInstance(_name)
 # define LOGGATOR_X(_name, ...) Log::Loggator::getInstance(_name).LSENDF(__VA_ARGS__)
 
@@ -1025,6 +1031,10 @@ public:
         return _fileStream.is_open();
     }
 
+    /**
+     * @brief flush this loggator and child
+     * 
+     */
     void            flush(void) const
     {
         #ifdef LALWAYS_FLUSH
@@ -1071,11 +1081,9 @@ public:
         char        buffer[LFORMAT_BUFFER_SIZE];
         Stream      stream(*this, type);
         va_list     vargs;
-
         va_start(vargs, format);
         stream.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
         va_end(vargs);
-
         return stream;
     }
 
@@ -1506,12 +1514,9 @@ protected:
     std::string     formatTime(TimeInfo &infos) const
     {
         char bufferFormatTime[LFORMAT_BUFFER_SIZE];
-
         std::string retStr = _mapCustomFormatKey.at("TIME");
-
         if (_indexTimeNano != std::string::npos)
             retStr.insert(_indexTimeNano, infos.msec, 6);
-
         return std::string(bufferFormatTime, 0, std::strftime(bufferFormatTime, LFORMAT_BUFFER_SIZE - 1, retStr.c_str(), &infos.tm));
     }
 
@@ -1525,16 +1530,14 @@ protected:
         if (timeInfo.msec[0] != '\0')
             return ;
         std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-        auto duration = now.time_since_epoch();
+        std::chrono::nanoseconds duration = now.time_since_epoch();
         std::time_t timer = std::chrono::system_clock::to_time_t(now);
-
         #ifdef __GNUC__
             localtime_r(&timer, &timeInfo.tm);
         #else
             localtime_s(&timeInfo.tm, &timer);
         #endif
-
-        snprintf(timeInfo.msec, 7, "%06lu", std::chrono::duration_cast<std::chrono::microseconds>(duration).count() % 1000000);
+        std::snprintf(timeInfo.msec, 7, "%06lu", std::chrono::duration_cast<std::chrono::microseconds>(duration).count() % 1000000);
         timeInfo.msec[6] = '\0';
     }
 

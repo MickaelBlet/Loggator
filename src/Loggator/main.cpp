@@ -109,8 +109,14 @@ void bench_multi_thread(int nb_thread = 2, int nb_test = 1000000);
 int     main(void)
 {
     using namespace Log;
+
+    if (Loggator::openConfig("loggator.ini") == false)
+        return 1;
+
+    LOGGATOR("test") << "youhou !";
+    LOGGATOR("test", INFO) << "youhou !";
     // Loggator::getInstance("r");
-    bench();
+    // bench();
     // bench_multi_thread();
     return 0;
 

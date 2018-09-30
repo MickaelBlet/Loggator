@@ -18,6 +18,7 @@
 # include <mutex>           // mutex, lock_guard
 # include <thread>          // this_thread::get_id
 # include <unordered_map>   // unordered_map
+# include <map>             // map
 # include <vector>          // vector
 # include <set>             // set
 
@@ -221,6 +222,469 @@ public:
     };
 
 private:
+
+    class Config
+    {
+
+    public:
+
+        struct InsensitiveCompare
+        {
+            bool operator() (const std::string & s1, const std::string & s2) const
+            {
+                return std::lexicographical_compare(
+                    s1.begin (), s1.end (),   // source range
+                    s2.begin (), s2.end (),   // dest range
+                    [](const unsigned char&c1, const unsigned char&c2) // lambda compare
+                    {
+                        return std::tolower(c1) < std::tolower(c2);
+                    });  // comparison
+            }
+        };
+
+        typedef std::map<std::string, std::string, InsensitiveCompare> MapSection;
+        typedef std::map<std::string, MapSection, InsensitiveCompare>  MapConfig;
+
+        /**
+         * @brief Construct a new Config object
+         * 
+         * @param filename 
+         */
+        Config(const std::string &filename):
+        _isRead(false)
+        {
+            readFile(filename);
+        }
+
+        /**
+         * @brief Construct a new Config object
+         * 
+         * @param src 
+         */
+        Config(Config &src) = default;
+
+        /**
+         * @brief 
+         * 
+         * @param rhs 
+         * @return Config& 
+         */
+        Config &operator=(const Config &rhs) = default;
+
+        /**
+         * @brief Destroy the Config object
+         * 
+         */
+        ~Config(void) = default;
+
+        /**
+         * @brief 
+         * 
+         * @param filename 
+         * @return true 
+         * @return false 
+         */
+        bool                readFile(const std::string& filename)
+        {
+            _isRead = false;
+
+            std::ifstream fileStream(filename.c_str());
+
+            if (fileStream.is_open() == false)
+                return false;
+
+            _mapConfig.clear();
+            readStream(fileStream);
+            _filename = filename;
+            fileStream.close();
+            _isRead = true;
+            return true;
+        }
+
+        /**
+         * @brief 
+         * 
+         * @return true 
+         * @return false 
+         */
+        bool                isRead(void) const
+        {
+            return _isRead;
+        }
+
+        void                setLoggator(const MapSection &mapSection, Loggator *loggator)
+        {
+            // NAME
+            {
+                MapSection::const_iterator itSection = mapSection.find("name");
+                if (itSection != mapSection.end())
+                    loggator->setName(itSection->second);
+            }
+            // FILTER
+            {
+                MapSection::const_iterator itSection = mapSection.find("filter");
+                if (itSection != mapSection.end())
+                {
+                    loggator->setFilter(parseFilter(itSection->second));
+                }
+            }
+            // FORMAT
+            {
+                MapSection::const_iterator itSection = mapSection.find("format");
+                if (itSection != mapSection.end())
+                {
+                    if (itSection->second == "DEFAULT")
+                        loggator->setFormat(LDEFAULT_FORMAT);
+                    else
+                        loggator->setFormat(itSection->second);
+                }
+            }
+            // FILE
+            {
+                MapSection::const_iterator itSection = mapSection.find("file");
+                if (itSection != mapSection.end())
+                    loggator->open(itSection->second);
+            }
+            // CHILD
+            {
+                MapSection::const_iterator itSection = mapSection.find("child");
+                if (itSection != mapSection.end())
+                {
+                    for (Loggator *child : parseChild(itSection->second))
+                    {
+                        loggator->addChild(*child);
+                    }
+                }
+            }
+        }
+
+        const MapConfig     &getConfig(void) const
+        {
+            return _mapConfig;
+        }
+
+    private:
+
+        int parseFilter(const std::string &str)
+        {
+            static std::map<std::string, int, InsensitiveCompare> mapStrToFilter = {
+                {"DEBUG", eFilterLog::EQUAL_DEBUG},
+                {"INFO", eFilterLog::EQUAL_INFO},
+                {"WARN", eFilterLog::EQUAL_WARN},
+                {"WARNING", eFilterLog::EQUAL_WARNING},
+                {"ERROR", eFilterLog::EQUAL_ERROR},
+                {"CRIT", eFilterLog::EQUAL_CRIT},
+                {"CRITICAL", eFilterLog::EQUAL_CRITICAL},
+                {"ALERT", eFilterLog::EQUAL_ALERT},
+                {"EMERG", eFilterLog::EQUAL_EMERG},
+                {"EMERGENCY", eFilterLog::EQUAL_EMERGENCY},
+                {"FATAL", eFilterLog::EQUAL_FATAL},
+                {"EQUAL_DEBUG", eFilterLog::EQUAL_DEBUG},
+                {"EQUAL_INFO", eFilterLog::EQUAL_INFO},
+                {"EQUAL_WARN", eFilterLog::EQUAL_WARN},
+                {"EQUAL_WARNING", eFilterLog::EQUAL_WARNING},
+                {"EQUAL_ERROR", eFilterLog::EQUAL_ERROR},
+                {"EQUAL_CRIT", eFilterLog::EQUAL_CRIT},
+                {"EQUAL_CRITICAL", eFilterLog::EQUAL_CRITICAL},
+                {"EQUAL_ALERT", eFilterLog::EQUAL_ALERT},
+                {"EQUAL_EMERG", eFilterLog::EQUAL_EMERG},
+                {"EQUAL_EMERGENCY", eFilterLog::EQUAL_EMERGENCY},
+                {"EQUAL_FATAL", eFilterLog::EQUAL_FATAL},
+                {"ALL", eFilterLog::ALL},
+                {"GREATER_FATAL", eFilterLog::GREATER_FATAL},
+                {"GREATER_EMERG", eFilterLog::GREATER_EMERG},
+                {"GREATER_EMERGENCY", eFilterLog::GREATER_EMERGENCY},
+                {"GREATER_ALERT", eFilterLog::GREATER_ALERT},
+                {"GREATER_CRIT", eFilterLog::GREATER_CRIT},
+                {"GREATER_CRITICAL", eFilterLog::GREATER_CRITICAL},
+                {"GREATER_ERROR", eFilterLog::GREATER_ERROR},
+                {"GREATER_WARN", eFilterLog::GREATER_WARN},
+                {"GREATER_WARNING", eFilterLog::GREATER_WARNING},
+                {"GREATER_INFO", eFilterLog::GREATER_INFO},
+                {"GREATER_DEBUG", eFilterLog::GREATER_DEBUG},
+                {"GREATER_EQUAL_FATAL", eFilterLog::GREATER_EQUAL_FATAL},
+                {"GREATER_EQUAL_EMERG", eFilterLog::GREATER_EQUAL_EMERG},
+                {"GREATER_EQUAL_EMERGENCY", eFilterLog::GREATER_EQUAL_EMERGENCY},
+                {"GREATER_EQUAL_ALERT", eFilterLog::GREATER_EQUAL_ALERT},
+                {"GREATER_EQUAL_CRIT", eFilterLog::GREATER_EQUAL_CRIT},
+                {"GREATER_EQUAL_CRITICAL", eFilterLog::GREATER_EQUAL_CRITICAL},
+                {"GREATER_EQUAL_ERROR", eFilterLog::GREATER_EQUAL_ERROR},
+                {"GREATER_EQUAL_WARN", eFilterLog::GREATER_EQUAL_WARN},
+                {"GREATER_EQUAL_WARNING", eFilterLog::GREATER_EQUAL_WARNING},
+                {"GREATER_EQUAL_INFO", eFilterLog::GREATER_EQUAL_INFO},
+                {"GREATER_EQUAL_DEBUG", eFilterLog::GREATER_EQUAL_DEBUG},
+                {"LESS_DEBUG", eFilterLog::LESS_DEBUG},
+                {"LESS_INFO", eFilterLog::LESS_INFO},
+                {"LESS_WARN", eFilterLog::LESS_WARN},
+                {"LESS_WARNING", eFilterLog::LESS_WARNING},
+                {"LESS_ERROR", eFilterLog::LESS_ERROR},
+                {"LESS_CRIT", eFilterLog::LESS_CRIT},
+                {"LESS_CRITICAL", eFilterLog::LESS_CRITICAL},
+                {"LESS_ALERT", eFilterLog::LESS_ALERT},
+                {"LESS_EMERG", eFilterLog::LESS_EMERG},
+                {"LESS_EMERGENCY", eFilterLog::LESS_EMERGENCY},
+                {"LESS_FATAL", eFilterLog::LESS_FATAL},
+                {"LESS_EQUAL_DEBUG", eFilterLog::LESS_EQUAL_DEBUG},
+                {"LESS_EQUAL_INFO", eFilterLog::LESS_EQUAL_INFO},
+                {"LESS_EQUAL_WARN", eFilterLog::LESS_EQUAL_WARN},
+                {"LESS_EQUAL_WARNING", eFilterLog::LESS_EQUAL_WARNING},
+                {"LESS_EQUAL_ERROR", eFilterLog::LESS_EQUAL_ERROR},
+                {"LESS_EQUAL_CRIT", eFilterLog::LESS_EQUAL_CRIT},
+                {"LESS_EQUAL_CRITICAL", eFilterLog::LESS_EQUAL_CRITICAL},
+                {"LESS_EQUAL_ALERT", eFilterLog::LESS_EQUAL_ALERT},
+                {"LESS_EQUAL_EMERG", eFilterLog::LESS_EQUAL_EMERG},
+                {"LESS_EQUAL_EMERGENCY", eFilterLog::LESS_EQUAL_EMERGENCY},
+                {"LESS_EQUAL_FATAL", eFilterLog::LESS_EQUAL_FATAL}
+            };
+
+            int filter = 0;
+            std::size_t indexSub = 0;
+            std::size_t indexNewLine = str.find_first_of("|,+");
+            if (indexNewLine == std::string::npos)
+            {
+                if (mapStrToFilter.find(str) != mapStrToFilter.end())
+                    filter = mapStrToFilter[str];
+                return filter;
+            }
+            while (indexNewLine != std::string::npos)
+            {
+                const std::string &strKey = parseSimpleTrim(str.substr(indexSub, ++indexNewLine - indexSub - 1));
+                indexSub = indexNewLine;
+                indexNewLine = str.find_first_of("|,+", indexSub);
+                if (mapStrToFilter.find(strKey) != mapStrToFilter.end())
+                    filter |= mapStrToFilter[strKey];
+            }
+            const std::string &strKey = parseSimpleTrim(str.substr(indexSub, ++indexNewLine - indexSub - 1));
+            if (mapStrToFilter.find(strKey) != mapStrToFilter.end())
+                filter |= mapStrToFilter[strKey];
+            return filter;
+        }
+
+        std::set<Loggator *>    parseChild(const std::string &str)
+        {
+            std::set<Loggator *> setLog;
+            std::size_t indexSub = 0;
+            std::size_t indexNewLine = str.find_first_of("|,+");
+            if (indexNewLine == std::string::npos)
+            {
+                if (str.empty() == false)
+                {
+                    Loggator &child = Loggator::getInstance(str);
+                    setLog.insert(&child);
+                }
+                return setLog;
+            }
+            while (indexNewLine != std::string::npos)
+            {
+                const std::string &strKey = parseSimpleTrim(str.substr(indexSub, ++indexNewLine - indexSub - 1));
+                indexSub = indexNewLine;
+                indexNewLine = str.find_first_of("|,+", indexSub);
+                if (strKey.empty() == false)
+                {
+                    Loggator &child = Loggator::getInstance(strKey);
+                    setLog.insert(&child);
+                }
+            }
+            const std::string &strKey = parseSimpleTrim(str.substr(indexSub, ++indexNewLine - indexSub - 1));
+            if (strKey.empty() == false)
+            {
+                Loggator &child = Loggator::getInstance(strKey);
+                setLog.insert(&child);
+            }
+            return setLog;
+        }
+
+        std::string parseSimpleTrim(const std::string &str)
+        {
+            std::size_t start = 0;
+            std::size_t end = str.size() - 1;
+            while (isspace(str[start]))
+                ++start;
+            while (end > 0 && isspace(str[end]))
+                --end;
+            return str.substr(start, end - start + 1);
+        }
+
+        bool parseKey(const std::string &line, const std::string &currentSectionName)
+        {
+            std::size_t startKey;
+            std::size_t endKey;
+            std::size_t startValue;
+            std::size_t endValue;
+            std::size_t i = 0;
+
+            while (isspace(line[i]))
+                i++;
+            if (line[i] == '=')
+                return false;
+            if (line[i] == '\"')
+            {
+                i++;
+                startKey = i;
+                while (line[i] != '\"')
+                {
+                    if (line[i] == '\0')
+                        return false;
+                    i++;
+                }
+                endKey = i;
+            }
+            else
+            {
+                startKey = i;
+                while (line[i] != '=')
+                {
+                    if (line[i] == '\0')
+                        return false;
+                    i++;
+                }
+                i--;
+                while (isspace(line[i]))
+                    i--;
+                i++;
+                endKey = i;
+            }
+            while (isspace(line[i]))
+                i++;
+            while (line[i] != '=')
+            {
+                if (line[i] == '\0')
+                    return false;
+                i++;
+            }
+            i++;
+            while (isspace(line[i]))
+                i++;
+            if (line[i] == '\"')
+            {
+                i++;
+                startValue = i;
+                while (line[i] != '\"')
+                {
+                    if (line[i] == '\0')
+                        return false;
+                    i++;
+                }
+                endValue = i;
+                i++;
+            }
+            else
+            {
+                startValue = i;
+                while (line[i] != ';' && line[i] != '#' && line[i] != '\0')
+                    i++;
+                i--;
+                while (isspace(line[i]))
+                    i--;
+                i++;
+                endValue = i;
+            }
+            while (isspace(line[i]))
+                i++;
+            if (line[i] == '\0' || line[i] == ';' || line[i] == '#')
+            {
+                _mapConfig[currentSectionName][line.substr(startKey, endKey - startKey)] = line.substr(startValue, endValue - startValue);
+                return true;
+            }
+            return false;
+        }
+
+        bool parseSection(const std::string &line, std::string *retSection)
+        {
+            std::size_t i = 0;
+            while (isspace(line[i]))
+                i++;
+            if (line[i] != '[')
+                return false;
+            i++;
+            while (isspace(line[i]))
+                i++;
+            std::size_t start = i;
+            while (line[i] != ']')
+            {
+                if (line[i] == '\0')
+                    return false;
+                i++;
+            }
+            i--;
+            while (isspace(line[i]))
+                i--;
+            i++;
+            std::size_t end = i;
+            while (line[i] != ']')
+                i++;
+            i++;
+            while (isspace(line[i]))
+                i++;
+            if (line[i] == '\0' || line[i] == ';' || line[i] == '#')
+            {
+                *retSection = line.substr(start, end - start);
+                return true;
+            }
+            return false;
+        }
+
+        bool globalSection(const std::string &line)
+        {
+            std::size_t i = 0;
+            while (isspace(line[i]))
+                i++;
+            if (line[i] != '[')
+                return false;
+            i++;
+            if (line[i] != ']')
+                return false;
+            i++;
+            while (isspace(line[i]))
+                i++;
+            if (line[i] == '\0' || line[i] == ';' || line[i] == '#')
+                return true;
+            return false;
+        }
+
+        bool comment(const std::string &line)
+        {
+            std::size_t i = 0;
+            while (isspace(line[i]))
+                i++;
+            if (line[i] == ';' || line[i] == '#')
+                return true;
+            return false;
+        }
+
+        bool empty(const std::string &line)
+        {
+            for (const char &c : line)
+            {
+                if (!isspace(c))
+                    return false;
+            }
+            return true;
+        }
+
+        /*
+        @func:  ReadFile
+        @brief: parse and fill the map
+        */
+        void readStream(std::istream &fileStream)
+        {
+            std::string currentSectionName = "";
+
+            std::string line;
+            while(std::getline(fileStream, line))
+            {
+                if (!empty(line)
+                &&  !comment(line)
+                &&  !parseSection(line, &currentSectionName))
+                    parseKey(line, currentSectionName);
+            }
+        }
+
+        MapConfig   _mapConfig;
+        std::string _filename;
+        bool        _isRead;
+
+    }; // end class Config
 
     /**
      * @brief class Stream
@@ -429,6 +893,30 @@ public:
         if (_fileStream.is_open())
             _outStream = &_fileStream;
         // if name is not empty and not find in static list of loggators
+        if (_name.empty() == false && sMapLoggators().find(_name) == sMapLoggators().end())
+        {
+            // add new loggator in static list
+            sMapLoggators()[_name] = this;
+        }
+        return ;
+    }
+
+    /**
+     * @brief Construct a new Loggator object
+     * 
+     * @param name 
+     * @param filter 
+     */
+    Loggator(const std::string &name, int filter):
+    _name(name),
+    _filter(filter),
+    _outStream(&std::cerr),
+    _indexTimeNano(std::string::npos),
+    _mute(false)
+    {
+        std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
+        setFormat(LDEFAULT_FORMAT);
+        // if name is not empty and not in static list of loggators
         if (_name.empty() == false && sMapLoggators().find(_name) == sMapLoggators().end())
         {
             // add new loggator in static list
@@ -660,6 +1148,33 @@ public:
         {
             throw std::out_of_range("Loggator instance \"" + name + "\" not found (" + e.what() + ").");
         }
+    }
+
+    static bool     openConfig(const std::string &filename)
+    {
+        static std::mutex confMutex;
+        static std::unordered_map<std::string, std::unique_ptr<Loggator> > mapLoggator;
+
+        Config conf(filename);
+        std::lock_guard<std::mutex> lockGuardStatic(confMutex);
+        for(const std::pair<std::string, Config::MapSection> &sectionItem : conf.getConfig())
+        {
+            if (sectionItem.first.find("Loggator:") != 0)
+                continue;
+            std::string name = sectionItem.first.substr(9, sectionItem.first.size() - 9);
+            std::unique_ptr<Loggator> uniquePtr(new Loggator(name));
+            mapLoggator.emplace(uniquePtr.get()->_name, std::move(uniquePtr));
+        }
+        for(const std::pair<std::string, Config::MapSection> &sectionItem : conf.getConfig())
+        {
+            if (sectionItem.first.find("Loggator:") != 0)
+                continue;
+            std::string name = sectionItem.first.substr(9, sectionItem.first.size() - 9);
+            std::unique_ptr<Loggator> &uniquePtr = mapLoggator[name];
+            conf.setLoggator(sectionItem.second, uniquePtr.get());
+        }
+
+        return conf.isRead();
     }
 
     /**

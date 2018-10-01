@@ -113,8 +113,9 @@ int     main(void)
     if (Loggator::openConfig("loggator.ini") == false)
         return 1;
 
-    LOGGATOR("test") << "youhou !";
-    LOGGATOR("test", INFO) << "youhou !";
+    LOGGATOR() << "youhou !";
+    LOGGATOR() << "youhou !";
+    LOGGATOR("main", INFO) << "youhou !";
     // Loggator::getInstance("r");
     // bench();
     // bench_multi_thread();

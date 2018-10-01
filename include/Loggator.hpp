@@ -312,7 +312,7 @@ private:
             return _isRead;
         }
 
-        void                setLoggator(const MapSection &mapSection, Loggator *loggator)
+        static void         setLoggator(const MapSection &mapSection, Loggator *loggator)
         {
             // NAME
             {
@@ -343,7 +343,13 @@ private:
             {
                 MapSection::const_iterator itSection = mapSection.find("file");
                 if (itSection != mapSection.end())
-                    loggator->open(itSection->second);
+                {
+                    MapSection::const_iterator itSectionOpenMode = mapSection.find("openMode");
+                    if (itSectionOpenMode != mapSection.end())
+                        loggator->open(itSection->second, parseOpenMode(itSectionOpenMode->second));
+                    else
+                        loggator->open(itSection->second);
+                }
             }
             // CHILD
             {
@@ -365,7 +371,7 @@ private:
 
     private:
 
-        int parseFilter(const std::string &str)
+        static int parseFilter(const std::string &str)
         {
             static std::map<std::string, int, InsensitiveCompare> mapStrToFilter = {
                 {"DEBUG", eFilterLog::EQUAL_DEBUG},
@@ -460,7 +466,38 @@ private:
             return filter;
         }
 
-        std::set<Loggator *>    parseChild(const std::string &str)
+        static std::ios::openmode parseOpenMode(const std::string &str)
+        {
+            static std::map<std::string, std::ios::openmode, InsensitiveCompare> mapStrToFilter = {
+                {"APP", std::ios::app},
+                {"APPEND", std::ios::app},
+                {"TRUNC", std::ios::trunc},
+                {"TRUNCATE", std::ios::trunc}
+            };
+            std::ios::openmode ret = std::ios::out;
+            std::size_t indexSub = 0;
+            std::size_t indexNewLine = str.find_first_of("|,+");
+            if (indexNewLine == std::string::npos)
+            {
+                if (mapStrToFilter.find(str) != mapStrToFilter.end())
+                    ret = mapStrToFilter[str];
+                return ret;
+            }
+            while (indexNewLine != std::string::npos)
+            {
+                const std::string &strKey = parseSimpleTrim(str.substr(indexSub, ++indexNewLine - indexSub - 1));
+                indexSub = indexNewLine;
+                indexNewLine = str.find_first_of("|,+", indexSub);
+                if (mapStrToFilter.find(strKey) != mapStrToFilter.end())
+                    ret |= mapStrToFilter[strKey];
+            }
+            const std::string &strKey = parseSimpleTrim(str.substr(indexSub, ++indexNewLine - indexSub - 1));
+            if (mapStrToFilter.find(strKey) != mapStrToFilter.end())
+                ret |= mapStrToFilter[strKey];
+            return ret;
+        }
+
+        static std::set<Loggator *>    parseChild(const std::string &str)
         {
             std::set<Loggator *> setLog;
             std::size_t indexSub = 0;
@@ -494,7 +531,7 @@ private:
             return setLog;
         }
 
-        std::string parseSimpleTrim(const std::string &str)
+        static std::string parseSimpleTrim(const std::string &str)
         {
             std::size_t start = 0;
             std::size_t end = str.size() - 1;
@@ -1171,7 +1208,7 @@ public:
                 continue;
             std::string name = sectionItem.first.substr(9, sectionItem.first.size() - 9);
             std::unique_ptr<Loggator> &uniquePtr = mapLoggator[name];
-            conf.setLoggator(sectionItem.second, uniquePtr.get());
+            Config::setLoggator(sectionItem.second, uniquePtr.get());
         }
 
         return conf.isRead();

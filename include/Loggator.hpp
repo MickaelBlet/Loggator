@@ -362,6 +362,14 @@ private:
                     }
                 }
             }
+            // MUTE
+            {
+                MapSection::const_iterator itSection = mapSection.find("mute");
+                if (itSection != mapSection.end())
+                {
+                    loggator->setMute(parseMute(itSection->second));
+                }
+            }
         }
 
         const MapConfig     &getConfig(void) const
@@ -529,6 +537,15 @@ private:
                 setLog.insert(&child);
             }
             return setLog;
+        }
+
+        static bool        parseMute(const std::string &str)
+        {
+            std::string arg = parseSimpleTrim(str);
+            for (char &c : arg) {c = std::tolower(c);}
+            if (arg == "0" || arg == "f" || arg == "false" || arg.empty())
+                return false;
+            return true;
         }
 
         static std::string parseSimpleTrim(const std::string &str)

@@ -23,19 +23,29 @@
 # include <set>             // set
 
 // options
-# define LALWAYS_FORMAT_AT_NEWLINE
-# define LALWAYS_FLUSH
+// # define LALWAYS_FORMAT_AT_NEWLINE
+// # define LALWAYS_FLUSH
 
 // stack buffer size
-# define LFORMAT_BUFFER_SIZE     1024
-# define LFORMAT_KEY_BUFFER_SIZE 64
+# ifndef LFORMAT_BUFFER_SIZE
+#  define LFORMAT_BUFFER_SIZE     1024
+# endif
+# ifndef LFORMAT_KEY_BUFFER_SIZE
+#  define LFORMAT_KEY_BUFFER_SIZE 64
+# endif
 
 // default prompt format
-# define LDEFAULT_TIME_FORMAT    "%x %X.%N"
-# define LDEFAULT_FORMAT         "{TIME:" LDEFAULT_TIME_FORMAT "} {TYPE:[%-5s]} {FILE:%s:}{LINE:%s:}{FUNC:%s: }{NAME:%s: }"
+# ifndef LDEFAULT_TIME_FORMAT
+#  define LDEFAULT_TIME_FORMAT    "%y/%m/%d %X.%N"
+# endif
+# ifndef LDEFAULT_FORMAT
+#  define LDEFAULT_FORMAT         "{TIME:" LDEFAULT_TIME_FORMAT "} {TYPE:[%-5s]} {FILE:%s:}{LINE:%s:}{FUNC:%s: }{NAME:%s: }"
+# endif
 
 // default loggator name (at use LOGGATOR() macro)
-# define LDEFAULT_LOGGATOR_NAME  "main"
+# ifndef LDEFAULT_LOGGATOR_NAME
+#  define LDEFAULT_LOGGATOR_NAME  "main"
+# endif
 
 /*****************************************************************************/
 
@@ -130,6 +140,10 @@
 namespace Log
 {
 
+/**
+ * @brief enum type of log
+ * 
+ */
 enum class eTypeLog: int
 {
     NONE      = 0,
@@ -146,6 +160,10 @@ enum class eTypeLog: int
     FATAL     = 1<<7
 };
 
+/**
+ * @brief namespace for enum filter log
+ * 
+ */
 namespace eFilterLog
 {
 enum : int
@@ -257,32 +275,17 @@ private:
         }
 
         /**
-         * @brief Construct a new Config object
-         * 
-         * @param src 
-         */
-        Config(Config &src) = default;
-
-        /**
-         * @brief 
-         * 
-         * @param rhs 
-         * @return Config& 
-         */
-        Config &operator=(const Config &rhs) = default;
-
-        /**
          * @brief Destroy the Config object
          * 
          */
         ~Config(void) = default;
 
         /**
-         * @brief 
+         * @brief read config in filename
          * 
          * @param filename 
-         * @return true 
-         * @return false 
+         * @return true : config is read
+         * @return false : config is not read
          */
         bool                readFile(const std::string& filename)
         {
@@ -295,37 +298,42 @@ private:
 
             _mapConfig.clear();
             readStream(fileStream);
-            _filename = filename;
             fileStream.close();
             _isRead = true;
             return true;
         }
 
         /**
-         * @brief 
+         * @brief check if config is read
          * 
-         * @return true 
-         * @return false 
+         * @return true : if config is read
+         * @return false : if config is not read
          */
         bool                isRead(void) const
         {
             return _isRead;
         }
 
-        static void         setLoggator(const MapSection &mapSection, Loggator *loggator)
+        /**
+         * @brief Set the Loggator object from map section
+         * 
+         * @param mapSection 
+         * @param loggator 
+         */
+        static void         setLoggatorCommon(Loggator &loggator, const MapSection &mapSection)
         {
             // NAME
             {
                 MapSection::const_iterator itSection = mapSection.find("name");
                 if (itSection != mapSection.end())
-                    loggator->setName(itSection->second);
+                    loggator.setName(itSection->second);
             }
             // FILTER
             {
                 MapSection::const_iterator itSection = mapSection.find("filter");
                 if (itSection != mapSection.end())
                 {
-                    loggator->setFilter(parseFilter(itSection->second));
+                    loggator.setFilter(parseFilter(itSection->second));
                 }
             }
             // FORMAT
@@ -334,9 +342,9 @@ private:
                 if (itSection != mapSection.end())
                 {
                     if (itSection->second == "DEFAULT")
-                        loggator->setFormat(LDEFAULT_FORMAT);
+                        loggator.setFormat(LDEFAULT_FORMAT);
                     else
-                        loggator->setFormat(itSection->second);
+                        loggator.setFormat(itSection->second);
                 }
             }
             // FILE
@@ -344,22 +352,12 @@ private:
                 MapSection::const_iterator itSection = mapSection.find("file");
                 if (itSection != mapSection.end())
                 {
+                    // OPEN MODE
                     MapSection::const_iterator itSectionOpenMode = mapSection.find("openMode");
                     if (itSectionOpenMode != mapSection.end())
-                        loggator->open(itSection->second, parseOpenMode(itSectionOpenMode->second));
+                        loggator.open(itSection->second, parseOpenMode(itSectionOpenMode->second));
                     else
-                        loggator->open(itSection->second);
-                }
-            }
-            // CHILD
-            {
-                MapSection::const_iterator itSection = mapSection.find("child");
-                if (itSection != mapSection.end())
-                {
-                    for (Loggator *child : parseChild(itSection->second))
-                    {
-                        loggator->addChild(*child);
-                    }
+                        loggator.open(itSection->second);
                 }
             }
             // MUTE
@@ -367,11 +365,48 @@ private:
                 MapSection::const_iterator itSection = mapSection.find("mute");
                 if (itSection != mapSection.end())
                 {
-                    loggator->setMute(parseMute(itSection->second));
+                    loggator.setMute(parseMute(itSection->second));
                 }
             }
         }
 
+        /**
+         * @brief Set the Loggator object from map section
+         * 
+         * @param mapSection 
+         * @param loggator 
+         */
+        static void         setLoggatorChilds(Loggator &loggator, const MapSection &mapSection)
+        {
+            // CHILD
+            {
+                MapSection::const_iterator itSection = mapSection.find("child");
+                if (itSection != mapSection.end())
+                {
+                    for (Loggator *child : parseChild(itSection->second))
+                    {
+                        loggator.addChild(*child);
+                    }
+                }
+            }
+            // LISTEN
+            {
+                MapSection::const_iterator itSection = mapSection.find("listen");
+                if (itSection != mapSection.end())
+                {
+                    for (Loggator *child : parseChild(itSection->second))
+                    {
+                        loggator.listen(*child);
+                    }
+                }
+            }
+        }
+
+        /**
+         * @brief Get the Config object
+         * 
+         * @return const MapConfig& 
+         */
         const MapConfig     &getConfig(void) const
         {
             return _mapConfig;
@@ -379,76 +414,79 @@ private:
 
     private:
 
-        static int parseFilter(const std::string &str)
+        Config(Config &src) = delete;
+        Config &operator=(const Config &rhs) = delete;
+
+        static int          parseFilter(const std::string &str)
         {
             static std::map<std::string, int, InsensitiveCompare> mapStrToFilter = {
-                {"DEBUG", eFilterLog::EQUAL_DEBUG},
-                {"INFO", eFilterLog::EQUAL_INFO},
-                {"WARN", eFilterLog::EQUAL_WARN},
-                {"WARNING", eFilterLog::EQUAL_WARNING},
-                {"ERROR", eFilterLog::EQUAL_ERROR},
-                {"CRIT", eFilterLog::EQUAL_CRIT},
-                {"CRITICAL", eFilterLog::EQUAL_CRITICAL},
-                {"ALERT", eFilterLog::EQUAL_ALERT},
-                {"EMERG", eFilterLog::EQUAL_EMERG},
-                {"EMERGENCY", eFilterLog::EQUAL_EMERGENCY},
-                {"FATAL", eFilterLog::EQUAL_FATAL},
-                {"EQUAL_DEBUG", eFilterLog::EQUAL_DEBUG},
-                {"EQUAL_INFO", eFilterLog::EQUAL_INFO},
-                {"EQUAL_WARN", eFilterLog::EQUAL_WARN},
-                {"EQUAL_WARNING", eFilterLog::EQUAL_WARNING},
-                {"EQUAL_ERROR", eFilterLog::EQUAL_ERROR},
-                {"EQUAL_CRIT", eFilterLog::EQUAL_CRIT},
-                {"EQUAL_CRITICAL", eFilterLog::EQUAL_CRITICAL},
-                {"EQUAL_ALERT", eFilterLog::EQUAL_ALERT},
-                {"EQUAL_EMERG", eFilterLog::EQUAL_EMERG},
-                {"EQUAL_EMERGENCY", eFilterLog::EQUAL_EMERGENCY},
-                {"EQUAL_FATAL", eFilterLog::EQUAL_FATAL},
-                {"ALL", eFilterLog::ALL},
-                {"GREATER_FATAL", eFilterLog::GREATER_FATAL},
-                {"GREATER_EMERG", eFilterLog::GREATER_EMERG},
-                {"GREATER_EMERGENCY", eFilterLog::GREATER_EMERGENCY},
-                {"GREATER_ALERT", eFilterLog::GREATER_ALERT},
-                {"GREATER_CRIT", eFilterLog::GREATER_CRIT},
-                {"GREATER_CRITICAL", eFilterLog::GREATER_CRITICAL},
-                {"GREATER_ERROR", eFilterLog::GREATER_ERROR},
-                {"GREATER_WARN", eFilterLog::GREATER_WARN},
-                {"GREATER_WARNING", eFilterLog::GREATER_WARNING},
-                {"GREATER_INFO", eFilterLog::GREATER_INFO},
-                {"GREATER_DEBUG", eFilterLog::GREATER_DEBUG},
-                {"GREATER_EQUAL_FATAL", eFilterLog::GREATER_EQUAL_FATAL},
-                {"GREATER_EQUAL_EMERG", eFilterLog::GREATER_EQUAL_EMERG},
+                {"DEBUG",                   eFilterLog::EQUAL_DEBUG},
+                {"INFO",                    eFilterLog::EQUAL_INFO},
+                {"WARN",                    eFilterLog::EQUAL_WARN},
+                {"WARNING",                 eFilterLog::EQUAL_WARNING},
+                {"ERROR",                   eFilterLog::EQUAL_ERROR},
+                {"CRIT",                    eFilterLog::EQUAL_CRIT},
+                {"CRITICAL",                eFilterLog::EQUAL_CRITICAL},
+                {"ALERT",                   eFilterLog::EQUAL_ALERT},
+                {"EMERG",                   eFilterLog::EQUAL_EMERG},
+                {"EMERGENCY",               eFilterLog::EQUAL_EMERGENCY},
+                {"FATAL",                   eFilterLog::EQUAL_FATAL},
+                {"EQUAL_DEBUG",             eFilterLog::EQUAL_DEBUG},
+                {"EQUAL_INFO",              eFilterLog::EQUAL_INFO},
+                {"EQUAL_WARN",              eFilterLog::EQUAL_WARN},
+                {"EQUAL_WARNING",           eFilterLog::EQUAL_WARNING},
+                {"EQUAL_ERROR",             eFilterLog::EQUAL_ERROR},
+                {"EQUAL_CRIT",              eFilterLog::EQUAL_CRIT},
+                {"EQUAL_CRITICAL",          eFilterLog::EQUAL_CRITICAL},
+                {"EQUAL_ALERT",             eFilterLog::EQUAL_ALERT},
+                {"EQUAL_EMERG",             eFilterLog::EQUAL_EMERG},
+                {"EQUAL_EMERGENCY",         eFilterLog::EQUAL_EMERGENCY},
+                {"EQUAL_FATAL",             eFilterLog::EQUAL_FATAL},
+                {"ALL",                     eFilterLog::ALL},
+                {"GREATER_FATAL",           eFilterLog::GREATER_FATAL},
+                {"GREATER_EMERG",           eFilterLog::GREATER_EMERG},
+                {"GREATER_EMERGENCY",       eFilterLog::GREATER_EMERGENCY},
+                {"GREATER_ALERT",           eFilterLog::GREATER_ALERT},
+                {"GREATER_CRIT",            eFilterLog::GREATER_CRIT},
+                {"GREATER_CRITICAL",        eFilterLog::GREATER_CRITICAL},
+                {"GREATER_ERROR",           eFilterLog::GREATER_ERROR},
+                {"GREATER_WARN",            eFilterLog::GREATER_WARN},
+                {"GREATER_WARNING",         eFilterLog::GREATER_WARNING},
+                {"GREATER_INFO",            eFilterLog::GREATER_INFO},
+                {"GREATER_DEBUG",           eFilterLog::GREATER_DEBUG},
+                {"GREATER_EQUAL_FATAL",     eFilterLog::GREATER_EQUAL_FATAL},
+                {"GREATER_EQUAL_EMERG",     eFilterLog::GREATER_EQUAL_EMERG},
                 {"GREATER_EQUAL_EMERGENCY", eFilterLog::GREATER_EQUAL_EMERGENCY},
-                {"GREATER_EQUAL_ALERT", eFilterLog::GREATER_EQUAL_ALERT},
-                {"GREATER_EQUAL_CRIT", eFilterLog::GREATER_EQUAL_CRIT},
-                {"GREATER_EQUAL_CRITICAL", eFilterLog::GREATER_EQUAL_CRITICAL},
-                {"GREATER_EQUAL_ERROR", eFilterLog::GREATER_EQUAL_ERROR},
-                {"GREATER_EQUAL_WARN", eFilterLog::GREATER_EQUAL_WARN},
-                {"GREATER_EQUAL_WARNING", eFilterLog::GREATER_EQUAL_WARNING},
-                {"GREATER_EQUAL_INFO", eFilterLog::GREATER_EQUAL_INFO},
-                {"GREATER_EQUAL_DEBUG", eFilterLog::GREATER_EQUAL_DEBUG},
-                {"LESS_DEBUG", eFilterLog::LESS_DEBUG},
-                {"LESS_INFO", eFilterLog::LESS_INFO},
-                {"LESS_WARN", eFilterLog::LESS_WARN},
-                {"LESS_WARNING", eFilterLog::LESS_WARNING},
-                {"LESS_ERROR", eFilterLog::LESS_ERROR},
-                {"LESS_CRIT", eFilterLog::LESS_CRIT},
-                {"LESS_CRITICAL", eFilterLog::LESS_CRITICAL},
-                {"LESS_ALERT", eFilterLog::LESS_ALERT},
-                {"LESS_EMERG", eFilterLog::LESS_EMERG},
-                {"LESS_EMERGENCY", eFilterLog::LESS_EMERGENCY},
-                {"LESS_FATAL", eFilterLog::LESS_FATAL},
-                {"LESS_EQUAL_DEBUG", eFilterLog::LESS_EQUAL_DEBUG},
-                {"LESS_EQUAL_INFO", eFilterLog::LESS_EQUAL_INFO},
-                {"LESS_EQUAL_WARN", eFilterLog::LESS_EQUAL_WARN},
-                {"LESS_EQUAL_WARNING", eFilterLog::LESS_EQUAL_WARNING},
-                {"LESS_EQUAL_ERROR", eFilterLog::LESS_EQUAL_ERROR},
-                {"LESS_EQUAL_CRIT", eFilterLog::LESS_EQUAL_CRIT},
-                {"LESS_EQUAL_CRITICAL", eFilterLog::LESS_EQUAL_CRITICAL},
-                {"LESS_EQUAL_ALERT", eFilterLog::LESS_EQUAL_ALERT},
-                {"LESS_EQUAL_EMERG", eFilterLog::LESS_EQUAL_EMERG},
-                {"LESS_EQUAL_EMERGENCY", eFilterLog::LESS_EQUAL_EMERGENCY},
-                {"LESS_EQUAL_FATAL", eFilterLog::LESS_EQUAL_FATAL}
+                {"GREATER_EQUAL_ALERT",     eFilterLog::GREATER_EQUAL_ALERT},
+                {"GREATER_EQUAL_CRIT",      eFilterLog::GREATER_EQUAL_CRIT},
+                {"GREATER_EQUAL_CRITICAL",  eFilterLog::GREATER_EQUAL_CRITICAL},
+                {"GREATER_EQUAL_ERROR",     eFilterLog::GREATER_EQUAL_ERROR},
+                {"GREATER_EQUAL_WARN",      eFilterLog::GREATER_EQUAL_WARN},
+                {"GREATER_EQUAL_WARNING",   eFilterLog::GREATER_EQUAL_WARNING},
+                {"GREATER_EQUAL_INFO",      eFilterLog::GREATER_EQUAL_INFO},
+                {"GREATER_EQUAL_DEBUG",     eFilterLog::GREATER_EQUAL_DEBUG},
+                {"LESS_DEBUG",              eFilterLog::LESS_DEBUG},
+                {"LESS_INFO",               eFilterLog::LESS_INFO},
+                {"LESS_WARN",               eFilterLog::LESS_WARN},
+                {"LESS_WARNING",            eFilterLog::LESS_WARNING},
+                {"LESS_ERROR",              eFilterLog::LESS_ERROR},
+                {"LESS_CRIT",               eFilterLog::LESS_CRIT},
+                {"LESS_CRITICAL",           eFilterLog::LESS_CRITICAL},
+                {"LESS_ALERT",              eFilterLog::LESS_ALERT},
+                {"LESS_EMERG",              eFilterLog::LESS_EMERG},
+                {"LESS_EMERGENCY",          eFilterLog::LESS_EMERGENCY},
+                {"LESS_FATAL",              eFilterLog::LESS_FATAL},
+                {"LESS_EQUAL_DEBUG",        eFilterLog::LESS_EQUAL_DEBUG},
+                {"LESS_EQUAL_INFO",         eFilterLog::LESS_EQUAL_INFO},
+                {"LESS_EQUAL_WARN",         eFilterLog::LESS_EQUAL_WARN},
+                {"LESS_EQUAL_WARNING",      eFilterLog::LESS_EQUAL_WARNING},
+                {"LESS_EQUAL_ERROR",        eFilterLog::LESS_EQUAL_ERROR},
+                {"LESS_EQUAL_CRIT",         eFilterLog::LESS_EQUAL_CRIT},
+                {"LESS_EQUAL_CRITICAL",     eFilterLog::LESS_EQUAL_CRITICAL},
+                {"LESS_EQUAL_ALERT",        eFilterLog::LESS_EQUAL_ALERT},
+                {"LESS_EQUAL_EMERG",        eFilterLog::LESS_EQUAL_EMERG},
+                {"LESS_EQUAL_EMERGENCY",    eFilterLog::LESS_EQUAL_EMERGENCY},
+                {"LESS_EQUAL_FATAL",        eFilterLog::LESS_EQUAL_FATAL}
             };
 
             int filter = 0;
@@ -477,9 +515,9 @@ private:
         static std::ios::openmode parseOpenMode(const std::string &str)
         {
             static std::map<std::string, std::ios::openmode, InsensitiveCompare> mapStrToFilter = {
-                {"APP", std::ios::app},
-                {"APPEND", std::ios::app},
-                {"TRUNC", std::ios::trunc},
+                {"APP",      std::ios::app},
+                {"APPEND",   std::ios::app},
+                {"TRUNC",    std::ios::trunc},
                 {"TRUNCATE", std::ios::trunc}
             };
             std::ios::openmode ret = std::ios::out;
@@ -525,7 +563,7 @@ private:
                 indexSub = indexNewLine;
                 indexNewLine = str.find_first_of("|,+", indexSub);
                 if (strKey.empty() == false)
-                {
+                { 
                     Loggator &child = Loggator::getInstance(strKey);
                     setLog.insert(&child);
                 }
@@ -539,6 +577,13 @@ private:
             return setLog;
         }
 
+        /**
+         * @brief parse mute configuration
+         * 
+         * @param str 
+         * @return true : if mute is true
+         * @return false : if mute is false
+         */
         static bool        parseMute(const std::string &str)
         {
             std::string arg = parseSimpleTrim(str);
@@ -548,6 +593,12 @@ private:
             return true;
         }
 
+        /**
+         * @brief trim space characters at begin and end of string
+         * 
+         * @param str 
+         * @return std::string : string without space characters at begin and end
+         */
         static std::string parseSimpleTrim(const std::string &str)
         {
             std::size_t start = 0;
@@ -559,7 +610,29 @@ private:
             return str.substr(start, end - start + 1);
         }
 
-        bool parseKey(const std::string &line, const std::string &currentSectionName)
+        /**
+         * @brief check if character is comment
+         * 
+         * @param c 
+         * @return true : c is comment character
+         * @return false : c is not comment character
+         */
+        bool                isComment(const unsigned char &c)
+        {
+            if (c == ';' || c == '#')
+                return true;
+            return false;
+        }
+
+        /**
+         * @brief parse and add key in _mapConfig at currentSectionName
+         * 
+         * @param line 
+         * @param currentSectionName 
+         * @return true : if line is a key value
+         * @return false : if line is not a key value
+         */
+        bool                parseKey(const std::string &line, const std::string &currentSectionName)
         {
             std::size_t startKey;
             std::size_t endKey;
@@ -625,7 +698,7 @@ private:
             else
             {
                 startValue = i;
-                while (line[i] != ';' && line[i] != '#' && line[i] != '\0')
+                while (isComment(line[i]) != true && line[i] != '\0')
                     i++;
                 i--;
                 while (isspace(line[i]))
@@ -635,7 +708,7 @@ private:
             }
             while (isspace(line[i]))
                 i++;
-            if (line[i] == '\0' || line[i] == ';' || line[i] == '#')
+            if (isComment(line[i]) || line[i] == '\0')
             {
                 _mapConfig[currentSectionName][line.substr(startKey, endKey - startKey)] = line.substr(startValue, endValue - startValue);
                 return true;
@@ -643,7 +716,15 @@ private:
             return false;
         }
 
-        bool parseSection(const std::string &line, std::string *retSection)
+        /**
+         * @brief parse and get section name
+         * 
+         * @param line 
+         * @param retSection : return name of section if found
+         * @return true : if section found
+         * @return false : if section not found
+         */
+        bool                parseSection(const std::string &line, std::string *retSection)
         {
             std::size_t i = 0;
             while (isspace(line[i]))
@@ -670,7 +751,7 @@ private:
             i++;
             while (isspace(line[i]))
                 i++;
-            if (line[i] == '\0' || line[i] == ';' || line[i] == '#')
+            if (isComment(line[i]) || line[i] == '\0')
             {
                 *retSection = line.substr(start, end - start);
                 return true;
@@ -678,64 +759,42 @@ private:
             return false;
         }
 
-        bool globalSection(const std::string &line)
+        /**
+         * @brief detect if line is empty or comment
+         * 
+         * @param line 
+         * @return true : line is empty or comment
+         * @return false : line is not empty or comment
+         */
+        bool                emptyOrComment(const std::string &line)
         {
             std::size_t i = 0;
             while (isspace(line[i]))
                 i++;
-            if (line[i] != '[')
-                return false;
-            i++;
-            if (line[i] != ']')
-                return false;
-            i++;
-            while (isspace(line[i]))
-                i++;
-            if (line[i] == '\0' || line[i] == ';' || line[i] == '#')
+            if (isComment(line[i]) || line[i] == '\0')
                 return true;
             return false;
         }
 
-        bool comment(const std::string &line)
-        {
-            std::size_t i = 0;
-            while (isspace(line[i]))
-                i++;
-            if (line[i] == ';' || line[i] == '#')
-                return true;
-            return false;
-        }
-
-        bool empty(const std::string &line)
-        {
-            for (const char &c : line)
-            {
-                if (!isspace(c))
-                    return false;
-            }
-            return true;
-        }
-
-        /*
-        @func:  ReadFile
-        @brief: parse and fill the map
-        */
-        void readStream(std::istream &fileStream)
+        /**
+         * @brief parse and fill the map from fileStream
+         * 
+         * @param fileStream 
+         */
+        void                readStream(std::istream &fileStream)
         {
             std::string currentSectionName = "";
 
             std::string line;
             while(std::getline(fileStream, line))
             {
-                if (!empty(line)
-                &&  !comment(line)
+                if (!emptyOrComment(line)
                 &&  !parseSection(line, &currentSectionName))
                     parseKey(line, currentSectionName);
             }
         }
 
         MapConfig   _mapConfig;
-        std::string _filename;
         bool        _isRead;
 
     }; // end class Config
@@ -1188,6 +1247,7 @@ public:
     /**
      * @brief Get the Instance Loggator object by name
      * throw out_of_range if instance not found
+     * 
      * @param name 
      * @return Loggator& 
      */
@@ -1204,6 +1264,14 @@ public:
         }
     }
 
+    /**
+     * @brief Load config from filename
+     * create loggators and store in unique_ptr
+     * 
+     * @param filename 
+     * @return true : config is read
+     * @return false : config is not read
+     */
     static bool     openConfig(const std::string &filename)
     {
         static std::mutex confMutex;
@@ -1213,19 +1281,26 @@ public:
         std::lock_guard<std::mutex> lockGuardStatic(confMutex);
         for(const std::pair<std::string, Config::MapSection> &sectionItem : conf.getConfig())
         {
-            if (sectionItem.first.find("Loggator:") != 0)
+            if ((sectionItem.first[0] != 'L' && sectionItem.first[0] != 'l')
+             || (sectionItem.first[1] != 'O' && sectionItem.first[1] != 'o')
+             || (sectionItem.first[2] != 'G' && sectionItem.first[2] != 'g')
+             || (sectionItem.first[3] != 'G' && sectionItem.first[3] != 'g')
+             || (sectionItem.first[4] != 'A' && sectionItem.first[4] != 'a')
+             || (sectionItem.first[5] != 'T' && sectionItem.first[5] != 't')
+             || (sectionItem.first[6] != 'O' && sectionItem.first[6] != 'o')
+             || (sectionItem.first[7] != 'R' && sectionItem.first[7] != 'r')
+             || sectionItem.first[8] != ':')
                 continue;
-            std::string name = sectionItem.first.substr(9, sectionItem.first.size() - 9);
-            std::unique_ptr<Loggator> uniquePtr(new Loggator(name));
-            mapLoggator.emplace(uniquePtr.get()->_name, std::move(uniquePtr));
+            std::unique_ptr<Loggator> uniquePtr(new Loggator(sectionItem.first));
+            Config::setLoggatorCommon(*(uniquePtr.get()), sectionItem.second);
+            mapLoggator.emplace(sectionItem.first, std::move(uniquePtr));
         }
-        for(const std::pair<std::string, Config::MapSection> &sectionItem : conf.getConfig())
+        for (std::pair<const std::string, std::unique_ptr<Loggator> > &mapLoggatorItem : mapLoggator)
         {
-            if (sectionItem.first.find("Loggator:") != 0)
+            Config::MapConfig::const_iterator iteratorSection = conf.getConfig().find(mapLoggatorItem.first);
+            if (iteratorSection == conf.getConfig().end())
                 continue;
-            std::string name = sectionItem.first.substr(9, sectionItem.first.size() - 9);
-            std::unique_ptr<Loggator> &uniquePtr = mapLoggator[name];
-            Config::setLoggator(sectionItem.second, uniquePtr.get());
+            Config::setLoggatorChilds(*(mapLoggatorItem.second.get()), iteratorSection->second);
         }
 
         return conf.isRead();

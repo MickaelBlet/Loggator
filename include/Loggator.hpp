@@ -317,8 +317,8 @@ private:
         /**
          * @brief Set the Loggator object from map section
          * 
-         * @param mapSection 
          * @param loggator 
+         * @param mapSection 
          */
         static void         setLoggatorCommon(Loggator &loggator, const MapSection &mapSection)
         {
@@ -373,8 +373,8 @@ private:
         /**
          * @brief Set the Loggator object from map section
          * 
-         * @param mapSection 
          * @param loggator 
+         * @param mapSection 
          */
         static void         setLoggatorChilds(Loggator &loggator, const MapSection &mapSection)
         {
@@ -417,6 +417,12 @@ private:
         Config(Config &src) = delete;
         Config &operator=(const Config &rhs) = delete;
 
+        /**
+         * @brief parse filter configuration
+         * 
+         * @param str 
+         * @return int : filter
+         */
         static int          parseFilter(const std::string &str)
         {
             static std::map<std::string, int, InsensitiveCompare> mapStrToFilter = {
@@ -512,6 +518,12 @@ private:
             return filter;
         }
 
+        /**
+         * @brief parse open mode configuration
+         * 
+         * @param str 
+         * @return std::ios::openmode 
+         */
         static std::ios::openmode parseOpenMode(const std::string &str)
         {
             static std::map<std::string, std::ios::openmode, InsensitiveCompare> mapStrToFilter = {
@@ -543,6 +555,12 @@ private:
             return ret;
         }
 
+        /**
+         * @brief parse child configuration
+         * 
+         * @param str 
+         * @return std::set<Loggator *> : list of child
+         */
         static std::set<Loggator *>    parseChild(const std::string &str)
         {
             std::set<Loggator *> setLog;

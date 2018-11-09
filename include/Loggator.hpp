@@ -1,8 +1,8 @@
 /**
  * @file Loggator.hpp
- * @author Blet Mickael
- * @date 2018-05-01
- * @version v0.3-alpha
+ * @author Mickaël BLET
+ * @date 2018-11-09
+ * @version v1.0
  */
 
 #ifndef _LOG_LOGGATOR_HPP_
@@ -862,7 +862,7 @@ private:
                 if (cacheStr.size() > 1 && cacheStr[cacheStr.size() - 2] == '\n')
                     cacheStr.pop_back();
                 #ifndef LALWAYS_FLUSH
-                    _flush = _flush || (static_cast<int>(_type) & ~(eFilterLog::EQUAL_INFO | eFilterLog::EQUAL_WARN));
+                    _flush = (_flush || (static_cast<int>(_type) & ~(eFilterLog::EQUAL_INFO | eFilterLog::EQUAL_WARN)));
                 #endif
                 _log.sendToOutStream(cacheStr, _type, _sourceInfos, _flush);
             }
@@ -1381,7 +1381,7 @@ public:
     }
 
     /**
-     * @brief Add ta Filter object
+     * @brief Add a Filter object
      * 
      * @param filter 
      */

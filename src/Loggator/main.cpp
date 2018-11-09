@@ -109,6 +109,13 @@ void bench_multi_thread(int nb_thread = 2, int nb_test = 1000000);
 int     main(void)
 {
     using namespace Log;
+
+    // if (Loggator::openConfig("loggator.ini") == false)
+        // return 1;
+
+    // LOGGATOR() << "youhou !";
+    // LOGGATOR() << "youhou !";
+    // LOGGATOR("test", INFO) << "youhou !";
     // Loggator::getInstance("r");
     bench();
     // bench_multi_thread();
@@ -321,8 +328,8 @@ void bench(int nb_test)
     {
         // t << "Hello logger: msg number " << i << "\n";
         // log.LSEND(ERROR) << "Hello logger: msg number " << i;
-        log.LSEND(DEBUG) << "Hello logger: msg number " << i;
-        // log.LSEND(INFO, "Hello logger: msg number %i", i);
+        // log.LSEND(DEBUG) << "Hello logger: msg number " << i;
+        log.LSEND(INFO, "Hello logger: msg number %i", i);
     }
 
     auto delta = high_resolution_clock::now() - start;

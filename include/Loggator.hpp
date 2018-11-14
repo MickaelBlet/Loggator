@@ -2031,7 +2031,7 @@ protected:
     /**
      * @brief 
      * struct tm  tm   : stock struct tm
-     * long       msec : stock milisecond of time
+     * char[7]    msec : stock milisecond of time
      */
     struct TimeInfo
     {
@@ -2141,6 +2141,17 @@ protected:
         }
     }
 
+    /**
+     * @brief flush to childs
+     * 
+     * @param setLog 
+     * @param loggator 
+     * @param name 
+     * @param type 
+     * @param timeInfo 
+     * @param source 
+     * @param str 
+     */
     void            flushChild(std::set<const Loggator*> &setLog, const Loggator &loggator) const
     {
         // create a cpy of LogChild for no dead lock
@@ -2149,13 +2160,12 @@ protected:
         loggator._mutex.unlock();
         for (const Loggator *child : cpyLogChilds)
         {
-            if (setLog.find(child) != setLog.end())
+            if (setLog.insert(child).second == false)
                 continue;
-            setLog.insert(child);
             child->_mutex.lock();
             if (child->_outStream != nullptr && child->_mute == false)
             {
-                (*child->_outStream).flush();
+                child->_outStream->flush();
             }
             if (child->_logChilds.empty())
             {
@@ -2170,16 +2180,16 @@ protected:
     /**
      * @brief get string format time from TimeInfo
      * 
-     * @param infos 
+     * @param timeInfo 
      * @return std::string 
      */
-    std::string     formatTime(TimeInfo &infos) const
+    std::string     formatTime(TimeInfo &timeInfo) const
     {
         char bufferFormatTime[LFORMAT_BUFFER_SIZE];
         std::string retStr = _mapCustomFormatKey.at("TIME");
         if (_indexTimeNano != std::string::npos)
-            retStr.insert(_indexTimeNano, infos.msec, 6);
-        return std::string(bufferFormatTime, 0, std::strftime(bufferFormatTime, LFORMAT_BUFFER_SIZE - 1, retStr.c_str(), &infos.tm));
+            retStr.insert(_indexTimeNano, timeInfo.msec, 6);
+        return std::string(bufferFormatTime, 0, std::strftime(bufferFormatTime, LFORMAT_BUFFER_SIZE - 1, retStr.c_str(), &timeInfo.tm));
     }
 
     /**
@@ -2203,6 +2213,11 @@ protected:
         timeInfo.msec[6] = '\0';
     }
 
+    /**
+     * @brief Get the Thread Id object
+     * 
+     * @return threadId 
+     */
     void            getThreadId(std::string &threadId) const
     {
         if (threadId.empty() == false)
@@ -2369,7 +2384,7 @@ protected:
             }
         }
         for (;lastIndex < _format.size(); ++lastIndex)
-                prompt.push_back(_format[lastIndex]);
+            prompt.push_back(_format[lastIndex]);
         return prompt;
     }
 

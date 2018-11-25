@@ -11,4 +11,4 @@
 # **************************************************************************** #
 
 #!/bin/sh
-make debug && valgrind --leak-check=full --show-leak-kinds=all ./bin/debug/Loggator && make release && ./bin/release/Loggator
+make debug && valgrind --leak-check=full --show-leak-kinds=all ./bin/debug/Loggator && make release && valgrind --leak-check=full --show-leak-kinds=all ./bin/release/Loggator

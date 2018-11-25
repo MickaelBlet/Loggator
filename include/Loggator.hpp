@@ -1,7 +1,7 @@
 /**
  * @file Loggator.hpp
  * @author Mickaël BLET
- * @date 2018-11-09
+ * @date 2018-11-25
  * @version v1.0
  */
 
@@ -12,6 +12,7 @@
 # include <cstring>         // strrchr
 # include <ctime>           // localtime_r / localtime_s
 
+# include <algorithm>       // lexicographical_compare
 # include <iostream>        // string, cerr
 # include <fstream>         // ostream, ofstream
 # include <sstream>         // ostringstream
@@ -21,30 +22,27 @@
 # include <map>             // map
 # include <vector>          // vector
 # include <set>             // set
-
-// options
-// # define LALWAYS_FORMAT_AT_NEWLINE
-// # define LALWAYS_FLUSH
+# include <limits>
 
 // stack buffer size
-# ifndef LFORMAT_BUFFER_SIZE
-#  define LFORMAT_BUFFER_SIZE     1024
+# ifndef LOGGATOR_FORMAT_BUFFER_SIZE
+#  define LOGGATOR_FORMAT_BUFFER_SIZE     1024
 # endif
-# ifndef LFORMAT_KEY_BUFFER_SIZE
-#  define LFORMAT_KEY_BUFFER_SIZE 64
+# ifndef LOGGATOR_FORMAT_KEY_BUFFER_SIZE
+#  define LOGGATOR_FORMAT_KEY_BUFFER_SIZE 64
 # endif
 
 // default prompt format
-# ifndef LDEFAULT_TIME_FORMAT
-#  define LDEFAULT_TIME_FORMAT    "%y/%m/%d %X.%N"
+# ifndef LOGGATOR_DEFAULT_TIME_FORMAT
+#  define LOGGATOR_DEFAULT_TIME_FORMAT    "%y/%m/%d %X.%N"
 # endif
-# ifndef LDEFAULT_FORMAT
-#  define LDEFAULT_FORMAT         "{TIME:" LDEFAULT_TIME_FORMAT "} {TYPE:[%-5s]} {FILE:%s:}{LINE:%s:}{FUNC:%s: }{NAME:%s: }"
+# ifndef LOGGATOR_DEFAULT_FORMAT
+#  define LOGGATOR_DEFAULT_FORMAT         "{TIME:" LOGGATOR_DEFAULT_TIME_FORMAT "} {TYPE:[%-5s]} {FILE:%s:}{LINE:%s:}{FUNC:%s: }{NAME:%s: }"
 # endif
 
 // default loggator name (at use LOGGATOR() macro)
-# ifndef LDEFAULT_LOGGATOR_NAME
-#  define LDEFAULT_LOGGATOR_NAME  "main"
+# ifndef LOGGATOR_DEFAULT_LOGGATOR_NAME
+#  define LOGGATOR_DEFAULT_LOGGATOR_NAME  "main"
 # endif
 
 /*****************************************************************************/
@@ -55,87 +53,27 @@
 #  endif
 # endif
 
-# define LSOURCEINFOS Log::Loggator::SourceInfos{__FILE__, __LINE__, __func__}
-
-# define LPRIMITIVE_CAT(x, y) x ## y
-# define LCAT(x, y) LPRIMITIVE_CAT(x, y)
+# define LOGGATOR_PRIMITIVE_CAT(x, y) x ## y
+# define LOGGATOR_CAT(x, y) LOGGATOR_PRIMITIVE_CAT(x, y)
 
 // max 19 args
-# define LNARGS_SEQ(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _0, N, ...) N
-# define LNARGS(...) LNARGS_SEQ(__VA_ARGS__, 0, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, 1)
-# define LPRE_NARGS(...) LNARGS(__VA_ARGS__)
-# define LNOARGS() 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19
-# define LMACRO_CHOOSER(macro_prefix, ...) LCAT(macro_prefix, LPRE_NARGS(LNOARGS __VA_ARGS__ ()))
+# define LOGGATOR_NARGS_SEQ(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _0, N, ...) N
+# define LOGGATOR_NARGS(...) LOGGATOR_NARGS_SEQ(__VA_ARGS__, 0, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, 1)
+# define LOGGATOR_PRE_NARGS(...) LOGGATOR_NARGS(__VA_ARGS__)
+# define LOGGAOTR_NOARGS() 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19
+# define LOGGATOR_MACRO_CHOOSER(macro_prefix, ...) LOGGATOR_CAT(macro_prefix, LOGGATOR_PRE_NARGS(LOGGAOTR_NOARGS __VA_ARGS__ ()))
+
+// source info
+# define LOGGATOR_SOURCEINFOS Log::Loggator::SourceInfos{__FILE__, __LINE__, __func__}
 
 // format macro
-# define LSENDF(_typeLog, ...)  send(Log::eTypeLog::_typeLog, LSOURCEINFOS, ##__VA_ARGS__)
-# define LDEBUGF(...)           LSENDF(DEBUG,       __VA_ARGS__)
-# define LINFOF(...)            LSENDF(INFO,        __VA_ARGS__)
-# define LWARNF(...)            LSENDF(WARN,        __VA_ARGS__)
-# define LWARNINGF(...)         LSENDF(WARNING,     __VA_ARGS__)
-# define LERRORF(...)           LSENDF(ERROR,       __VA_ARGS__)
-# define LCRITF(...)            LSENDF(CRIT,        __VA_ARGS__)
-# define LCRITICALF(...)        LSENDF(CRITICAL,    __VA_ARGS__)
-# define LALERTF(...)           LSENDF(ALERT,       __VA_ARGS__)
-# define LEMERGF(...)           LSENDF(EMERG,       __VA_ARGS__)
-# define LEMERGENCYF(...)       LSENDF(EMERGENCY,   __VA_ARGS__)
-# define LFATALF(...)           LSENDF(FATAL,       __VA_ARGS__)
+# define LOGGATOR_SEND(_name, _typeLog, ...) Log::Loggator::getInstance(_name).send(Log::eTypeLog::_typeLog, LOGGATOR_SOURCEINFOS, ##__VA_ARGS__)
 
 // Loggator macro
-# define LOGGATOR(...)          LMACRO_CHOOSER(LOGGATOR_, __VA_ARGS__)(__VA_ARGS__)
+# define LOGGATOR(...)          LOGGATOR_MACRO_CHOOSER(LOGGATOR_, __VA_ARGS__)(__VA_ARGS__)
 # define LOGGATOR_0()           Log::Loggator::getInstance(LDEFAULT_LOGGATOR_NAME)
 # define LOGGATOR_1(_name)      Log::Loggator::getInstance(_name)
-# define LOGGATOR_X(_name, ...) Log::Loggator::getInstance(_name).LSENDF(__VA_ARGS__)
-
-// send macro
-# define LSEND(...)             LMACRO_CHOOSER(LSEND_, __VA_ARGS__)(__VA_ARGS__)
-# define LSEND_0()              send(Log::eTypeLog::DEBUG, LSOURCEINFOS)
-# define LSEND_1(_typeLog)      send(Log::eTypeLog::_typeLog, LSOURCEINFOS)
-# define LSEND_X(...)           LSENDF(__VA_ARGS__)
-
-// type macro
-# define LDEBUG(...)            LMACRO_CHOOSER(LDEBUG_, __VA_ARGS__)(__VA_ARGS__)
-# define LDEBUG_0()             LSENDF(DEBUG)
-# define LDEBUG_1(...)          LDEBUGF(__VA_ARGS__)
-# define LDEBUG_X(...)          LDEBUGF(__VA_ARGS__)
-
-# define LINFO(...)             LMACRO_CHOOSER(LINFO_, __VA_ARGS__)(__VA_ARGS__)
-# define LINFO_0()              LSENDF(INFO)
-# define LINFO_1(...)           LINFOF(__VA_ARGS__)
-# define LINFO_X(...)           LINFOF(__VA_ARGS__)
-
-# define LWARN(...)             LMACRO_CHOOSER(LWARN_, __VA_ARGS__)(__VA_ARGS__)
-# define LWARNING(...)          LMACRO_CHOOSER(LWARN_, __VA_ARGS__)(__VA_ARGS__)
-# define LWARN_0()              LSENDF(WARN)
-# define LWARN_1(...)           LWARNF(__VA_ARGS__)
-# define LWARN_X(...)           LWARNF(__VA_ARGS__)
-
-# define LERROR(...)            LMACRO_CHOOSER(LERROR_, __VA_ARGS__)(__VA_ARGS__)
-# define LERROR_0()             LSENDF(ERROR)
-# define LERROR_1(...)          LERRORF(__VA_ARGS__)
-# define LERROR_X(...)          LERRORF(__VA_ARGS__)
-
-# define LCRIT(...)             LMACRO_CHOOSER(LCRIT_, __VA_ARGS__)(__VA_ARGS__)
-# define LCRITICAL(...)         LMACRO_CHOOSER(LCRIT_, __VA_ARGS__)(__VA_ARGS__)
-# define LCRIT_0()              LSENDF(CRIT)
-# define LCRIT_1(...)           LCRITF(__VA_ARGS__)
-# define LCRIT_X(...)           LCRITF(__VA_ARGS__)
-
-# define LALERT(...)            LMACRO_CHOOSER(LALERT_, __VA_ARGS__)(__VA_ARGS__)
-# define LALERT_0()             LSENDF(ALERT)
-# define LALERT_1(...)          LALERTF(__VA_ARGS__)
-# define LALERT_X(...)          LALERTF(__VA_ARGS__)
-
-# define LEMERG(...)            LMACRO_CHOOSER(LEMERG_, __VA_ARGS__)(__VA_ARGS__)
-# define LEMERGENCY(...)        LMACRO_CHOOSER(LEMERG_, __VA_ARGS__)(__VA_ARGS__)
-# define LEMERG_0()             LSENDF(EMERG)
-# define LEMERG_1(...)          LEMERGF(__VA_ARGS__)
-# define LEMERG_X(...)          LEMERGF(__VA_ARGS__)
-
-# define LFATAL(...)            LMACRO_CHOOSER(LFATAL_, __VA_ARGS__)(__VA_ARGS__)
-# define LFATAL_0()             LSENDF(FATAL)
-# define LFATAL_1(...)          LFATALF(__VA_ARGS__)
-# define LFATAL_X(...)          LFATALF(__VA_ARGS__)
+# define LOGGATOR_X(_name, ...) LOGGATOR_SEND(_name, __VA_ARGS__)
 
 namespace Log
 {
@@ -168,6 +106,7 @@ namespace eFilterLog
 {
 enum : int
 {
+    NONE                    = static_cast<int>(eTypeLog::NONE),
     EQUAL_DEBUG             = static_cast<int>(eTypeLog::DEBUG),
     EQUAL_INFO              = static_cast<int>(eTypeLog::INFO),
     EQUAL_WARN              = static_cast<int>(eTypeLog::WARN),
@@ -323,50 +262,52 @@ private:
         static void         setLoggatorCommon(Loggator &loggator, const MapSection &mapSection)
         {
             // NAME
+            MapSection::const_iterator itSection = mapSection.find("name");
+            if (itSection != mapSection.end())
             {
-                MapSection::const_iterator itSection = mapSection.find("name");
-                if (itSection != mapSection.end())
-                    loggator.setName(itSection->second);
+                loggator.setName(itSection->second);
             }
             // FILTER
+            itSection = mapSection.find("filter");
+            if (itSection != mapSection.end())
             {
-                MapSection::const_iterator itSection = mapSection.find("filter");
-                if (itSection != mapSection.end())
-                {
-                    loggator.setFilter(parseFilter(itSection->second));
-                }
+                loggator.setFilter(parseFilter(itSection->second));
             }
             // FORMAT
+            itSection = mapSection.find("format");
+            if (itSection != mapSection.end())
             {
-                MapSection::const_iterator itSection = mapSection.find("format");
-                if (itSection != mapSection.end())
-                {
-                    if (itSection->second == "DEFAULT")
-                        loggator.setFormat(LDEFAULT_FORMAT);
-                    else
-                        loggator.setFormat(itSection->second);
-                }
+                InsensitiveCompare insensitiveCompare;
+                if (insensitiveCompare(itSection->second, "DEFAULT"))
+                    loggator.setFormat(LOGGATOR_DEFAULT_FORMAT);
+                else
+                    loggator.setFormat(itSection->second);
             }
             // FILE
+            itSection = mapSection.find("file");
+            if (itSection != mapSection.end())
             {
-                MapSection::const_iterator itSection = mapSection.find("file");
+                // OPEN MODE
+                MapSection::const_iterator itSectionOpenMode = mapSection.find("openMode");
+                if (itSectionOpenMode != mapSection.end())
+                    loggator.open(itSection->second, parseOpenMode(itSectionOpenMode->second));
+                else
+                    loggator.open(itSection->second);
+            }
+            else
+            {
+                // OUTSTREAM
+                itSection = mapSection.find("outStream");
                 if (itSection != mapSection.end())
                 {
-                    // OPEN MODE
-                    MapSection::const_iterator itSectionOpenMode = mapSection.find("openMode");
-                    if (itSectionOpenMode != mapSection.end())
-                        loggator.open(itSection->second, parseOpenMode(itSectionOpenMode->second));
-                    else
-                        loggator.open(itSection->second);
+                    loggator.setOutStream(parseOutStream(itSection->second));
                 }
             }
             // MUTE
+            itSection = mapSection.find("mute");
+            if (itSection != mapSection.end())
             {
-                MapSection::const_iterator itSection = mapSection.find("mute");
-                if (itSection != mapSection.end())
-                {
-                    loggator.setMute(parseMute(itSection->second));
-                }
+                loggator.setMute(parseMute(itSection->second));
             }
         }
 
@@ -379,25 +320,21 @@ private:
         static void         setLoggatorChilds(Loggator &loggator, const MapSection &mapSection)
         {
             // CHILD
+            MapSection::const_iterator itSection = mapSection.find("child");
+            if (itSection != mapSection.end())
             {
-                MapSection::const_iterator itSection = mapSection.find("child");
-                if (itSection != mapSection.end())
+                for (Loggator *child : parseChild(itSection->second))
                 {
-                    for (Loggator *child : parseChild(itSection->second))
-                    {
-                        loggator.addChild(*child);
-                    }
+                    loggator.addChild(*child);
                 }
             }
             // LISTEN
+            itSection = mapSection.find("listen");
+            if (itSection != mapSection.end())
             {
-                MapSection::const_iterator itSection = mapSection.find("listen");
-                if (itSection != mapSection.end())
+                for (Loggator *child : parseChild(itSection->second))
                 {
-                    for (Loggator *child : parseChild(itSection->second))
-                    {
-                        loggator.listen(*child);
-                    }
+                    loggator.listen(*child);
                 }
             }
         }
@@ -526,7 +463,7 @@ private:
          */
         static std::ios::openmode parseOpenMode(const std::string &str)
         {
-            static std::map<std::string, std::ios::openmode, InsensitiveCompare> mapStrToFilter = {
+            static std::map<std::string, std::ios::openmode, InsensitiveCompare> mapStrToOpenMode = {
                 {"APP",      std::ios::app},
                 {"APPEND",   std::ios::app},
                 {"TRUNC",    std::ios::trunc},
@@ -537,8 +474,8 @@ private:
             std::size_t indexNewLine = str.find_first_of("|,+");
             if (indexNewLine == std::string::npos)
             {
-                if (mapStrToFilter.find(str) != mapStrToFilter.end())
-                    ret = mapStrToFilter[str];
+                if (mapStrToOpenMode.find(str) != mapStrToOpenMode.end())
+                    ret = mapStrToOpenMode[str];
                 return ret;
             }
             while (indexNewLine != std::string::npos)
@@ -546,13 +483,34 @@ private:
                 const std::string &strKey = parseSimpleTrim(str.substr(indexSub, ++indexNewLine - indexSub - 1));
                 indexSub = indexNewLine;
                 indexNewLine = str.find_first_of("|,+", indexSub);
-                if (mapStrToFilter.find(strKey) != mapStrToFilter.end())
-                    ret |= mapStrToFilter[strKey];
+                if (mapStrToOpenMode.find(strKey) != mapStrToOpenMode.end())
+                    ret |= mapStrToOpenMode[strKey];
             }
             const std::string &strKey = parseSimpleTrim(str.substr(indexSub, ++indexNewLine - indexSub - 1));
-            if (mapStrToFilter.find(strKey) != mapStrToFilter.end())
-                ret |= mapStrToFilter[strKey];
+            if (mapStrToOpenMode.find(strKey) != mapStrToOpenMode.end())
+                ret |= mapStrToOpenMode[strKey];
             return ret;
+        }
+
+        /**
+         * @brief parse open mode configuration
+         * 
+         * @param str 
+         * @return std::ios::openmode 
+         */
+        static std::ostream &parseOutStream(const std::string &str)
+        {
+            static std::map<std::string, std::ostream&, InsensitiveCompare> mapStrToOutStream = {
+                {"COUT",      std::cout},
+                {"STD::COUT", std::cout},
+                {"STANDARD",  std::cout},
+                {"CERR",      std::cerr},
+                {"STD::CERR", std::cerr},
+                {"ERROR",     std::cerr}
+            };
+            if (mapStrToOutStream.find(str) != mapStrToOutStream.end())
+                return mapStrToOutStream.at(str);
+            return std::cerr;
         }
 
         /**
@@ -861,9 +819,6 @@ private:
                 std::string cacheStr = _cacheStream.str();
                 if (cacheStr.size() > 1 && cacheStr[cacheStr.size() - 2] == '\n')
                     cacheStr.pop_back();
-                #ifndef LALWAYS_FLUSH
-                    _flush = (_flush || (static_cast<int>(_type) & ~(eFilterLog::EQUAL_INFO | eFilterLog::EQUAL_WARN)));
-                #endif
                 _log.sendToOutStream(cacheStr, _type, _sourceInfos, _flush);
             }
             return ;
@@ -930,13 +885,11 @@ private:
          */
         Stream &operator<<(std::ostream&(*manip)(std::ostream&))
         {
-            #ifndef LALWAYS_FLUSH
-                if (manip == &(std::flush<char, std::char_traits<char>>)
-                ||  manip == &(std::endl<char, std::char_traits<char>>))
-                {
-                    _flush = true;
-                }
-            #endif
+            if (manip == &(std::flush<char, std::char_traits<char>>)
+            ||  manip == &(std::endl<char, std::char_traits<char>>))
+            {
+                _flush = true;
+            }
             manip(_cacheStream);
             return *this;
         }
@@ -962,11 +915,13 @@ public:
     Loggator(void):
     _name(std::string()),
     _filter(eFilterLog::ALL),
+    _flushFilter(eFilterLog::ALL),
     _outStream(&std::cerr),
     _indexTimeNano(std::string::npos),
-    _mute(false)
+    _mute(false),
+    _formatNewLine(true)
     {
-        setFormat(LDEFAULT_FORMAT);
+        setFormat(LOGGATOR_DEFAULT_FORMAT);
         return ;
     }
 
@@ -978,11 +933,13 @@ public:
     Loggator(int filter):
     _name(std::string()),
     _filter(filter),
+    _flushFilter(eFilterLog::ALL),
     _outStream(&std::cerr),
     _indexTimeNano(std::string::npos),
-    _mute(false)
+    _mute(false),
+    _formatNewLine(true)
     {
-        setFormat(LDEFAULT_FORMAT);
+        setFormat(LOGGATOR_DEFAULT_FORMAT);
         return ;
     }
 
@@ -995,11 +952,13 @@ public:
     Loggator(std::ostream &oStream, int filter = eFilterLog::ALL):
     _name(std::string()),
     _filter(filter),
+    _flushFilter(eFilterLog::ALL),
     _outStream(&oStream),
     _indexTimeNano(std::string::npos),
-    _mute(false)
+    _mute(false),
+    _formatNewLine(true)
     {
-        setFormat(LDEFAULT_FORMAT);
+        setFormat(LOGGATOR_DEFAULT_FORMAT);
         return ;
     }
 
@@ -1014,13 +973,15 @@ public:
     Loggator(const std::string &name, const std::string &path, std::ofstream::openmode openMode = std::ofstream::app, int filter = eFilterLog::ALL):
     _name(name),
     _filter(filter),
+    _flushFilter(eFilterLog::ALL),
     _fileStream(path, std::ofstream::out | openMode),
     _outStream(&std::cerr),
     _indexTimeNano(std::string::npos),
-    _mute(false)
+    _mute(false),
+    _formatNewLine(true)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
-        setFormat(LDEFAULT_FORMAT);
+        setFormat(LOGGATOR_DEFAULT_FORMAT);
         if (_fileStream.is_open())
             _outStream = &_fileStream;
         // if name is not empty and not find in static list of loggators
@@ -1041,12 +1002,14 @@ public:
     Loggator(const std::string &name, int filter):
     _name(name),
     _filter(filter),
+    _flushFilter(eFilterLog::ALL),
     _outStream(&std::cerr),
     _indexTimeNano(std::string::npos),
-    _mute(false)
+    _mute(false),
+    _formatNewLine(true)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
-        setFormat(LDEFAULT_FORMAT);
+        setFormat(LOGGATOR_DEFAULT_FORMAT);
         // if name is not empty and not in static list of loggators
         if (_name.empty() == false && sMapLoggators().find(_name) == sMapLoggators().end())
         {
@@ -1066,12 +1029,14 @@ public:
     Loggator(const std::string &name, std::ostream &oStream = std::cerr, int filter = eFilterLog::ALL):
     _name(name),
     _filter(filter),
+    _flushFilter(eFilterLog::ALL),
     _outStream(&oStream),
     _indexTimeNano(std::string::npos),
-    _mute(false)
+    _mute(false),
+    _formatNewLine(true)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
-        setFormat(LDEFAULT_FORMAT);
+        setFormat(LOGGATOR_DEFAULT_FORMAT);
         // if name is not empty and not in static list of loggators
         if (_name.empty() == false && sMapLoggators().find(_name) == sMapLoggators().end())
         {
@@ -1095,9 +1060,11 @@ public:
         std::lock_guard<std::mutex> lockGuard(_mutex);
         std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
         _filter = loggator._filter;
+        _flushFilter = loggator._flushFilter;
         _format = loggator._format;
         _indexTimeNano = loggator._indexTimeNano;
         _mute = loggator._mute;
+        _formatNewLine = loggator._formatNewLine;
         loggator._logParents.insert(this);
         _logChilds.insert(&loggator);
         _mapIndexFormatKey = loggator._mapIndexFormatKey;
@@ -1124,9 +1091,11 @@ public:
         std::lock_guard<std::mutex> lockGuard(_mutex);
         std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
         _filter = loggator._filter;
+        _flushFilter = loggator._flushFilter;
         _format = loggator._format;
         _indexTimeNano = loggator._indexTimeNano;
         _mute = loggator._mute;
+        _formatNewLine = loggator._formatNewLine;
         loggator._logParents.insert(this);
         _logChilds.insert(&loggator);
         _mapIndexFormatKey = loggator._mapIndexFormatKey;
@@ -1149,9 +1118,11 @@ public:
         std::lock_guard<std::mutex> lockGuard(_mutex);
         std::lock_guard<std::mutex> lockGuardParent(loggator._mutex);
         _filter = loggator._filter;
+        _flushFilter = loggator._flushFilter;
         _format = loggator._format;
         _indexTimeNano = loggator._indexTimeNano;
         _mute = loggator._mute;
+        _formatNewLine = loggator._formatNewLine;
         for (Loggator *child : loggator._logChilds)
         {
             std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
@@ -1182,9 +1153,11 @@ public:
         std::lock_guard<std::mutex> lockGuard(_mutex);
         std::lock_guard<std::mutex> lockGuardParent(loggator._mutex);
         _filter = loggator._filter;
+        _flushFilter = loggator._flushFilter;
         _format = loggator._format;
         _indexTimeNano = loggator._indexTimeNano;
         _mute = loggator._mute;
+        _formatNewLine = loggator._formatNewLine;
         for (Loggator *child : loggator._logChilds)
         {
             std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
@@ -1208,9 +1181,11 @@ public:
         std::lock_guard<std::mutex> lockGuard(this->_mutex);
         std::lock_guard<std::mutex> lockGuardParent(rhs._mutex);
         this->_filter = rhs._filter;
+        this->_flushFilter = rhs._flushFilter;
         this->_format = rhs._format;
         this->_indexTimeNano = rhs._indexTimeNano;
         this->_mute = rhs._mute;
+        this->_formatNewLine = rhs._formatNewLine;
         for (Loggator *child : rhs._logChilds)
         {
             std::lock_guard<std::mutex> lockGuardChild(child->_mutex);
@@ -1283,6 +1258,18 @@ public:
     }
 
     /**
+     * @brief Get the Instance Loggator
+     * juste for simply use macro LOGGATOR
+     * 
+     * @param loggator 
+     * @return Loggator& 
+     */
+    static Loggator &getInstance(Loggator &loggator)
+    {
+        return loggator;
+    }
+
+    /**
      * @brief Load config from filename
      * create loggators and store in unique_ptr
      * 
@@ -1296,18 +1283,11 @@ public:
         static std::unordered_map<std::string, std::unique_ptr<Loggator> > mapLoggator;
 
         Config conf(filename);
+        Config::InsensitiveCompare insensitiveCompare;
         std::lock_guard<std::mutex> lockGuardStatic(confMutex);
         for(const std::pair<std::string, Config::MapSection> &sectionItem : conf.getConfig())
         {
-            if ((sectionItem.first[0] != 'L' && sectionItem.first[0] != 'l')
-             || (sectionItem.first[1] != 'O' && sectionItem.first[1] != 'o')
-             || (sectionItem.first[2] != 'G' && sectionItem.first[2] != 'g')
-             || (sectionItem.first[3] != 'G' && sectionItem.first[3] != 'g')
-             || (sectionItem.first[4] != 'A' && sectionItem.first[4] != 'a')
-             || (sectionItem.first[5] != 'T' && sectionItem.first[5] != 't')
-             || (sectionItem.first[6] != 'O' && sectionItem.first[6] != 'o')
-             || (sectionItem.first[7] != 'R' && sectionItem.first[7] != 'r')
-             || sectionItem.first[8] != ':')
+            if (insensitiveCompare(sectionItem.first.substr(0, 8), "LOGGATOR:") == false)
                 continue;
             std::unique_ptr<Loggator> uniquePtr(new Loggator(sectionItem.first));
             Config::setLoggatorCommon(*(uniquePtr.get()), sectionItem.second);
@@ -1324,29 +1304,34 @@ public:
         return conf.isRead();
     }
 
+    /*************************************************************************/
+
     /**
      * @brief Set the Out Stream object
      * 
      * @param os 
+     * @return Loggator& 
      */
-    void            setOutStream(std::ostream &os)
+    Loggator        &setOutStream(std::ostream &os)
     {
         close();
         std::lock_guard<std::mutex> lockGuard(_mutex);
         _outStream = &os;
+        return *this;
     }
 
     /**
      * @brief Set the Name object
      * 
      * @param name 
+     * @return Loggator& 
      */
-    void            setName(const std::string &name)
+    Loggator        &setName(const std::string &name)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
         std::lock_guard<std::mutex> lockGuard(_mutex);
         if (_name == name)
-            return ;
+            return *this;
         if (_name.empty() == false)
         {
             std::unordered_map<std::string, Log::Loggator*>::iterator it = sMapLoggators().begin();
@@ -1367,39 +1352,86 @@ public:
             // add new loggator in static list
             sMapLoggators()[_name] = this;
         }
+        return *this;
     }
 
     /**
      * @brief Set the Filter object
      * 
      * @param filter 
+     * @return Loggator& 
      */
-    void            setFilter(int filter)
+    Loggator        &setFilter(int filter)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
         _filter = filter;
+        return *this;
     }
 
     /**
      * @brief Add a Filter object
      * 
      * @param filter 
+     * @return Loggator& 
      */
-    void            addFilter(int filter)
+    Loggator        &addFilter(int filter)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
         _filter |= filter;
+        return *this;
     }
 
     /**
      * @brief Sub a Filter object
      * 
      * @param filter 
+     * @return Loggator& 
      */
-    void            subFilter(int filter)
+    Loggator        &subFilter(int filter)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
         _filter &= ~filter;
+        return *this;
+    }
+
+
+    /**
+     * @brief Set the Flush Filter object
+     * 
+     * @param flushFilter 
+     * @return Loggator& 
+     */
+    Loggator        &setFlushFilter(int flushFilter)
+    {
+        std::lock_guard<std::mutex> lockGuard(_mutex);
+        _flushFilter = flushFilter;
+        return *this;
+    }
+
+    /**
+     * @brief Add a Flush Filter object
+     * 
+     * @param flushFilter 
+     * @return Loggator& 
+     */
+    Loggator        &addFlushFilter(int flushFilter)
+    {
+        std::lock_guard<std::mutex> lockGuard(_mutex);
+        _flushFilter |= flushFilter;
+        return *this;
+    }
+
+    /**
+     * @brief Sub a Flush Filter object
+     * 
+     * @param flushFilter 
+     * @return Loggator& 
+     */
+    Loggator        &subFlushFilter(int flushFilter)
+    {
+        std::lock_guard<std::mutex> lockGuard(_mutex);
+        _flushFilter &= ~flushFilter;
+        return *this;
     }
 
     /**
@@ -1500,19 +1532,35 @@ public:
      * @brief Set the Mute object
      * 
      * @param mute 
+     * @return Loggator& 
      */
-    void            setMute(bool mute)
+    Loggator        &setMute(bool mute)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
         _mute = mute;
+        return *this;
+    }
+
+    /**
+     * @brief Set the Format New Line object
+     * 
+     * @param formatNewLine 
+     * @return Loggator& 
+     */
+    Loggator        &setFormatNewLine(bool formatNewLine)
+    {
+        std::lock_guard<std::mutex> lockGuard(_mutex);
+        _formatNewLine = formatNewLine;
+        return *this;
     }
 
     /**
      * @brief Set the Format object
      * 
      * @param format 
+     * @return Loggator& 
      */
-    void            setFormat(const std::string &format)
+    Loggator        &setFormat(const std::string &format)
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);
         _mapIndexFormatKey.clear();
@@ -1560,7 +1608,7 @@ public:
                 // if key is specific "TIME" set default format
                 if (key == "TIME")
                 {
-                    _mapCustomFormatKey[key] = LDEFAULT_TIME_FORMAT;
+                    _mapCustomFormatKey[key] = LOGGATOR_DEFAULT_TIME_FORMAT;
                     _indexTimeNano = _mapCustomFormatKey.at(key).find("%N");
                     if (_indexTimeNano != std::string::npos)
                         _mapCustomFormatKey.at(key).erase(_indexTimeNano, 2);
@@ -1623,6 +1671,7 @@ public:
                 inBracette = false;
             }
         }
+        return *this;
     }
 
     /**
@@ -1699,23 +1748,19 @@ public:
      */
     void            flush(void) const
     {
-        #ifdef LALWAYS_FLUSH
-            return;
-        #else
-            _mutex.lock();
-            if (_outStream != nullptr && _mute == false)
-            {
-                _outStream->flush();
-            }
-            if (_logChilds.empty())
-            {
-                _mutex.unlock();
-                return;
-            }
+        _mutex.lock();
+        if (_outStream != nullptr && _mute == false)
+        {
+            _outStream->flush();
+        }
+        if (_logChilds.empty())
+        {
             _mutex.unlock();
-            std::set<const Loggator*> setLog = {this};
-            flushChild(setLog, *this);
-        #endif
+            return;
+        }
+        _mutex.unlock();
+        std::set<const Loggator*> setLog = {this};
+        flushChild(setLog, *this);
     }
 
     /*************************************************************************/
@@ -1740,11 +1785,11 @@ public:
      */
     Stream          send(const eTypeLog &type, const char *format, ...) const __attribute__((__format__(__printf__, 3, 4)))
     {
-        char        buffer[LFORMAT_BUFFER_SIZE];
+        char        buffer[LOGGATOR_FORMAT_BUFFER_SIZE];
         Stream      stream(*this, type);
         va_list     vargs;
         va_start(vargs, format);
-        stream.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
+        stream.write(buffer, std::vsnprintf(buffer, LOGGATOR_FORMAT_BUFFER_SIZE - 1, format, vargs));
         va_end(vargs);
         return stream;
     }
@@ -1790,36 +1835,53 @@ public:
      */
     Stream          send(const eTypeLog &type, const SourceInfos &sourceInfos, const char *format, ...) const __attribute__((__format__(__printf__, 4, 5)))
     {
-        char        buffer[LFORMAT_BUFFER_SIZE];
+        char        buffer[LOGGATOR_FORMAT_BUFFER_SIZE];
         Stream      stream(*this, type, sourceInfos);
         va_list     vargs;
         va_start(vargs, format);
-        stream.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
+        stream.write(buffer, std::vsnprintf(buffer, LOGGATOR_FORMAT_BUFFER_SIZE - 1, format, vargs));
         va_end(vargs);
         return stream;
     }
 
-    #define LFUNCTION_TYPE(_type, _func)                                                                \
-    Stream          _func(void) const                                                                   \
-    {                                                                                                   \
-        return Stream(*this, eTypeLog::_type);                                                          \
-    }                                                                                                   \
-    Stream          _func(const char *format, ...) const __attribute__((__format__(__printf__, 2, 3)))  \
-    {                                                                                                   \
-        char        buffer[LFORMAT_BUFFER_SIZE];                                                        \
-        Stream      stream(*this, eTypeLog::_type);                                                     \
-        va_list     vargs;                                                                              \
-        va_start(vargs, format);                                                                        \
-        stream.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));           \
-        va_end(vargs);                                                                                  \
-        return stream;                                                                                  \
-    }                                                                                                   \
-    template<typename T>                                                                                \
-    Stream          _func(const T& var) const                                                           \
-    {                                                                                                   \
-        Stream stream(*this, eTypeLog::_type);                                                          \
-        stream << var;                                                                                  \
-        return stream;                                                                                  \
+    #define LFUNCTION_TYPE(_type, _func)                                                                                                \
+    Stream          _func(void) const                                                                                                   \
+    {                                                                                                                                   \
+        return Stream(*this, eTypeLog::_type);                                                                                          \
+    }                                                                                                                                   \
+    Stream          _func(const char *format, ...) const __attribute__((__format__(__printf__, 2, 3)))                                  \
+    {                                                                                                                                   \
+        char        buffer[LOGGATOR_FORMAT_BUFFER_SIZE];                                                                                \
+        Stream      stream(*this, eTypeLog::_type);                                                                                     \
+        va_list     vargs;                                                                                                              \
+        va_start(vargs, format);                                                                                                        \
+        stream.write(buffer, std::vsnprintf(buffer, LOGGATOR_FORMAT_BUFFER_SIZE - 1, format, vargs));                                   \
+        va_end(vargs);                                                                                                                  \
+        return stream;                                                                                                                  \
+    }                                                                                                                                   \
+    Stream          _func(const SourceInfos &sourceInfos, const char *format, ...) const __attribute__((__format__(__printf__, 3, 4)))  \
+    {                                                                                                                                   \
+        char        buffer[LOGGATOR_FORMAT_BUFFER_SIZE];                                                                                \
+        Stream      stream(*this, eTypeLog::_type, sourceInfos);                                                                        \
+        va_list     vargs;                                                                                                              \
+        va_start(vargs, format);                                                                                                        \
+        stream.write(buffer, std::vsnprintf(buffer, LOGGATOR_FORMAT_BUFFER_SIZE - 1, format, vargs));                                   \
+        va_end(vargs);                                                                                                                  \
+        return stream;                                                                                                                  \
+    }                                                                                                                                   \
+    template<typename T>                                                                                                                \
+    Stream          _func(const T& var) const                                                                                           \
+    {                                                                                                                                   \
+        Stream stream(*this, eTypeLog::_type);                                                                                          \
+        stream << var;                                                                                                                  \
+        return stream;                                                                                                                  \
+    }                                                                                                                                   \
+    template<typename T>                                                                                                                \
+    Stream          _func(const SourceInfos &sourceInfos, const T &var) const                                                           \
+    {                                                                                                                                   \
+        Stream stream(*this, eTypeLog::_type, sourceInfos);                                                                             \
+        stream << var;                                                                                                                  \
+        return stream;                                                                                                                  \
     }
 
     LFUNCTION_TYPE(DEBUG,   debug);
@@ -1847,17 +1909,6 @@ public:
     Stream          operator<<(const eTypeLog &type) const
     {
         return Stream(*this, type);
-    }
-
-    /**
-     * @brief override operator << to object
-     * 
-     * @param sourceInfos 
-     * @return Stream : temporary instance of Stream
-     */
-    Stream          operator<<(const SourceInfos &sourceInfos) const
-    {
-        return Stream(*this, eTypeLog::DEBUG, sourceInfos);
     }
 
     /**
@@ -1907,11 +1958,11 @@ public:
      */
     Stream          operator()(const char * format, ...) const __attribute__((__format__(__printf__, 2, 3)))
     {
-        char        buffer[LFORMAT_BUFFER_SIZE];
+        char        buffer[LOGGATOR_FORMAT_BUFFER_SIZE];
         Stream      stream(*this);
         va_list     vargs;
         va_start(vargs, format);
-        stream.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
+        stream.write(buffer, std::vsnprintf(buffer, LOGGATOR_FORMAT_BUFFER_SIZE - 1, format, vargs));
         va_end(vargs);
         return stream;
     }
@@ -1946,17 +1997,6 @@ public:
     /**
      * @brief override operator () to object
      * 
-     * @param sourceInfos 
-     * @return Stream : temporary instance of Stream
-     */
-    Stream          operator()(const SourceInfos &sourceInfos) const
-    {
-        return Stream(*this, eTypeLog::DEBUG, sourceInfos);
-    }
-
-    /**
-     * @brief override operator () to object
-     * 
      * @param type 
      * @param format 
      * @param ... 
@@ -1964,11 +2004,11 @@ public:
      */
     Stream          operator()(const eTypeLog &type, const char * format, ...) const __attribute__((__format__(__printf__, 3, 4)))
     {
-        char        buffer[LFORMAT_BUFFER_SIZE];
+        char        buffer[LOGGATOR_FORMAT_BUFFER_SIZE];
         Stream      stream(*this, type);
         va_list     vargs;
         va_start(vargs, format);
-        stream.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
+        stream.write(buffer, std::vsnprintf(buffer, LOGGATOR_FORMAT_BUFFER_SIZE - 1, format, vargs));
         va_end(vargs);
         return stream;
     }
@@ -1984,11 +2024,11 @@ public:
      */
     Stream          operator()(const eTypeLog &type, const SourceInfos &sourceInfos, const char * format, ...) const __attribute__((__format__(__printf__, 4, 5)))
     {
-        char        buffer[LFORMAT_BUFFER_SIZE];
+        char        buffer[LOGGATOR_FORMAT_BUFFER_SIZE];
         Stream      stream(*this, type, sourceInfos);
         va_list     vargs;
         va_start(vargs, format);
-        stream.write(buffer, std::vsnprintf(buffer, LFORMAT_BUFFER_SIZE - 1, format, vargs));
+        stream.write(buffer, std::vsnprintf(buffer, LOGGATOR_FORMAT_BUFFER_SIZE - 1, format, vargs));
         va_end(vargs);
         return stream;
     }
@@ -2031,7 +2071,7 @@ protected:
     /**
      * @brief 
      * struct tm  tm   : stock struct tm
-     * long       msec : stock milisecond of time
+     * char[7]    msec : stock milisecond of time
      */
     struct TimeInfo
     {
@@ -2056,24 +2096,25 @@ protected:
         if (_outStream != nullptr && _mute == false && _filter & static_cast<int>(type))
         {
             std::string tmpPrompt = prompt(this->_name, type, timeInfo, source, stringThreadID, _mapCustomValueKey);
-            #ifdef LALWAYS_FORMAT_AT_NEWLINE
+            if (_formatNewLine)
+            {
                 std::size_t indexSub = 0;
                 std::size_t indexNewLine = str.find('\n');
                 while (indexNewLine != std::string::npos)
                 {
-                    _outStream->write(tmpPrompt.c_str(), tmpPrompt.size()) << str.substr(indexSub, ++indexNewLine - indexSub);
+                    (*_outStream) << tmpPrompt << str.substr(indexSub, ++indexNewLine - indexSub);
                     indexSub = indexNewLine;
                     indexNewLine = str.find('\n', indexSub);
                 }
-            #else
-                _outStream->write(tmpPrompt.c_str(), tmpPrompt.size()) << str;
-            #endif
-            #ifdef LALWAYS_FLUSH
+            }
+            else
+            {
+                (*_outStream) << tmpPrompt << str;
+            }
+            if (flush || _flushFilter & static_cast<int>(type))
+            {
                 _outStream->flush();
-            #else
-                if (flush)
-                    _outStream->flush();
-            #endif
+            }
         }
         if (_logChilds.empty())
         {
@@ -2112,24 +2153,25 @@ protected:
                 _mutex.lock();
                 std::string tmpPrompt = child->prompt(name, type, timeInfo, source, stringThreadID, _mapCustomValueKey);
                 _mutex.unlock();
-                #ifdef LALWAYS_FORMAT_AT_NEWLINE
+                if (child->_formatNewLine)
+                {
                     std::size_t indexSub = 0;
                     std::size_t indexNewLine = str.find('\n');
                     while (indexNewLine != std::string::npos)
                     {
-                        child->_outStream->write(tmpPrompt.c_str(), tmpPrompt.size()) << str.substr(indexSub, ++indexNewLine - indexSub);
+                        (*child->_outStream) << tmpPrompt << str.substr(indexSub, ++indexNewLine - indexSub);
                         indexSub = indexNewLine;
                         indexNewLine = str.find('\n', indexSub);
                     }
-                #else
-                    child->_outStream->write(tmpPrompt.c_str(), tmpPrompt.size()) << str;
-                #endif
-                #ifdef LALWAYS_FLUSH
+                }
+                else
+                {
+                    (*child->_outStream) << tmpPrompt << str;
+                }
+                if (flush || child->_flushFilter & static_cast<int>(type))
+                {
                     child->_outStream->flush();
-                #else
-                    if (flush)
-                        child->_outStream->flush();
-                #endif
+                }
             }
             if (child->_logChilds.empty())
             {
@@ -2141,6 +2183,17 @@ protected:
         }
     }
 
+    /**
+     * @brief flush to childs
+     * 
+     * @param setLog 
+     * @param loggator 
+     * @param name 
+     * @param type 
+     * @param timeInfo 
+     * @param source 
+     * @param str 
+     */
     void            flushChild(std::set<const Loggator*> &setLog, const Loggator &loggator) const
     {
         // create a cpy of LogChild for no dead lock
@@ -2149,13 +2202,12 @@ protected:
         loggator._mutex.unlock();
         for (const Loggator *child : cpyLogChilds)
         {
-            if (setLog.find(child) != setLog.end())
+            if (setLog.insert(child).second == false)
                 continue;
-            setLog.insert(child);
             child->_mutex.lock();
             if (child->_outStream != nullptr && child->_mute == false)
             {
-                (*child->_outStream).flush();
+                child->_outStream->flush();
             }
             if (child->_logChilds.empty())
             {
@@ -2170,16 +2222,16 @@ protected:
     /**
      * @brief get string format time from TimeInfo
      * 
-     * @param infos 
+     * @param timeInfo 
      * @return std::string 
      */
-    std::string     formatTime(TimeInfo &infos) const
+    std::string     formatTime(TimeInfo &timeInfo) const
     {
-        char bufferFormatTime[LFORMAT_BUFFER_SIZE];
+        char bufferFormatTime[LOGGATOR_FORMAT_BUFFER_SIZE];
         std::string retStr = _mapCustomFormatKey.at("TIME");
         if (_indexTimeNano != std::string::npos)
-            retStr.insert(_indexTimeNano, infos.msec, 6);
-        return std::string(bufferFormatTime, 0, std::strftime(bufferFormatTime, LFORMAT_BUFFER_SIZE - 1, retStr.c_str(), &infos.tm));
+            retStr.insert(_indexTimeNano, timeInfo.msec, 6);
+        return std::string(bufferFormatTime, 0, std::strftime(bufferFormatTime, LOGGATOR_FORMAT_BUFFER_SIZE - 1, retStr.c_str(), &timeInfo.tm));
     }
 
     /**
@@ -2203,6 +2255,11 @@ protected:
         timeInfo.msec[6] = '\0';
     }
 
+    /**
+     * @brief Get the Thread Id object
+     * 
+     * @return threadId 
+     */
     void            getThreadId(std::string &threadId) const
     {
         if (threadId.empty() == false)
@@ -2275,8 +2332,8 @@ protected:
         }
         if (itValueMap->second.empty())
             return "";
-        char buffer[LFORMAT_KEY_BUFFER_SIZE];
-        return std::string(buffer, 0, std::snprintf(buffer, LFORMAT_KEY_BUFFER_SIZE - 1, itFormatMap->second.c_str(), itValueMap->second.c_str()));
+        char buffer[LOGGATOR_FORMAT_KEY_BUFFER_SIZE];
+        return std::string(buffer, 0, std::snprintf(buffer, LOGGATOR_FORMAT_KEY_BUFFER_SIZE - 1, itFormatMap->second.c_str(), itValueMap->second.c_str()));
     }
 
     /**
@@ -2290,8 +2347,8 @@ protected:
     {
         if (value.empty())
             return "";
-        char buffer[LFORMAT_KEY_BUFFER_SIZE];
-        return std::string(buffer, 0, std::snprintf(buffer, LFORMAT_KEY_BUFFER_SIZE - 1, _mapCustomFormatKey.at(key).c_str(), value.c_str()));
+        char buffer[LOGGATOR_FORMAT_KEY_BUFFER_SIZE];
+        return std::string(buffer, 0, std::snprintf(buffer, LOGGATOR_FORMAT_KEY_BUFFER_SIZE - 1, _mapCustomFormatKey.at(key).c_str(), value.c_str()));
     }
 
     /**
@@ -2369,7 +2426,7 @@ protected:
             }
         }
         for (;lastIndex < _format.size(); ++lastIndex)
-                prompt.push_back(_format[lastIndex]);
+            prompt.push_back(_format[lastIndex]);
         return prompt;
     }
 
@@ -2397,6 +2454,7 @@ protected:
 
     std::string                                     _name;
     int                                             _filter;
+    int                                             _flushFilter;
     std::string                                     _format;
     std::ofstream                                   _fileStream;
     std::ostream                                    *_outStream;
@@ -2408,12 +2466,10 @@ protected:
     std::unordered_map<std::string, std::string>    _mapCustomFormatKey;
     std::unordered_map<std::string, std::string>    _mapCustomValueKey;
     bool                                            _mute;
+    bool                                            _formatNewLine;
 
 }; // end class Loggator
 
 } // end namespace Log
-
-# undef LALWAYS_FORMAT_AT_NEWLINE
-# undef LALWAYS_FLUSH
 
 #endif // _LOG_LOGGATOR_HPP_

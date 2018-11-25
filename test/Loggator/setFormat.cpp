@@ -16,7 +16,7 @@ TEST(Loggator, setFormat)
 
     Loggator logTest("test1", oss);
     logTest.setFormat("{TYPE} {NAME:%s: }{FILE:%s: }");
-    logTest.LINFO("test1");
+    LOGGATOR(logTest, INFO, "test1");
 
     // CHECK OUTPUT
     EXPECT_EQ(oss.str(), "INFO test1: setFormat.cpp: test1\n");
@@ -29,7 +29,7 @@ TEST(Loggator, setFormat)
     CLEAR_STRINGSTREAM(oss);
 
     logTest.setFormat("{TIME:%y/%m/%d %H:%M:%S.%N: }");
-    logTest.LWARN("test3");
+    LOGGATOR(logTest, WARN, "test3");
     std::string stringCpy = oss.str();
     // std::cout << stringCpy;
 

@@ -1,5 +1,5 @@
 ##
-## Author: Mickael Blet
+## Author: Mickaël BLET
 ## 
 ##
 
@@ -7,13 +7,13 @@
 # Can be modified out template
 
 # Project directory
-HOME_DIR		:=	$(if $(HOME_DIR),$(HOME_DIR),./)
+HOME_DIR		:=	$(if $(strip $(HOME_DIR)),$(HOME_DIR),./)
 # Local library dependency
-LOCAL_LIB		:=	$(if $(LOCAL_LIB),$(LOCAL_LIB),-lpthread)
+LOCAL_LIB		:=	$(if $(strip $(LOCAL_LIB)),$(LOCAL_LIB),-lpthread)
 # Library dependency module
-MODULE_LIB		:=	$(if $(MODULE_LIB),$(MODULE_LIB),)
+MODULE_LIB		:=	$(if $(strip $(MODULE_LIB)),$(MODULE_LIB),)
 # External library dependency
-EXTERNAL_LIB	:=	$(if $(EXTERNAL_LIB),$(EXTERNAL_LIB),)
+EXTERNAL_LIB	:=	$(if $(strip $(EXTERNAL_LIB)),$(EXTERNAL_LIB),)
 
 #------------------------------------------------------------------------------
 
@@ -70,11 +70,11 @@ TEST_DIR		=	$(addprefix $(HOME_DIR), test/)
 MODULE_SUBDIR	:=	$(subst $(abspath $(CURDIR)/$(BUILD_DIR))/,,$(abspath $(CURDIR)/..)/)
 
 # Include directory
-M_INCLUDE_DIR	=	$(addsuffix $(MODULE_SUBDIR)$(NAME)/, $(INCLUDE_DIR))
+M_INCLUDE_DIR	=	$(addprefix $(INCLUDE_DIR), $(MODULE_SUBDIR)$(NAME)/)
 # Src directory
-M_SRC_DIR		=	$(addsuffix $(MODULE_SUBDIR)$(NAME)/, $(SRC_DIR))
+M_SRC_DIR		=	$(addprefix $(SRC_DIR), $(MODULE_SUBDIR)$(NAME)/)
 # Test directory
-M_TEST_DIR		=	$(addsuffix $(MODULE_SUBDIR)$(NAME)/, $(TEST_DIR))
+M_TEST_DIR		=	$(addprefix $(TEST_DIR), $(MODULE_SUBDIR)$(NAME)/)
 
 # Obj compile directory
 OBJ_DIR			=	./obj/
@@ -196,12 +196,16 @@ $(TEST_LIB):	$(MODULE_LIB)
 
 # Create debug library
 $(M_DEBUG_LIB_DIR)$(LIB_NAME):		$(OBJ_DEBUG_LIB)	| $(M_DEBUG_LIB_DIR)
-	@printf "$(COLOR_SHELL_DEBUG) /---------\\ \n -  DEBUG  - $(COLOR_SHELL_RESET)$(notdir $@)$(COLOR_SHELL_DEBUG)\n \\---------/ $(COLOR_SHELL_RESET)\n"
-	ar rc $@ $^
+$(if $(strip $(OBJ_DEBUG_LIB)), \
+	@printf "$(COLOR_SHELL_DEBUG) /---------\\ \n -  DEBUG  - $(COLOR_SHELL_RESET)$(notdir $@)$(COLOR_SHELL_DEBUG)\n \\---------/ $(COLOR_SHELL_RESET)\n" \
+	ar rc $@ $^ \
+)
 # Create release library
 $(M_RELEASE_LIB_DIR)$(LIB_NAME):	$(OBJ_RELEASE_LIB)	| $(M_RELEASE_LIB_DIR)
-	@printf "$(COLOR_SHELL_RELEASE) /---------\\ \n - RELEASE - $(COLOR_SHELL_RESET)$(notdir $@)$(COLOR_SHELL_RELEASE)\n \\---------/ $(COLOR_SHELL_RESET)\n"
-	ar rc $@ $^
+$(if $(strip $(OBJ_RELEASE_LIB)), \
+	@printf "$(COLOR_SHELL_RELEASE) /---------\\ \n - RELEASE - $(COLOR_SHELL_RESET)$(notdir $@)$(COLOR_SHELL_RELEASE)\n \\---------/ $(COLOR_SHELL_RESET)\n" \
+	ar rc $@ $^ \
+)
 # Create test library
 $(M_TEST_LIB_DIR)$(LIB_NAME):		$(OBJ_DEBUG_LIB)	| $(M_TEST_LIB_DIR)
 	@printf "$(COLOR_SHELL_TEST) /---------\\ \n -  TEST   - $(COLOR_SHELL_RESET)$(notdir $@)$(COLOR_SHELL_TEST)\n \\---------/ $(COLOR_SHELL_RESET)\n"
@@ -241,9 +245,7 @@ exe_test:		test
 
 clean:
 	/bin/rm -rf \
-	$(OBJ_DEBUG_DIR) \
-	$(OBJ_RELEASE_DIR) \
-	$(OBJ_TEST_DIR)
+	$(OBJ_DIR)
 
 fclean:			clean
 	/bin/rm -rf \

@@ -61,4 +61,4 @@ fclean:		$(MODULE)
 re:			fclean
 	$(MAKE) $(MAKEFLAG) all
 
-.PHONY:		all help debug release test clean fclean re $(MODULE)
+.PHONY:		all help debug release test exe_test clean fclean re $(MODULE)

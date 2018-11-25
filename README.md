@@ -81,27 +81,23 @@ LOGGATOR(logExample, FATAL) << "example Fatal"; // OK
 
 loggator.ini
 ```ini
+# comment
 [Loggator:debug]
-Name    = "debug"
 Filter  = "EQUAL_DEBUG"
 Format  = "{TIME:%y/%m/%d %X.%N: }"
 File    = "debug.log"
-OpenMode= "TRUNC"
-Child   = "test"
-Listen  = "test"
-Mute    = false
+OpenMode= TRUNCATE
+Child   = "test" # call loggator "test" when "debug" is call
+Listen  = "test" # call loggator "debug" when "test" is call
 
 [Loggator:test]
-Name    = "test"
-Filter  = INFO  , DEBUG , WARN
+Filter  = INFO, DEBUG, WARN ; separator |,+
 File    = "test.log"
 OpenMode= "TRUNC"
-Mute    = false
 
-[loggator:main]
-Name    = "main"
-Filter  = INFO  , DEBUG , WARN
-Child   = "test,debug"
+[loggator:default]
+Name    = "main" ; change name "default" to "main"
+Child   = "test,debug" ; separator |,+
 Mute    = true
 ```
 main.cpp

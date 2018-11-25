@@ -1289,7 +1289,10 @@ public:
         {
             if (insensitiveCompare(sectionItem.first.substr(0, 8), "LOGGATOR:") == false)
                 continue;
-            std::unique_ptr<Loggator> uniquePtr(new Loggator(sectionItem.first));
+            std::string sectionName = sectionItem.first.substr(9);
+            if (mapLoggator.find(sectionName) != mapLoggator.end())
+                continue;
+            std::unique_ptr<Loggator> uniquePtr(new Loggator(sectionName));
             Config::setLoggatorCommon(*(uniquePtr.get()), sectionItem.second);
             mapLoggator.emplace(sectionItem.first, std::move(uniquePtr));
         }
@@ -2102,14 +2105,14 @@ protected:
                 std::size_t indexNewLine = str.find('\n');
                 while (indexNewLine != std::string::npos)
                 {
-                    (*_outStream) << tmpPrompt << str.substr(indexSub, ++indexNewLine - indexSub);
+                    *(_outStream) << tmpPrompt << str.substr(indexSub, ++indexNewLine - indexSub);
                     indexSub = indexNewLine;
                     indexNewLine = str.find('\n', indexSub);
                 }
             }
             else
             {
-                (*_outStream) << tmpPrompt << str;
+                *(_outStream) << tmpPrompt << str;
             }
             if (flush || _flushFilter & static_cast<int>(type))
             {
@@ -2159,14 +2162,14 @@ protected:
                     std::size_t indexNewLine = str.find('\n');
                     while (indexNewLine != std::string::npos)
                     {
-                        (*child->_outStream) << tmpPrompt << str.substr(indexSub, ++indexNewLine - indexSub);
+                        *(child->_outStream) << tmpPrompt << str.substr(indexSub, ++indexNewLine - indexSub);
                         indexSub = indexNewLine;
                         indexNewLine = str.find('\n', indexSub);
                     }
                 }
                 else
                 {
-                    (*child->_outStream) << tmpPrompt << str;
+                    *(child->_outStream) << tmpPrompt << str;
                 }
                 if (flush || child->_flushFilter & static_cast<int>(type))
                 {

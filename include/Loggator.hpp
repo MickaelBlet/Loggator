@@ -71,7 +71,7 @@
 
 // Loggator macro
 # define LOGGATOR(...)          LOGGATOR_MACRO_CHOOSER(LOGGATOR_, __VA_ARGS__)(__VA_ARGS__)
-# define LOGGATOR_0()           Log::Loggator::getInstance(LDEFAULT_LOGGATOR_NAME)
+# define LOGGATOR_0()           Log::Loggator::getInstance(LOGGATOR_DEFAULT_LOGGATOR_NAME)
 # define LOGGATOR_1(_name)      Log::Loggator::getInstance(_name)
 # define LOGGATOR_X(_name, ...) LOGGATOR_SEND(_name, __VA_ARGS__)
 
@@ -825,6 +825,16 @@ private:
         }
 
         /*********************************************************************/
+
+        /**
+         * @brief use str function of stringStream
+         * 
+         * @return std::string : copy of string from stringStream
+         */
+        std::string str(void) const
+        {
+            return _cacheStream.str();
+        }
 
         /**
          * @brief use write function of stringStream

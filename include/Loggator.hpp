@@ -827,6 +827,16 @@ private:
         /*********************************************************************/
 
         /**
+         * @brief use str function of stringStream
+         * 
+         * @return std::string : copy of string from stringStream
+         */
+        std::string str(void) const
+        {
+            return _cacheStream.str();
+        }
+
+        /**
          * @brief use write function of stringStream
          * 
          * @param cstr 

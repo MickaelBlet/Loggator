@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-FindRelativePath=$(if $(subst $(notdir $(2)),,$(3)),$(call FindRelativePath,$(1)../,$(abspath $(2)/..),$(3)),$(1))
+FindRelativePath=$(if $(subst $(notdir $(2)),,$(3)),$(call FindRelativePath,$(1),$(abspath $(2)/..),$(3)),$(1)../)
 #------------------------------------------------------------------------------
 # Relative path
 HOME_DIR		=	$(call FindRelativePath,../,$(CURDIR),build)

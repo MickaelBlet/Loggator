@@ -22,7 +22,6 @@
 # include <map>             // map
 # include <vector>          // vector
 # include <set>             // set
-# include <limits>
 
 // stack buffer size
 # ifndef LOGGATOR_FORMAT_BUFFER_SIZE
@@ -1988,7 +1987,7 @@ public:
      * @return Stream : temporary instance of Stream
      */
     template<typename T>
-    Stream          operator()(const T& var) const
+    Stream          operator()(const T &var) const
     {
         Stream stream(*this);
         stream << var;
@@ -2055,7 +2054,7 @@ public:
      * @return Stream : temporary instance of Stream
      */
     template<typename T>
-    Stream          operator()(const eTypeLog &type, const T& var) const
+    Stream          operator()(const eTypeLog &type, const T &var) const
     {
         Stream stream(*this, type);
         stream << var;

@@ -1,0 +1,80 @@
+##
+## Author: Mickaël BLET
+##
+
+DEFAULT_NAME				=	$(notdir $(CURDIR))
+DEFAULT_BINARY_NAME			=	$(DEFAULT_NAME)
+DEFAULT_LIBRARY_NAME		=	$(addsuffix .a, $(DEFAULT_NAME))
+DEFAULT_BINARY_DIRECTORY	=	bin/
+DEFAULT_LIBRARY_DIRECTORY	=	lib/
+DEFAULT_SOURCE_DIRECTORY	=	src/
+DEFAULT_INCLUDE_DIRECTORY	=	include/
+DEFAULT_OBJECT_DIRECTORY	=	obj/
+
+DEFAULT_COMPILER			=	$(CC)
+DEFAULT_COMMON_FLAGS		=	$(CFLAGS)
+DEFAULT_DEBUG_FLAGS			=
+DEFAULT_RELEASE_FLAGS		=
+DEFAULT_TEST_FLAGS			=
+
+DEFAULT_DEBUG_LIBRARIES		=
+DEFAULT_RELEASE_LIBRARIES	=
+DEFAULT_TEST_LIBRARIES		=	-lgtest -lgtest_main -lgmock -lpthread
+
+#------------------------------------------------------------------------------
+# Can be modified out template
+
+NAME				:=	$(if $(strip $(NAME)),$(NAME),$(DEFAULT_NAME))
+BINARY_NAME			:=	$(if $(strip $(BINARY_NAME)),$(BINARY_NAME),$(DEFAULT_BINARY_NAME))
+LIBRARY_NAME		:=	$(if $(strip $(LIBRARY_NAME)),$(LIBRARY_NAME),$(DEFAULT_LIBRARY_NAME))
+BINARY_DIRECTORY	:=	$(if $(strip $(BINARY_DIRECTORY)),$(BINARY_DIRECTORY),$(DEFAULT_BINARY_DIRECTORY))
+LIBRARY_DIRECTORY	:=	$(if $(strip $(LIBRARY_DIRECTORY)),$(LIBRARY_DIRECTORY),$(DEFAULT_LIBRARY_DIRECTORY))
+SOURCE_DIRECTORY	:=	$(if $(strip $(SOURCE_DIRECTORY)),$(SOURCE_DIRECTORY),$(DEFAULT_SOURCE_DIRECTORY))
+INCLUDE_DIRECTORY	:=	$(if $(strip $(INCLUDE_DIRECTORY)),$(INCLUDE_DIRECTORY),$(DEFAULT_INCLUDE_DIRECTORY))
+OBJECT_DIRECTORY	:=	$(if $(strip $(OBJECT_DIRECTORY)),$(OBJECT_DIRECTORY),$(DEFAULT_OBJECT_DIRECTORY))
+
+COMPILER			:=	$(if $(strip $(COMPILER)),$(COMPILER),$(DEFAULT_COMPILER))
+COMMON_FLAGS		:=	$(if $(strip $(COMMON_FLAGS)),$(COMMON_FLAGS),$(DEFAULT_COMMON_FLAGS))
+DEBUG_FLAGS			:=	$(if $(strip $(DEBUG_FLAGS)),$(DEBUG_FLAGS),$(DEFAULT_DEBUG_FLAGS))
+RELEASE_FLAGS		:=	$(if $(strip $(RELEASE_FLAGS)),$(RELEASE_FLAGS),$(DEFAULT_RELEASE_FLAGS))
+TEST_FLAGS			:=	$(if $(strip $(TEST_FLAGS)),$(TEST_FLAGS),$(DEFAULT_TEST_FLAGS))
+
+# local libraries (example: -lpthread)
+DEBUG_LIBRARIES		:=	$(if $(strip $(DEBUG_LIBRARIES)),$(DEBUG_LIBRARIES),$(DEFAULT_DEBUG_LIBRARIES))
+RELEASE_LIBRARIES	:=	$(if $(strip $(RELEASE_LIBRARIES)),$(RELEASE_LIBRARIES),$(DEFAULT_RELEASE_LIBRARIES))
+TEST_LIBRARIES		:=	$(if $(strip $(TEST_LIBRARIES)),$(TEST_LIBRARIES),$(DEFAULT_TEST_LIBRARIES))
+
+#------------------------------------------------------------------------------
+
+FIND_SOURCE				=	$(shell find $(SOURCE_DIRECORY) -name "*.cpp")
+SOURCE					=	$(subst $(SOURCE_DIRECORY),,$(FIND_SOURCE))
+OBJECT_DEBUG			=	$(addprefix $(OBJECT_DEBUG_DIRECTORY), $(SOURCE:.cpp=.o))
+INCLUDE_PATH			=	$(addprefix -I, $(INCLUDE_DIRECTORY))
+
+#------------------------------------------------------------------------------
+
+all:	debug
+
+$(BINARY_DIRECTORY) $(LIBRARY_DIRECTORY):
+	@mkdir -p $(sort $(dir $@))
+
+$(OBJECT_DEBUG_DIRECTORY):
+	@mkdir -p $(sort $(dir $(OBJECT_DEBUG)))
+
+$(OBJECT_DEBUG_DIRECTORY)%.o:	$(SOURCE_DIRECORY)%.cpp | $(OBJECT_DEBUG_DIRECTORY)
+	$(COMPILER) $(COMMON_FLAGS) $(DEBUG_FLAGS) -MMD -c $< -o $@ $(INCLUDE_PATH) 
+
+$(OBJECT_RELEASE_DIRECTORY)%.o:	$(SOURCE_DIRECORY)%.cpp | $(OBJECT_RELEASE_DIRECTORY)
+	$(COMPILER) $(COMMON_FLAGS) $(RELEASE_FLAGS) -MMD -c $< -o $@ $(INCLUDE_PATH) 
+
+# $(OBJECT_TEST_DIRECTORY)%.o:	$(SOURCE_TEST_DIRECORY)%.cpp | $(OBJECT_TEST_DIRECTORY)
+# 	g++ -std=c++14 -MMD -c $< -o $@ $(INCLUDE_PATH) 
+
+debug:	$(OBJECT_DEBUG) | $(BINARY_DIRECTORY)
+	$(COMPILER) $(COMMON_FLAGS) $(DEBUG_FLAGS) -o $(BINARY_DIRECTORY)$(BINARY_NAME) $^ $(INCLUDE_PATH)
+
+#------------------------------------------------------------------------------
+
+-include $(OBJECT_DEBUG:.o=.d)
+-include $(OBJECT_RELEASE:.o=.d)
+-include $(OBJECT_TEST:.o=.d)

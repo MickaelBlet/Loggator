@@ -17,14 +17,14 @@ EXTERNAL_LIB	:=	$(if $(strip $(EXTERNAL_LIB)),$(EXTERNAL_LIB),)
 
 #------------------------------------------------------------------------------
 
-# Get last dir name for set name of library
+# Get last dir name for set name of module
 NAME			:=	$(notdir $(CURDIR))
 # Name of bynary
 BIN_NAME		=	$(NAME)
 # Name of library
 LIB_NAME		=	$(addsuffix .a, $(NAME))
 
-# Compilator
+# Compiler
 CC				=	g++
 # c++ version
 STD				=	-std=c++11

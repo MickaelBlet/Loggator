@@ -2,6 +2,8 @@
 ## Author: Mickaël BLET
 ##
 
+VERSION						=	0.0.0
+
 DEFAULT_NAME				=	$(notdir $(CURDIR))
 DEFAULT_BINARY_NAME			=	$(DEFAULT_NAME)
 DEFAULT_LIBRARY_NAME		=	$(addsuffix .a, $(DEFAULT_NAME))
@@ -46,14 +48,17 @@ TEST_LIBRARIES		:=	$(if $(strip $(TEST_LIBRARIES)),$(TEST_LIBRARIES),$(DEFAULT_T
 
 #------------------------------------------------------------------------------
 
-FIND_SOURCE				=	$(shell find $(SOURCE_DIRECORY) -name "*.cpp")
-SOURCE					=	$(subst $(SOURCE_DIRECORY),,$(FIND_SOURCE))
-OBJECT_DEBUG			=	$(addprefix $(OBJECT_DEBUG_DIRECTORY), $(SOURCE:.cpp=.o))
-INCLUDE_PATH			=	$(addprefix -I, $(INCLUDE_DIRECTORY))
+FIND_SOURCE				=	$(shell find $(SOURCE_DIRECTORY) -name "*.cpp")
+SOURCE					:=	$(subst $(SOURCE_DIRECTORY),,$(FIND_SOURCE))
+OBJECT_DEBUG			:=	$(addprefix $(OBJECT_DIRECTORY),$(SOURCE:.cpp=_debug-$(VERSION).o))
+INCLUDE_PATH			:=	$(addprefix -I, $(INCLUDE_DIRECTORY))
 
 #------------------------------------------------------------------------------
 
 all:	debug
+
+test:
+	echo $(SOURCE) $(SOURCE_DIRECTORY) $(OBJECT_DEBUG)
 
 $(BINARY_DIRECTORY) $(LIBRARY_DIRECTORY):
 	@mkdir -p $(sort $(dir $@))
@@ -61,17 +66,22 @@ $(BINARY_DIRECTORY) $(LIBRARY_DIRECTORY):
 $(OBJECT_DEBUG_DIRECTORY):
 	@mkdir -p $(sort $(dir $(OBJECT_DEBUG)))
 
-$(OBJECT_DEBUG_DIRECTORY)%.o:	$(SOURCE_DIRECORY)%.cpp | $(OBJECT_DEBUG_DIRECTORY)
-	$(COMPILER) $(COMMON_FLAGS) $(DEBUG_FLAGS) -MMD -c $< -o $@ $(INCLUDE_PATH) 
+$(OBJECT_DIRECTORY)%_debug-$(VERSION).o:	$(SOURCE_DIRECTORY)%.cpp | $(OBJECT_DEBUG_DIRECTORY)
+	$(COMPILER) $(COMMON_FLAGS) $(DEBUG_FLAGS) -MMD -c $< -o $@ $(INCLUDE_PATH)
 
-$(OBJECT_RELEASE_DIRECTORY)%.o:	$(SOURCE_DIRECORY)%.cpp | $(OBJECT_RELEASE_DIRECTORY)
-	$(COMPILER) $(COMMON_FLAGS) $(RELEASE_FLAGS) -MMD -c $< -o $@ $(INCLUDE_PATH) 
+$(OBJECT_RELEASE_DIRECTORY)%.o:	$(SOURCE_DIRECTORY)%.cpp | $(OBJECT_RELEASE_DIRECTORY)
+	$(COMPILER) $(COMMON_FLAGS) $(RELEASE_FLAGS) -MMD -c $< -o $@ $(INCLUDE_PATH)
 
-# $(OBJECT_TEST_DIRECTORY)%.o:	$(SOURCE_TEST_DIRECORY)%.cpp | $(OBJECT_TEST_DIRECTORY)
-# 	g++ -std=c++14 -MMD -c $< -o $@ $(INCLUDE_PATH) 
+$(BINARY_DIRECTORY)$(BINARY_NAME): $(OBJECT_DEBUG)
+	$(COMPILER) $(COMMON_FLAGS) $(DEBUG_FLAGS) -o $@ $^ $(INCLUDE_PATH)
 
-debug:	$(OBJECT_DEBUG) | $(BINARY_DIRECTORY)
-	$(COMPILER) $(COMMON_FLAGS) $(DEBUG_FLAGS) -o $(BINARY_DIRECTORY)$(BINARY_NAME) $^ $(INCLUDE_PATH)
+debug:	$(BINARY_DIRECTORY)$(BINARY_NAME) | $(BINARY_DIRECTORY)
+
+clean:
+	$(RM) $(OBJECT_DEBUG) $(OBJECT_DEBUG:.o=.d)
+
+re:		clean
+	$(MAKE) all
 
 #------------------------------------------------------------------------------
 

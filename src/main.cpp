@@ -16,6 +16,6 @@ int main()
     logExample.debug(LOGGATOR_SOURCEINFOS) << "source infos macro";
     test();
     LOGGATOR("main", WARN) << "macro LOGGATOR with type" << std::endl;
-    LOGGATOR(logExample, INFO, "style %s ", "printf") << "LOGGATOR";
+    LOGGATOR(logExample, INFO, "style %s ", "printf") << "LOGGATOR" << " " << VERSION;
     return (0);
 }

@@ -136,7 +136,3 @@ int main()
 // 70/01/01 01:23:45.678910 [INFO ] main.cpp:17:main: test: test    => (debug)
 // 70/01/01 01:23:45.678910 [INFO ] main.cpp:18:main: debug: (debug) => test
 ```
-
-## Wiki
-
-[Loggator Wiki](https://github.com/MickaelBlet/Loggator/wiki)

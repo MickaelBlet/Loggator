@@ -31,7 +31,6 @@ TEST(Loggator, setFormat)
     logTest.setFormat("{TIME:%y/%m/%d %H:%M:%S.%N: }");
     LOGGATOR(logTest, WARN, "test3");
     std::string stringCpy = oss.str();
-    // std::cout << stringCpy;
 
     // CHECK COUNT OUTPUT
     EXPECT_EQ(2, std::count(stringCpy.begin(), stringCpy.end(), '/'));

@@ -79,6 +79,7 @@ OBJECT_DIRECTORIES			:=	$(addprefix $(OBJECT_DIRECTORY),$(sort $(dir $(SOURCE)))
 
 SOURCE_FILTER				:=	$(filter-out $(BINARY_EXCLUDE_SOURCE),$(SOURCE))
 LIBRARY_SOURCE_FILTER		:=	$(filter-out $(LIBRARY_EXCLUDE_SOURCE),$(SOURCE))
+TEST_SOURCE_FILTER			:=	$(filter-out $(TEST_EXCLUDE_SOURCE),$(TEST))
 
 VARIABLES_DEFINE			:=	$(addprefix -D,$(sort $(VARIABLES)))
 
@@ -86,7 +87,7 @@ OBJECT_DEBUG				:=	$(addprefix $(OBJECT_DIRECTORY),$(SOURCE_FILTER:$(SOURCE_EXTE
 OBJECT_RELEASE				:=	$(addprefix $(OBJECT_DIRECTORY),$(SOURCE_FILTER:$(SOURCE_EXTENTION)=-release-$(VERSION).o))
 LIBRARY_OBJECT_DEBUG		:=	$(addprefix $(OBJECT_DIRECTORY),$(LIBRARY_SOURCE_FILTER:$(SOURCE_EXTENTION)=-debug-$(VERSION).o))
 LIBRARY_OBJECT_RELEASE		:=	$(addprefix $(OBJECT_DIRECTORY),$(LIBRARY_SOURCE_FILTER:$(SOURCE_EXTENTION)=-release-$(VERSION).o))
-OBJECT_TEST					:=	$(addprefix $(OBJECT_DIRECTORY),$(TEST:.cpp=-test-$(VERSION).o))
+OBJECT_TEST					:=	$(addprefix $(OBJECT_DIRECTORY),$(TEST_SOURCE_FILTER:.cpp=-test-$(VERSION).o))
 
 INCLUDE_PATH				:=	$(addprefix -I, $(INCLUDE_DIRECTORY))
 
@@ -113,11 +114,11 @@ $(OBJECT_DIRECTORY)%-release-$(VERSION).o:	$(SOURCE_DIRECTORY)%$(SOURCE_EXTENTIO
 $(OBJECT_DIRECTORY)%-test-$(VERSION).o:		$(TEST_DIRECTORY)%.cpp | $(OBJECT_DIRECTORIES)
 	g++ $(COMMON_FLAGS) $(TEST_FLAGS) $(VARIABLES_DEFINE) -MMD -c $< -o $@ $(INCLUDE_PATH)
 
-$(LIBRARY_DIRECTORY)$(LIBRARY_NAME:.a=-debug-$(VERSION).a):		$(LIBRARY_OBJECT_DEBUG) | $(LIBRARY_DIRECTORY)
+$(LIBRARY_DIRECTORY)$(basename $(LIBRARY_NAME))-debug-$(VERSION).a:		$(LIBRARY_OBJECT_DEBUG) | $(LIBRARY_DIRECTORY)
 	ar rc $@ $^
 	@printf "$(COLOR_SHELL_DEBUG) /---------\\ \n -  DEBUG  - $(COLOR_SHELL_RESET)$(notdir $@)$(COLOR_SHELL_DEBUG)\n \\---------/ $(COLOR_SHELL_RESET)\n"
 
-$(LIBRARY_DIRECTORY)$(LIBRARY_NAME:.a=-release-$(VERSION).a):	$(LIBRARY_OBJECT_RELEASE) | $(LIBRARY_DIRECTORY)
+$(LIBRARY_DIRECTORY)$(basename $(LIBRARY_NAME))-release-$(VERSION).a:	$(LIBRARY_OBJECT_RELEASE) | $(LIBRARY_DIRECTORY)
 	ar rc $@ $^
 	@printf "$(COLOR_SHELL_RELEASE) /---------\\ \n - RELEASE - $(COLOR_SHELL_RESET)$(notdir $@)$(COLOR_SHELL_RELEASE)\n \\---------/ $(COLOR_SHELL_RESET)\n"
 
@@ -129,22 +130,15 @@ $(BINARY_DIRECTORY)$(BINARY_NAME)-release-$(VERSION):	$(OBJECT_RELEASE) $(RELEAS
 	$(COMPILER) $(COMMON_FLAGS) $(DEBUG_FLAGS) -o $@ $^ $(INCLUDE_PATH) $(RELEASE_LIBRARIES)
 	@printf "$(COLOR_SHELL_RELEASE) /---------\\ \n - RELEASE - $(COLOR_SHELL_RESET)$(notdir $@)$(COLOR_SHELL_RELEASE)\n \\---------/ $(COLOR_SHELL_RESET)\n"
 
-$(BINARY_DIRECTORY)$(BINARY_NAME)-test-$(VERSION):		$(OBJECT_TEST) $(DEBUG_ARCHIVES) $(LIBRARY_DIRECTORY)$(LIBRARY_NAME:.a=-debug-$(VERSION).a) | $(BINARY_DIRECTORY)
+$(BINARY_DIRECTORY)$(BINARY_NAME)-test-$(VERSION):		$(OBJECT_TEST) $(DEBUG_ARCHIVES) $(LIBRARY_DIRECTORY)$(basename $(LIBRARY_NAME))-debug-$(VERSION).a | $(BINARY_DIRECTORY)
 	g++ $(COMMON_FLAGS) $(TEST_FLAGS) -o $@ $^ $(INCLUDE_PATH) $(TEST_LIBRARIES)
 	@printf "$(COLOR_SHELL_TEST) /---------\\ \n -  TEST   - $(COLOR_SHELL_RESET)$(notdir $@)$(COLOR_SHELL_TEST)\n \\---------/ $(COLOR_SHELL_RESET)\n"
 
-PRE_DEBUG::
-PRE_RELEASE::
-
-debug:			PRE_DEBUG $(BINARY_DIRECTORY)$(BINARY_NAME)-debug-$(VERSION)
-
-release:		PRE_RELEASE $(BINARY_DIRECTORY)$(BINARY_NAME)-release-$(VERSION)
-
-test:			PRE_DEBUG $(BINARY_DIRECTORY)$(BINARY_NAME)-test-$(VERSION)
-
-lib_debug:		PRE_DEBUG $(LIBRARY_DIRECTORY)$(LIBRARY_NAME:.a=-debug-$(VERSION).a)
-
-lib_release:	PRE_RELEASE $(LIBRARY_DIRECTORY)$(LIBRARY_NAME:.a=-release-$(VERSION).a)
+debug:			$(BINARY_DIRECTORY)$(BINARY_NAME)-debug-$(VERSION)
+release:		$(BINARY_DIRECTORY)$(BINARY_NAME)-release-$(VERSION)
+test:			$(BINARY_DIRECTORY)$(BINARY_NAME)-test-$(VERSION)
+lib_debug:		$(LIBRARY_DIRECTORY)$(basename $(LIBRARY_NAME))-debug-$(VERSION).a
+lib_release:	$(LIBRARY_DIRECTORY)$(basename $(LIBRARY_NAME))-release-$(VERSION).a
 
 clean:
 	$(RM) \
@@ -158,7 +152,7 @@ clean:
 re:		clean
 	$(MAKE) all
 
-PHONY: all PRE_DEBUG PRE_RELEASE debug release test lib_debug lib_release clean re
+PHONY: all debug release test lib_debug lib_release clean re
 
 #------------------------------------------------------------------------------
 

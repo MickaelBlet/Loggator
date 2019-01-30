@@ -1,8 +1,5 @@
 /**
- * @file Loggator.hpp
  * @author Mickaël BLET
- * @date 2019-01-26
- * @version v1.0
  */
 
 #ifndef _LOG_LOGGATOR_HPP_
@@ -240,6 +237,7 @@ private:
             _mapConfig.clear();
             readStream(fileStream);
             fileStream.close();
+            fileStream.clear();
             _isRead = true;
             return true;
         }
@@ -451,8 +449,9 @@ private:
             std::size_t indexNewLine = str.find_first_of("|,+");
             if (indexNewLine == std::string::npos)
             {
-                if (mapStrToFilter.find(str) != mapStrToFilter.end())
-                    filter = mapStrToFilter[str];
+                std::map<std::string, int, InsensitiveCompare>::const_iterator it = mapStrToFilter.find(str);
+                if (it != mapStrToFilter.end())
+                    filter = it->second;
                 return filter;
             }
             while (indexNewLine != std::string::npos)
@@ -460,12 +459,14 @@ private:
                 const std::string &strKey = parseSimpleTrim(str.substr(indexSub, ++indexNewLine - indexSub - 1));
                 indexSub = indexNewLine;
                 indexNewLine = str.find_first_of("|,+", indexSub);
-                if (mapStrToFilter.find(strKey) != mapStrToFilter.end())
-                    filter |= mapStrToFilter[strKey];
+                std::map<std::string, int, InsensitiveCompare>::const_iterator it = mapStrToFilter.find(strKey);
+                if (it != mapStrToFilter.end())
+                    filter |= it->second;
             }
             const std::string &strKey = parseSimpleTrim(str.substr(indexSub, ++indexNewLine - indexSub - 1));
-            if (mapStrToFilter.find(strKey) != mapStrToFilter.end())
-                filter |= mapStrToFilter[strKey];
+            std::map<std::string, int, InsensitiveCompare>::const_iterator it = mapStrToFilter.find(strKey);
+            if (it != mapStrToFilter.end())
+                filter |= it->second;
             return filter;
         }
 
@@ -488,8 +489,9 @@ private:
             std::size_t indexNewLine = str.find_first_of("|,+");
             if (indexNewLine == std::string::npos)
             {
-                if (mapStrToOpenMode.find(str) != mapStrToOpenMode.end())
-                    ret = mapStrToOpenMode[str];
+                std::map<std::string, std::ios::openmode, InsensitiveCompare>::const_iterator it = mapStrToOpenMode.find(str);
+                if (it != mapStrToOpenMode.end())
+                    ret = it->second;
                 return ret;
             }
             while (indexNewLine != std::string::npos)
@@ -497,12 +499,14 @@ private:
                 const std::string &strKey = parseSimpleTrim(str.substr(indexSub, ++indexNewLine - indexSub - 1));
                 indexSub = indexNewLine;
                 indexNewLine = str.find_first_of("|,+", indexSub);
-                if (mapStrToOpenMode.find(strKey) != mapStrToOpenMode.end())
-                    ret |= mapStrToOpenMode[strKey];
+                std::map<std::string, std::ios::openmode, InsensitiveCompare>::const_iterator it = mapStrToOpenMode.find(strKey);
+                if (it != mapStrToOpenMode.end())
+                    ret |= it->second;
             }
             const std::string &strKey = parseSimpleTrim(str.substr(indexSub, ++indexNewLine - indexSub - 1));
-            if (mapStrToOpenMode.find(strKey) != mapStrToOpenMode.end())
-                ret |= mapStrToOpenMode[strKey];
+            std::map<std::string, std::ios::openmode, InsensitiveCompare>::const_iterator it = mapStrToOpenMode.find(strKey);
+            if (it != mapStrToOpenMode.end())
+                ret |= it->second;
             return ret;
         }
 
@@ -522,8 +526,9 @@ private:
                 {"STD::CERR", std::cerr},
                 {"ERROR",     std::cerr}
             };
-            if (mapStrToOutStream.find(str) != mapStrToOutStream.end())
-                return mapStrToOutStream.at(str);
+            std::map<std::string, std::ostream&, InsensitiveCompare>::const_iterator it = mapStrToOutStream.find(str);
+            if (it != mapStrToOutStream.end())
+                return it->second;
             return std::cerr;
         }
 
@@ -1320,9 +1325,9 @@ public:
         {
             if (insensitiveCompare(sectionItem.first.substr(0, 8), "LOGGATOR:") == false)
                 continue;
-            std::string sectionName = sectionItem.first.substr(9);
-            if (mapLoggator.find(sectionName) != mapLoggator.end())
+            if (mapLoggator.find(sectionItem.first) != mapLoggator.end())
                 continue;
+            std::string sectionName = sectionItem.first.substr(9);
             std::unique_ptr<Loggator> uniquePtr(new Loggator(sectionName));
             Config::setLoggatorCommon(*(uniquePtr.get()), sectionItem.second);
             mapLoggator.emplace(sectionItem.first, std::move(uniquePtr));

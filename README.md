@@ -5,7 +5,7 @@
 ## Example
 
 ```cpp
-#include "Loggator.hpp"
+#include "loggator.hpp"
 
 using namespace Log;
 
@@ -102,7 +102,7 @@ Mute    = true
 ```
 main.cpp
 ```cpp
-#include "Loggator.hpp"
+#include "loggator.hpp"
 
 using namespace Log;
 

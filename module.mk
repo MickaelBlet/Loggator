@@ -152,7 +152,7 @@ clean:
 re:		clean
 	$(MAKE) all
 
-PHONY: all debug release test lib_debug lib_release clean re
+PHONY:	all debug release test lib_debug lib_release clean re
 
 #------------------------------------------------------------------------------
 

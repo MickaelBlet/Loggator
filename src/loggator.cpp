@@ -780,6 +780,11 @@ Loggator &Loggator::setFormat(const std::string &format)
     return *this;
 }
 
+/**
+ * @brief Get the Name object
+ * 
+ * @return const std::string& 
+ */
 const std::string &Loggator::getName(void) const
 {
     std::lock_guard<std::mutex> lockGuard(_mutex);

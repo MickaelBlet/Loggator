@@ -204,6 +204,8 @@ private:
          */
         ~Config(void);
 
+        /*********************************************************************/
+
         /**
          * @brief read config in filename
          * 
@@ -709,6 +711,11 @@ public:
      */
     Loggator &setFormat(const std::string &format);
 
+    /**
+     * @brief Get the Name object
+     * 
+     * @return const std::string& 
+     */
     const std::string &getName(void) const;
 
     /**

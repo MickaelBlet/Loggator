@@ -43,6 +43,8 @@ Loggator::Config::~Config(void)
     return ;
 }
 
+/*********************************************************************/
+
 /**
  * @brief read config in filename
  * 

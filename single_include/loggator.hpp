@@ -220,6 +220,8 @@ private:
             return ;
         }
 
+        /*********************************************************************/
+
         /**
          * @brief read config in filename
          * 
@@ -1716,6 +1718,11 @@ public:
         return *this;
     }
 
+    /**
+     * @brief Get the Name object
+     * 
+     * @return const std::string& 
+     */
     const std::string &getName(void) const
     {
         std::lock_guard<std::mutex> lockGuard(_mutex);

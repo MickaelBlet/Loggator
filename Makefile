@@ -6,16 +6,16 @@ VERSION				=	1.2.0
 
 NAME				=	loggator
 BINARY_NAME			=	loggator
-LIBRARY_NAME		=	loggator.a
+LIBRARY_NAME		=	loggator
 BINARY_DIRECTORY	=	./bin/
 LIBRARY_DIRECTORY	=	./lib/
 SOURCE_DIRECTORY	=	./src/
 TEST_DIRECTORY		=	./test/
-INCLUDE_DIRECTORY	=	../../include/ ./include/
+INCLUDE_DIRECTORY	=	./include/
 OBJECT_DIRECTORY	=	./obj/
 SOURCE_EXTENTION	=	.cpp
 
-BINARY_EXCLUDE_SOURCE	=
+BINARY_EXCLUDE_SOURCE	= loggator_config.cpp loggator_stream.cpp loggator.cpp
 LIBRARY_EXCLUDE_SOURCE	= main.cpp
 TEST_EXCLUDE_SOURCE		=
 
@@ -30,14 +30,19 @@ DEBUG_ARCHIVES		=
 RELEASE_ARCHIVES	=
 
 # local libraries (example: -lpthread)
-DEBUG_LIBRARIES		=	
-RELEASE_LIBRARIES	=	
-TEST_LIBRARIES		=	
+DEBUG_LIBRARIES		=
+RELEASE_LIBRARIES	=
+TEST_LIBRARIES		=
 
 include ./module.mk
 
-PRE_DEBUG::
+exe_test:	test
+	$(BINARY_DIRECTORY)$(BINARY_NAME)-test-$(VERSION)
 
-PRE_RELEASE::
+fclean:
+	$(RM) -r \
+	$(OBJECT_DIRECTORY) \
+	$(BINARY_DIRECTORY) \
+	$(LIBRARY_DIRECTORY)
 
 PHONY:

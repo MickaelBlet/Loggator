@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <algorithm>
 
-#include "Loggator.hpp"
+#include "loggator.hpp"
 
 #ifndef CLEAR_STRINGSTREAM
 # define CLEAR_STRINGSTREAM(ss) ss.clear(); ss.str("")
@@ -31,7 +31,6 @@ TEST(Loggator, setFormat)
     logTest.setFormat("{TIME:%y/%m/%d %H:%M:%S.%N: }");
     LOGGATOR(logTest, WARN, "test3");
     std::string stringCpy = oss.str();
-    // std::cout << stringCpy;
 
     // CHECK COUNT OUTPUT
     EXPECT_EQ(2, std::count(stringCpy.begin(), stringCpy.end(), '/'));

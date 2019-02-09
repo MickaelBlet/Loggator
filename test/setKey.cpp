@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
-#include <algorithm>
 
-#include "Loggator.hpp"
+#include "loggator.hpp"
 
 #ifndef CLEAR_STRINGSTREAM
 # define CLEAR_STRINGSTREAM(ss) ss.clear(); ss.str("")

@@ -1,4 +1,8 @@
-#include "Loggator.hpp"
+#include "../single_include/loggator.hpp"
+
+#ifndef VERSION
+# define VERSION "1.0"
+#endif
 
 using namespace Log;
 
@@ -10,6 +14,7 @@ void test()
 
 int main()
 {
+    Loggator::openConfig("./loggator.ini");
     Loggator logExample("example", std::cout);
     logExample.setFormat("{TYPE:%-5s} {TIME:%y/%m/%d %X.%N}: {NAME:%s: }{FILE:%s:}{LINE:%s: }");
     logExample.debug() << "function";

@@ -833,17 +833,17 @@ public:
         return stream;                                                                                                          \
     }
 
-    LOGGATOR_FUNCTION_TYPE(DEBUG, debug);
-    LOGGATOR_FUNCTION_TYPE(INFO,  info);
-    LOGGATOR_FUNCTION_TYPE(WARN,  warn);
-    LOGGATOR_FUNCTION_TYPE(WARN,  warning);
-    LOGGATOR_FUNCTION_TYPE(ERROR, error);
-    LOGGATOR_FUNCTION_TYPE(CRIT,  crit);
-    LOGGATOR_FUNCTION_TYPE(CRIT,  critical);
-    LOGGATOR_FUNCTION_TYPE(ALERT, alert);
-    LOGGATOR_FUNCTION_TYPE(EMERG, emerg);
-    LOGGATOR_FUNCTION_TYPE(EMERG, emergency);
-    LOGGATOR_FUNCTION_TYPE(FATAL, fatal);
+    LOGGATOR_FUNCTION_TYPE(DEBUG, debug)
+    LOGGATOR_FUNCTION_TYPE(INFO,  info)
+    LOGGATOR_FUNCTION_TYPE(WARN,  warn)
+    LOGGATOR_FUNCTION_TYPE(WARN,  warning)
+    LOGGATOR_FUNCTION_TYPE(ERROR, error)
+    LOGGATOR_FUNCTION_TYPE(CRIT,  crit)
+    LOGGATOR_FUNCTION_TYPE(CRIT,  critical)
+    LOGGATOR_FUNCTION_TYPE(ALERT, alert)
+    LOGGATOR_FUNCTION_TYPE(EMERG, emerg)
+    LOGGATOR_FUNCTION_TYPE(EMERG, emergency)
+    LOGGATOR_FUNCTION_TYPE(FATAL, fatal)
 
     #undef LOGGATOR_FUNCTION_TYPE
 

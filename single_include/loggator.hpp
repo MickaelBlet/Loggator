@@ -1567,7 +1567,7 @@ public:
         }
         std::stringstream streamThreadIDKey;
         streamThreadIDKey << std::hex << std::uppercase << std::this_thread::get_id() << key;
-        std::string threadIDKey = std::move(streamThreadIDKey.str());
+        std::string threadIDKey = streamThreadIDKey.str();
         _mapCustomValueKey[threadIDKey] = value;
         return *this;
     }
@@ -1661,7 +1661,7 @@ public:
                 {
                     _mapCustomFormatKey[key] = "%s";
                 }
-                _mapIndexFormatKey.push_back(std::move(std::pair<std::string, std::size_t>(typeFormatConvert(key), indexStart)));
+                _mapIndexFormatKey.push_back(std::pair<std::string, std::size_t>(typeFormatConvert(key), indexStart));
                 // erase the full key in string object _format [{...}]
                 _format.erase(indexStart, indexEnd - indexStart + 1);
                 // jump to next occurrence '{' after indexStart + 1
@@ -1691,7 +1691,7 @@ public:
                 if (_indexTimeNano != std::string::npos)
                     _mapCustomFormatKey.at(key).erase(_indexTimeNano, 2);
             }
-            _mapIndexFormatKey.push_back(std::move(std::pair<std::string, std::size_t>(typeFormatConvert(key), indexStart)));
+            _mapIndexFormatKey.push_back(std::pair<std::string, std::size_t>(typeFormatConvert(key), indexStart));
             // erase the full key in string object _format [{...:...}]
             _format.erase(indexStart, indexEnd - indexStart + 1);
             // jump to next occurrence '{' after indexStart + 1
@@ -1951,17 +1951,17 @@ public:
         return stream;                                                                                                          \
     }
 
-    LOGGATOR_FUNCTION_TYPE(DEBUG, debug);
-    LOGGATOR_FUNCTION_TYPE(INFO,  info);
-    LOGGATOR_FUNCTION_TYPE(WARN,  warn);
-    LOGGATOR_FUNCTION_TYPE(WARN,  warning);
-    LOGGATOR_FUNCTION_TYPE(ERROR, error);
-    LOGGATOR_FUNCTION_TYPE(CRIT,  crit);
-    LOGGATOR_FUNCTION_TYPE(CRIT,  critical);
-    LOGGATOR_FUNCTION_TYPE(ALERT, alert);
-    LOGGATOR_FUNCTION_TYPE(EMERG, emerg);
-    LOGGATOR_FUNCTION_TYPE(EMERG, emergency);
-    LOGGATOR_FUNCTION_TYPE(FATAL, fatal);
+    LOGGATOR_FUNCTION_TYPE(DEBUG, debug)
+    LOGGATOR_FUNCTION_TYPE(INFO,  info)
+    LOGGATOR_FUNCTION_TYPE(WARN,  warn)
+    LOGGATOR_FUNCTION_TYPE(WARN,  warning)
+    LOGGATOR_FUNCTION_TYPE(ERROR, error)
+    LOGGATOR_FUNCTION_TYPE(CRIT,  crit)
+    LOGGATOR_FUNCTION_TYPE(CRIT,  critical)
+    LOGGATOR_FUNCTION_TYPE(ALERT, alert)
+    LOGGATOR_FUNCTION_TYPE(EMERG, emerg)
+    LOGGATOR_FUNCTION_TYPE(EMERG, emergency)
+    LOGGATOR_FUNCTION_TYPE(FATAL, fatal)
 
     #undef LOGGATOR_FUNCTION_TYPE
 
@@ -2301,7 +2301,8 @@ protected:
         std::string retStr = _mapCustomFormatKey.at("TIME");
         if (_indexTimeNano != std::string::npos)
             retStr.insert(_indexTimeNano, timeInfo.msec, 6);
-        return std::string(bufferFormatTime, 0, std::strftime(bufferFormatTime, LOGGATOR_FORMAT_BUFFER_SIZE, retStr.c_str(), &timeInfo.tm));
+        std::size_t bufferSize = std::strftime(bufferFormatTime, LOGGATOR_FORMAT_BUFFER_SIZE, retStr.c_str(), &timeInfo.tm);
+        return std::string(bufferFormatTime, 0, bufferSize);
     }
 
     /**
@@ -2433,7 +2434,8 @@ protected:
         if (itValueMap->second.empty())
             return "";
         char buffer[LOGGATOR_FORMAT_KEY_BUFFER_SIZE];
-        return std::string(buffer, 0, std::snprintf(buffer, LOGGATOR_FORMAT_KEY_BUFFER_SIZE, itFormatMap->second.c_str(), itValueMap->second.c_str()));
+        int bufferSize = std::snprintf(buffer, LOGGATOR_FORMAT_KEY_BUFFER_SIZE, itFormatMap->second.c_str(), itValueMap->second.c_str());
+        return std::string(buffer, 0, bufferSize);
     }
 
     /**
@@ -2448,7 +2450,8 @@ protected:
         if (value.empty())
             return "";
         char buffer[LOGGATOR_FORMAT_KEY_BUFFER_SIZE];
-        return std::string(buffer, 0, std::snprintf(buffer, LOGGATOR_FORMAT_KEY_BUFFER_SIZE, _mapCustomFormatKey.at(key).c_str(), value.c_str()));
+        int bufferSize = std::snprintf(buffer, LOGGATOR_FORMAT_KEY_BUFFER_SIZE, _mapCustomFormatKey.at(key).c_str(), value.c_str());
+        return std::string(buffer, 0, bufferSize);
     }
 
     /**

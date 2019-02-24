@@ -2,7 +2,7 @@
 ## Author: Mickaël BLET
 ##
 
-VERSION				=	1.2.0
+VERSION				=	1.2.1
 
 NAME				=	loggator
 BINARY_NAME			=	loggator

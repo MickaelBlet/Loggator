@@ -58,8 +58,8 @@
 # define LOGGATOR_NARGS_SEQ(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _0, N, ...) N
 # define LOGGATOR_NARGS(...) LOGGATOR_NARGS_SEQ(__VA_ARGS__, 0, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, 1)
 # define LOGGATOR_PRE_NARGS(...) LOGGATOR_NARGS(__VA_ARGS__)
-# define LOGGAOTR_NOARGS() 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19
-# define LOGGATOR_MACRO_CHOOSER(macro_prefix, ...) LOGGATOR_CAT(macro_prefix, LOGGATOR_PRE_NARGS(LOGGAOTR_NOARGS __VA_ARGS__ ()))
+# define LOGGATOR_NOARGS() 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19
+# define LOGGATOR_MACRO_CHOOSER(macro_prefix, ...) LOGGATOR_CAT(macro_prefix, LOGGATOR_PRE_NARGS(LOGGATOR_NOARGS __VA_ARGS__ ()))
 
 // source info
 # define LOGGATOR_SOURCEINFOS Log::Loggator::SourceInfos{__FILE__, __LINE__, __func__}
@@ -223,30 +223,6 @@ private:
         /*********************************************************************/
 
         /**
-         * @brief read config in filename
-         * 
-         * @param filename 
-         * @return true : config is read
-         * @return false : config is not read
-         */
-        bool readFile(const std::string& filename)
-        {
-            _isRead = false;
-
-            std::ifstream fileStream(filename.c_str());
-
-            if (fileStream.is_open() == false)
-                return false;
-
-            _mapConfig.clear();
-            readStream(fileStream);
-            fileStream.close();
-            fileStream.clear();
-            _isRead = true;
-            return true;
-        }
-
-        /**
          * @brief check if config is read
          * 
          * @return true : if config is read
@@ -369,7 +345,6 @@ private:
         Config &operator=(const Config &rhs) = delete;
 
     private:
-
 
         /**
          * @brief parse filter configuration
@@ -611,6 +586,30 @@ private:
         }
 
         /**
+         * @brief read config in filename
+         * 
+         * @param filename 
+         * @return true : config is read
+         * @return false : config is not read
+         */
+        bool readFile(const std::string& filename)
+        {
+            _isRead = false;
+
+            std::ifstream fileStream(filename.c_str());
+
+            if (fileStream.is_open() == false)
+                return false;
+
+            _mapConfig.clear();
+            readStream(fileStream);
+            fileStream.close();
+            fileStream.clear();
+            _isRead = true;
+            return true;
+        }
+
+        /**
          * @brief check if character is comment
          * 
          * @param c 
@@ -804,7 +803,7 @@ private:
      * create a temporary object same ostringstream
      * at destruct send to loggator method (sendToStream)
      */
-    class Stream
+    class Stream : public std::ostringstream
     {
 
     public:
@@ -817,6 +816,7 @@ private:
          * @param sourceInfos 
          */
         Stream(const Loggator &loggator, const eTypeLog &type = eTypeLog::DEBUG, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}, bool flush = false):
+        _parent(*this),
         _log(loggator),
         _type(type),
         _sourceInfos(sourceInfos),
@@ -830,10 +830,11 @@ private:
          * 
          */
         Stream(Stream &&stream):
-        _log(stream._log),
-        _type(stream._type),
-        _sourceInfos(stream._sourceInfos),
-        _flush(stream._flush)
+        _parent(*this),
+        _log(std::move(stream._log)),
+        _type(std::move(stream._type)),
+        _sourceInfos(std::move(stream._sourceInfos)),
+        _flush(std::move(stream._flush))
         {
             return ;
         }
@@ -846,8 +847,8 @@ private:
         {
             if (_type != eTypeLog::NONE)
             {
-                _cacheStream.put('\n');
-                std::string cacheStr = _cacheStream.str();
+                this->put('\n');
+                std::string cacheStr = this->str();
                 if (cacheStr.size() > 1 && cacheStr[cacheStr.size() - 2] == '\n')
                     cacheStr.pop_back();
                 _log.sendToOutStream(cacheStr, _type, _sourceInfos, _flush);
@@ -856,29 +857,6 @@ private:
         }
 
         /*********************************************************************/
-
-        /**
-         * @brief use str function of stringStream
-         * 
-         * @return std::string : copy of string from stringStream
-         */
-        std::string str(void) const
-        {
-            return _cacheStream.str();
-        }
-
-        /**
-         * @brief use write function of stringStream
-         * 
-         * @param cstr 
-         * @param size 
-         * @return Stream& : instance of current object
-         */
-        Stream &write(const char *cstr, std::streamsize size)
-        {
-            _cacheStream.write(cstr, size);
-            return *this;
-        }
 
         /**
          * @brief override operator << to object
@@ -914,7 +892,7 @@ private:
         template<typename T>
         Stream &operator<<(const T &var)
         {
-            _cacheStream << var;
+            _parent << var;
             return *this;
         }
 
@@ -931,7 +909,7 @@ private:
             {
                 _flush = true;
             }
-            manip(_cacheStream);
+            manip(*this);
             return *this;
         }
 
@@ -941,11 +919,12 @@ private:
 
     private:
 
-        std::ostringstream  _cacheStream;
+        std::ostringstream  &_parent;
         const Loggator      &_log;
         eTypeLog            _type;
         SourceInfos         _sourceInfos;
         bool                _flush;
+
     }; // end class Stream
 
 public:
@@ -957,7 +936,7 @@ public:
     Loggator(void):
     _name(std::string()),
     _filter(eFilterLog::ALL),
-    _flushFilter(eFilterLog::ALL),
+    _flushFilter(eFilterLog::NONE),
     _outStream(&std::cerr),
     _indexTimeNano(std::string::npos),
     _mute(false),
@@ -975,7 +954,7 @@ public:
     Loggator(int filter):
     _name(std::string()),
     _filter(filter),
-    _flushFilter(eFilterLog::ALL),
+    _flushFilter(eFilterLog::NONE),
     _outStream(&std::cerr),
     _indexTimeNano(std::string::npos),
     _mute(false),
@@ -994,7 +973,7 @@ public:
     Loggator(std::ostream &oStream, int filter = eFilterLog::ALL):
     _name(std::string()),
     _filter(filter),
-    _flushFilter(eFilterLog::ALL),
+    _flushFilter(eFilterLog::NONE),
     _outStream(&oStream),
     _indexTimeNano(std::string::npos),
     _mute(false),
@@ -1015,7 +994,7 @@ public:
     Loggator(const std::string &name, const std::string &path, std::ofstream::openmode openMode = std::ofstream::app, int filter = eFilterLog::ALL):
     _name(name),
     _filter(filter),
-    _flushFilter(eFilterLog::ALL),
+    _flushFilter(eFilterLog::NONE),
     _fileStream(path, std::ofstream::out | openMode),
     _outStream(&std::cerr),
     _indexTimeNano(std::string::npos),
@@ -1044,7 +1023,7 @@ public:
     Loggator(const std::string &name, int filter):
     _name(name),
     _filter(filter),
-    _flushFilter(eFilterLog::ALL),
+    _flushFilter(eFilterLog::NONE),
     _outStream(&std::cerr),
     _indexTimeNano(std::string::npos),
     _mute(false),
@@ -1071,7 +1050,7 @@ public:
     Loggator(const std::string &name, std::ostream &oStream = std::cerr, int filter = eFilterLog::ALL):
     _name(name),
     _filter(filter),
-    _flushFilter(eFilterLog::ALL),
+    _flushFilter(eFilterLog::NONE),
     _outStream(&oStream),
     _indexTimeNano(std::string::npos),
     _mute(false),
@@ -1099,7 +1078,6 @@ public:
     _outStream(nullptr)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
-        std::lock_guard<std::mutex> lockGuard(_mutex);
         std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
         _filter = loggator._filter;
         _flushFilter = loggator._flushFilter;
@@ -1130,7 +1108,6 @@ public:
     _name(std::string()),
     _outStream(nullptr)
     {
-        std::lock_guard<std::mutex> lockGuard(_mutex);
         std::lock_guard<std::mutex> lockGuardChild(loggator._mutex);
         _filter = loggator._filter;
         _flushFilter = loggator._flushFilter;
@@ -1157,7 +1134,6 @@ public:
     _outStream(&std::cerr)
     {
         std::lock_guard<std::mutex> lockGuardStatic(sMapMutex());
-        std::lock_guard<std::mutex> lockGuard(_mutex);
         std::lock_guard<std::mutex> lockGuardParent(loggator._mutex);
         _filter = loggator._filter;
         _flushFilter = loggator._flushFilter;
@@ -1192,7 +1168,6 @@ public:
     _name(std::string()),
     _outStream(&std::cerr)
     {
-        std::lock_guard<std::mutex> lockGuard(_mutex);
         std::lock_guard<std::mutex> lockGuardParent(loggator._mutex);
         _filter = loggator._filter;
         _flushFilter = loggator._flushFilter;
@@ -1237,6 +1212,57 @@ public:
         this->_mapIndexFormatKey = rhs._mapIndexFormatKey;
         this->_mapCustomFormatKey = rhs._mapCustomFormatKey;
         this->_mapCustomValueKey = rhs._mapCustomValueKey;
+        return *this;
+    }
+
+    /**
+     * @brief Construct a new Loggator object
+     * 
+     * @param loggator 
+     */
+    Loggator(Loggator &&loggator):
+    _name(std::move(loggator._name)),
+    _filter(std::move(loggator._filter)),
+    _flushFilter(std::move(loggator._flushFilter)),
+    _format(std::move(loggator._format)),
+    _fileStream(std::move(loggator._fileStream)),
+    _outStream(std::move(loggator._outStream)),
+    _logParents(std::move(loggator._logParents)),
+    _logChilds(std::move(loggator._logChilds)),
+    _indexTimeNano(std::move(loggator._indexTimeNano)),
+    _mapIndexFormatKey(std::move(loggator._mapIndexFormatKey)),
+    _mapCustomFormatKey(std::move(loggator._mapCustomFormatKey)),
+    _mapCustomValueKey(std::move(loggator._mapCustomValueKey)),
+    _mute(std::move(loggator._mute)),
+    _formatNewLine(std::move(loggator._formatNewLine))
+    {
+        return ;
+    }
+
+    /**
+     * @brief override operator = to object
+     * 
+     * @param rhs 
+     * @return Loggator& 
+     */
+    Loggator &operator=(Loggator &&rhs)
+    {
+        std::lock_guard<std::mutex> lockGuard(this->_mutex);
+        std::lock_guard<std::mutex> lockGuardParent(rhs._mutex);
+        _name = std::move(rhs._name);
+        _filter = std::move(rhs._filter);
+        _flushFilter = std::move(rhs._flushFilter);
+        _format = std::move(rhs._format);
+        _fileStream = std::move(rhs._fileStream);
+        _outStream = std::move(rhs._outStream);
+        _logParents = std::move(rhs._logParents);
+        _logChilds = std::move(rhs._logChilds);
+        _indexTimeNano = std::move(rhs._indexTimeNano);
+        _mapIndexFormatKey = std::move(rhs._mapIndexFormatKey);
+        _mapCustomFormatKey = std::move(rhs._mapCustomFormatKey);
+        _mapCustomValueKey = std::move(rhs._mapCustomValueKey);
+        _mute = std::move(rhs._mute);
+        _formatNewLine = std::move(rhs._formatNewLine);
         return *this;
     }
 
@@ -1325,6 +1351,8 @@ public:
         static std::unordered_map<std::string, std::unique_ptr<Loggator> > mapLoggator;
 
         Config conf(filename);
+        if (conf.isRead() == false)
+            return false;
         Config::InsensitiveCompare insensitiveCompare;
         std::lock_guard<std::mutex> lockGuardStatic(confMutex);
         for(const std::pair<std::string, Config::MapSection> &sectionItem : conf.getConfig())
@@ -1346,7 +1374,7 @@ public:
             Config::setLoggatorChilds(*(mapLoggatorItem.second.get()), iteratorSection->second);
         }
 
-        return conf.isRead();
+        return true;
     }
 
     /*************************************************************************/
@@ -1661,7 +1689,7 @@ public:
                 {
                     _mapCustomFormatKey[key] = "%s";
                 }
-                _mapIndexFormatKey.push_back(std::pair<std::string, std::size_t>(typeFormatConvert(key), indexStart));
+                _mapIndexFormatKey.emplace_back(typeFormatConvert(key), indexStart);
                 // erase the full key in string object _format [{...}]
                 _format.erase(indexStart, indexEnd - indexStart + 1);
                 // jump to next occurrence '{' after indexStart + 1
@@ -1691,7 +1719,7 @@ public:
                 if (_indexTimeNano != std::string::npos)
                     _mapCustomFormatKey.at(key).erase(_indexTimeNano, 2);
             }
-            _mapIndexFormatKey.push_back(std::pair<std::string, std::size_t>(typeFormatConvert(key), indexStart));
+            _mapIndexFormatKey.emplace_back(typeFormatConvert(key), indexStart);
             // erase the full key in string object _format [{...:...}]
             _format.erase(indexStart, indexEnd - indexStart + 1);
             // jump to next occurrence '{' after indexStart + 1

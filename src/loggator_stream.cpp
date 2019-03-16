@@ -20,6 +20,7 @@ namespace Log
  * @param sourceInfos 
  */
 Loggator::Stream::Stream(const Loggator &loggator, const eTypeLog &type, const SourceInfos &sourceInfos, bool flush):
+_parent(*this),
 _log(loggator),
 _type(type),
 _sourceInfos(sourceInfos),
@@ -33,10 +34,11 @@ _flush(flush)
  * 
  */
 Loggator::Stream::Stream(Stream &&stream):
-_log(stream._log),
-_type(stream._type),
-_sourceInfos(stream._sourceInfos),
-_flush(stream._flush)
+_parent(*this),
+_log(std::move(stream._log)),
+_type(std::move(stream._type)),
+_sourceInfos(std::move(stream._sourceInfos)),
+_flush(std::move(stream._flush))
 {
     return ;
 }
@@ -49,8 +51,8 @@ Loggator::Stream::~Stream(void)
 {
     if (_type != eTypeLog::NONE)
     {
-        _cacheStream.put('\n');
-        std::string cacheStr = _cacheStream.str();
+        this->put('\n');
+        std::string cacheStr = this->str();
         if (cacheStr.size() > 1 && cacheStr[cacheStr.size() - 2] == '\n')
             cacheStr.pop_back();
         _log.sendToOutStream(cacheStr, _type, _sourceInfos, _flush);
@@ -59,29 +61,6 @@ Loggator::Stream::~Stream(void)
 }
 
 /*********************************************************************/
-
-/**
- * @brief use str function of stringStream
- * 
- * @return std::string : copy of string from stringStream
- */
-std::string Loggator::Stream::str(void) const
-{
-    return _cacheStream.str();
-}
-
-/**
- * @brief use write function of stringStream
- * 
- * @param cstr 
- * @param size 
- * @return Stream& : instance of current object
- */
-Loggator::Stream &Loggator::Stream::write(const char *cstr, std::streamsize size)
-{
-    _cacheStream.write(cstr, size);
-    return *this;
-}
 
 /**
  * @brief override operator << to object
@@ -120,7 +99,7 @@ Loggator::Stream &Loggator::Stream::operator<<(std::ostream&(*manip)(std::ostrea
     {
         _flush = true;
     }
-    manip(_cacheStream);
+    manip(*this);
     return *this;
 }
 

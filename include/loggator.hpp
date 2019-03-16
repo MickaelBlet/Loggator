@@ -58,8 +58,8 @@
 # define LOGGATOR_NARGS_SEQ(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _0, N, ...) N
 # define LOGGATOR_NARGS(...) LOGGATOR_NARGS_SEQ(__VA_ARGS__, 0, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, 1)
 # define LOGGATOR_PRE_NARGS(...) LOGGATOR_NARGS(__VA_ARGS__)
-# define LOGGAOTR_NOARGS() 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19
-# define LOGGATOR_MACRO_CHOOSER(macro_prefix, ...) LOGGATOR_CAT(macro_prefix, LOGGATOR_PRE_NARGS(LOGGAOTR_NOARGS __VA_ARGS__ ()))
+# define LOGGATOR_NOARGS() 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19
+# define LOGGATOR_MACRO_CHOOSER(macro_prefix, ...) LOGGATOR_CAT(macro_prefix, LOGGATOR_PRE_NARGS(LOGGATOR_NOARGS __VA_ARGS__ ()))
 
 // source info
 # define LOGGATOR_SOURCEINFOS Log::Loggator::SourceInfos{__FILE__, __LINE__, __func__}
@@ -207,15 +207,6 @@ private:
         /*********************************************************************/
 
         /**
-         * @brief read config in filename
-         * 
-         * @param filename 
-         * @return true : config is read
-         * @return false : config is not read
-         */
-        bool readFile(const std::string& filename);
-
-        /**
          * @brief check if config is read
          * 
          * @return true : if config is read
@@ -250,7 +241,6 @@ private:
         Config &operator=(const Config &rhs) = delete;
 
     private:
-
 
         /**
          * @brief parse filter configuration
@@ -300,6 +290,15 @@ private:
          * @return std::string : string without space characters at begin and end
          */
         static std::string parseSimpleTrim(const std::string &str);
+
+        /**
+         * @brief read config in filename
+         * 
+         * @param filename 
+         * @return true : config is read
+         * @return false : config is not read
+         */
+        bool readFile(const std::string& filename);
 
         /**
          * @brief check if character is comment
@@ -356,7 +355,7 @@ private:
      * create a temporary object same ostringstream
      * at destruct send to loggator method (sendToStream)
      */
-    class Stream
+    class Stream : public std::ostringstream
     {
 
     public:
@@ -385,22 +384,6 @@ private:
         /*********************************************************************/
 
         /**
-         * @brief use str function of stringStream
-         * 
-         * @return std::string : copy of string from stringStream
-         */
-        std::string str(void) const;
-
-        /**
-         * @brief use write function of stringStream
-         * 
-         * @param cstr 
-         * @param size 
-         * @return Stream& : instance of current object
-         */
-        Stream &write(const char *cstr, std::streamsize size);
-
-        /**
          * @brief override operator << to object
          * 
          * @param type : new type of instance
@@ -426,7 +409,7 @@ private:
         template<typename T>
         Stream &operator<<(const T &var)
         {
-            _cacheStream << var;
+            _parent << var;
             return *this;
         }
 
@@ -444,11 +427,12 @@ private:
 
     private:
 
-        std::ostringstream  _cacheStream;
+        std::ostringstream  &_parent;
         const Loggator      &_log;
         eTypeLog            _type;
         SourceInfos         _sourceInfos;
         bool                _flush;
+
     }; // end class Stream
 
 public:
@@ -538,6 +522,21 @@ public:
      * @return Loggator& 
      */
     Loggator &operator=(const Loggator &rhs);
+
+    /**
+     * @brief Construct a new Loggator object
+     * 
+     * @param loggator 
+     */
+    Loggator(Loggator &&loggator);
+
+    /**
+     * @brief override operator = to object
+     * 
+     * @param rhs 
+     * @return Loggator& 
+     */
+    Loggator &operator=(Loggator &&rhs);
 
     /**
      * @brief Destroy the Loggator object

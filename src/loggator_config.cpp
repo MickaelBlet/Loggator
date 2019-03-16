@@ -46,30 +46,6 @@ Loggator::Config::~Config(void)
 /*********************************************************************/
 
 /**
- * @brief read config in filename
- * 
- * @param filename 
- * @return true : config is read
- * @return false : config is not read
- */
-bool Loggator::Config::readFile(const std::string& filename)
-{
-    _isRead = false;
-
-    std::ifstream fileStream(filename.c_str());
-
-    if (fileStream.is_open() == false)
-        return false;
-
-    _mapConfig.clear();
-    readStream(fileStream);
-    fileStream.close();
-    fileStream.clear();
-    _isRead = true;
-    return true;
-}
-
-/**
  * @brief check if config is read
  * 
  * @return true : if config is read
@@ -429,6 +405,30 @@ std::string Loggator::Config::parseSimpleTrim(const std::string &str)
     while (end > 0 && isspace(str[end]))
         --end;
     return str.substr(start, end - start + 1);
+}
+
+/**
+ * @brief read config in filename
+ * 
+ * @param filename 
+ * @return true : config is read
+ * @return false : config is not read
+ */
+bool Loggator::Config::readFile(const std::string& filename)
+{
+    _isRead = false;
+
+    std::ifstream fileStream(filename.c_str());
+
+    if (fileStream.is_open() == false)
+        return false;
+
+    _mapConfig.clear();
+    readStream(fileStream);
+    fileStream.close();
+    fileStream.clear();
+    _isRead = true;
+    return true;
 }
 
 /**

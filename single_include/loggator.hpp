@@ -803,7 +803,7 @@ private:
      * create a temporary object same ostringstream
      * at destruct send to loggator method (sendToStream)
      */
-    class Stream : public std::ostringstream
+    class Stream
     {
 
     public:
@@ -816,7 +816,6 @@ private:
          * @param sourceInfos 
          */
         Stream(const Loggator &loggator, const eTypeLog &type = eTypeLog::DEBUG, const SourceInfos &sourceInfos = {nullptr, 0, nullptr}, bool flush = false):
-        _parent(*this),
         _log(loggator),
         _type(type),
         _sourceInfos(sourceInfos),
@@ -830,7 +829,6 @@ private:
          * 
          */
         Stream(Stream &&stream):
-        _parent(*this),
         _log(std::move(stream._log)),
         _type(std::move(stream._type)),
         _sourceInfos(std::move(stream._sourceInfos)),
@@ -847,8 +845,8 @@ private:
         {
             if (_type != eTypeLog::NONE)
             {
-                this->put('\n');
-                std::string cacheStr = this->str();
+                _cacheStream.put('\n');
+                std::string cacheStr = _cacheStream.str();
                 if (cacheStr.size() > 1 && cacheStr[cacheStr.size() - 2] == '\n')
                     cacheStr.pop_back();
                 _log.sendToOutStream(cacheStr, _type, _sourceInfos, _flush);
@@ -857,6 +855,29 @@ private:
         }
 
         /*********************************************************************/
+
+        /**
+         * @brief use str function of stringStream
+         * 
+         * @return std::string : copy of string from stringStream
+         */
+        std::string str(void) const
+        {
+            return _cacheStream.str();
+        }
+
+         /**
+         * @brief use write function of stringStream
+         * 
+         * @param cstr 
+         * @param size 
+         * @return Stream& : instance of current object
+         */
+        Stream &write(const char *cstr, std::streamsize size)
+        {
+            _cacheStream.write(cstr, size);
+            return *this;
+        }
 
         /**
          * @brief override operator << to object
@@ -892,7 +913,7 @@ private:
         template<typename T>
         Stream &operator<<(const T &var)
         {
-            _parent << var;
+            _cacheStream << var;
             return *this;
         }
 
@@ -909,7 +930,7 @@ private:
             {
                 _flush = true;
             }
-            manip(*this);
+            manip(_cacheStream);
             return *this;
         }
 
@@ -919,7 +940,7 @@ private:
 
     private:
 
-        std::ostringstream  &_parent;
+        std::ostringstream  _cacheStream;
         const Loggator      &_log;
         eTypeLog            _type;
         SourceInfos         _sourceInfos;

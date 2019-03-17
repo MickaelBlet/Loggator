@@ -355,7 +355,7 @@ private:
      * create a temporary object same ostringstream
      * at destruct send to loggator method (sendToStream)
      */
-    class Stream : public std::ostringstream
+    class Stream
     {
 
     public:
@@ -384,6 +384,22 @@ private:
         /*********************************************************************/
 
         /**
+         * @brief use str function of stringStream
+         * 
+         * @return std::string : copy of string from stringStream
+         */
+        std::string str(void) const;
+
+         /**
+         * @brief use write function of stringStream
+         * 
+         * @param cstr 
+         * @param size 
+         * @return Stream& : instance of current object
+         */
+        Stream &write(const char *cstr, std::streamsize size);
+
+        /**
          * @brief override operator << to object
          * 
          * @param type : new type of instance
@@ -409,7 +425,7 @@ private:
         template<typename T>
         Stream &operator<<(const T &var)
         {
-            _parent << var;
+            _cacheStream << var;
             return *this;
         }
 
@@ -427,7 +443,7 @@ private:
 
     private:
 
-        std::ostringstream  &_parent;
+        std::ostringstream  _cacheStream;
         const Loggator      &_log;
         eTypeLog            _type;
         SourceInfos         _sourceInfos;

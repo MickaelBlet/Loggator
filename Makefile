@@ -60,9 +60,9 @@ OBJECT_DIRECTORY		=	./obj/
 SOURCE_EXTENTION		=	.cpp
 
 # exclude source for binary
-BINARY_EXCLUDE_SOURCE	=	loggator/loggator_config.cpp \
-							loggator/loggator_stream.cpp \
-							loggator/loggator.cpp
+BINARY_EXCLUDE_SOURCE	=	loggator_config.cpp \
+							loggator_stream.cpp \
+							loggator.cpp
 
 # exclude source for library
 LIBRARY_EXCLUDE_SOURCE	=	main.cpp

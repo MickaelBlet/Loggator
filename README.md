@@ -1,4 +1,4 @@
-# Loggator
+# Loggator [![Build Status](https://travis-ci.org/MickaelBlet/Loggator.svg?branch=master)](https://travis-ci.org/MickaelBlet/Loggator)
 
 **Logger** for **C++11**.
 

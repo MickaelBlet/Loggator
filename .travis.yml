@@ -1,7 +1,5 @@
 language: cpp
-os:
-  - linux
-compiler:
-  - clang
-  - gcc
-srcipt: make
+compiler: gcc
+os: linux
+dist: xenial
+script: make

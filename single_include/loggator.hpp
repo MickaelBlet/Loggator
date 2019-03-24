@@ -2151,7 +2151,7 @@ protected:
     struct TimeInfo
     {
         struct tm   tm;
-        char        msec[7];
+        char        msec[8];
     };
 
     /**
@@ -2301,7 +2301,8 @@ protected:
         std::string retStr = _mapCustomFormatKey.at("TIME");
         if (_indexTimeNano != std::string::npos)
             retStr.insert(_indexTimeNano, timeInfo.msec, 6);
-        return std::string(bufferFormatTime, 0, std::strftime(bufferFormatTime, LOGGATOR_FORMAT_BUFFER_SIZE, retStr.c_str(), &timeInfo.tm));
+        std::strftime(bufferFormatTime, LOGGATOR_FORMAT_BUFFER_SIZE, retStr.c_str(), &timeInfo.tm);
+        return bufferFormatTime;
     }
 
     /**
@@ -2321,7 +2322,7 @@ protected:
         #else
             localtime_s(&timeInfo.tm, &timer);
         #endif
-        std::snprintf(timeInfo.msec, 7, "%06d", static_cast<int>(std::chrono::duration_cast<std::chrono::microseconds>(duration).count() % 1000000));
+        std::snprintf(timeInfo.msec, 8, "%06d", static_cast<int>(std::chrono::duration_cast<std::chrono::microseconds>(duration).count() % 1000000));
         timeInfo.msec[6] = '\0';
     }
 
@@ -2433,7 +2434,8 @@ protected:
         if (itValueMap->second.empty())
             return "";
         char buffer[LOGGATOR_FORMAT_KEY_BUFFER_SIZE];
-        return std::string(buffer, 0, std::snprintf(buffer, LOGGATOR_FORMAT_KEY_BUFFER_SIZE, itFormatMap->second.c_str(), itValueMap->second.c_str()));
+        int bufferSize = std::snprintf(buffer, LOGGATOR_FORMAT_KEY_BUFFER_SIZE, itFormatMap->second.c_str(), itValueMap->second.c_str());
+        return std::string(buffer, 0, bufferSize);
     }
 
     /**
@@ -2448,7 +2450,8 @@ protected:
         if (value.empty())
             return "";
         char buffer[LOGGATOR_FORMAT_KEY_BUFFER_SIZE];
-        return std::string(buffer, 0, std::snprintf(buffer, LOGGATOR_FORMAT_KEY_BUFFER_SIZE, _mapCustomFormatKey.at(key).c_str(), value.c_str()));
+        int bufferSize = std::snprintf(buffer, LOGGATOR_FORMAT_KEY_BUFFER_SIZE, _mapCustomFormatKey.at(key).c_str(), value.c_str());
+        return std::string(buffer, 0, bufferSize);
     }
 
     /**

@@ -6,7 +6,7 @@
 
 using namespace Log;
 
-void test()
+static void test()
 {
     LOGGATOR("example") << "macro LOGGATOR";
     LOGGATOR("example").setName("main");
@@ -15,7 +15,7 @@ void test()
 int main()
 {
     Loggator::openConfig("./loggator.ini");
-    Loggator logExample("example", std::cout);
+    Loggator logExample("example", std::cout, 0);
     logExample.setFormat("{TYPE:%-5s} {TIME:%y/%m/%d %X.%N}: {NAME:%s: }{FILE:%s:}{LINE:%s: }");
     logExample.debug() << "function";
     logExample.debug(LOGGATOR_SOURCEINFOS) << "source infos macro";

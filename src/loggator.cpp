@@ -1281,7 +1281,7 @@ void Loggator::getCurrentTimeInfo(TimeInfo &timeInfo) const
     #else
         localtime_s(&timeInfo.tm, &timer);
     #endif
-    std::snprintf(timeInfo.msec, 7, "%06lu", std::chrono::duration_cast<std::chrono::microseconds>(duration).count() % 1000000);
+    std::snprintf(timeInfo.msec, 7, "%06d", static_cast<int>(std::chrono::duration_cast<std::chrono::microseconds>(duration).count() % 1000000));
     timeInfo.msec[6] = '\0';
 }
 

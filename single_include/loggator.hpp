@@ -1567,7 +1567,7 @@ public:
         }
         std::stringstream streamThreadIDKey;
         streamThreadIDKey << std::hex << std::uppercase << std::this_thread::get_id() << key;
-        std::string threadIDKey = std::move(streamThreadIDKey.str());
+        std::string threadIDKey = streamThreadIDKey.str();
         _mapCustomValueKey[threadIDKey] = value;
         return *this;
     }
@@ -1661,7 +1661,7 @@ public:
                 {
                     _mapCustomFormatKey[key] = "%s";
                 }
-                _mapIndexFormatKey.push_back(std::move(std::pair<std::string, std::size_t>(typeFormatConvert(key), indexStart)));
+                _mapIndexFormatKey.emplace_back(typeFormatConvert(key), indexStart);
                 // erase the full key in string object _format [{...}]
                 _format.erase(indexStart, indexEnd - indexStart + 1);
                 // jump to next occurrence '{' after indexStart + 1
@@ -1691,7 +1691,7 @@ public:
                 if (_indexTimeNano != std::string::npos)
                     _mapCustomFormatKey.at(key).erase(_indexTimeNano, 2);
             }
-            _mapIndexFormatKey.push_back(std::move(std::pair<std::string, std::size_t>(typeFormatConvert(key), indexStart)));
+            _mapIndexFormatKey.emplace_back(typeFormatConvert(key), indexStart);
             // erase the full key in string object _format [{...:...}]
             _format.erase(indexStart, indexEnd - indexStart + 1);
             // jump to next occurrence '{' after indexStart + 1
